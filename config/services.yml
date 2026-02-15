@@ -1,0 +1,25 @@
+services:
+    # Controller Principal
+    mundophpbb.workspace.controller.main:
+        class: mundophpbb\workspace\controller\main
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+
+    # Listener Consolidado (Agora com 5 argumentos)
+    mundophpbb.workspace.listener:
+        class: mundophpbb\workspace\event\main_listener
+        arguments:
+            - '@controller.helper'
+            - '@user'
+            - '@auth'
+            - '@template'
+            - '%core.root_path%'
+        tags:
+            - { name: kernel.event_subscriber }

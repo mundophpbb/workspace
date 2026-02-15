@@ -1,0 +1,340 @@
+/* ============================================================
+   Mundo phpBB Workspace - Tema Consolidado (IDE Focus)
+   ============================================================ */
+
+:root {
+    --wsp-bg-main: #1e1e1e;
+    --wsp-bg-sidebar: #252526;
+    --wsp-bg-toolbar: #2d2d2d;
+    --wsp-border: #333;
+    --wsp-blue: #007acc;
+    --wsp-blue-hover: #0062a3;
+    --wsp-text: #d4d4d4;
+    --wsp-accent: #569cd6;
+    --wsp-folder: #dcb67a;
+    --wsp-danger: #f44336;
+    --wsp-success: #28a745;
+    
+    /* Cores para o Diff (Padrão GitHub Dark) */
+    --wsp-diff-add-bg: rgba(46, 160, 67, 0.25);
+    --wsp-diff-add-line: #3fb950;
+    --wsp-diff-remove-bg: rgba(248, 81, 73, 0.25);
+    --wsp-diff-remove-line: #f85149;
+    --wsp-diff-info-bg: rgba(56, 139, 253, 0.1);
+    --wsp-diff-info-line: #79c0ff;
+}
+
+/* Ajuste para Standalone: Garante que a IDE ocupe a tela toda */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Impede scroll duplo */
+}
+
+.workspace-wrapper {
+    display: flex;
+    height: 100vh; /* Ocupa 100% da altura da janela visual */
+    background: var(--wsp-bg-main);
+    color: var(--wsp-text);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    border: none;
+}
+
+/* --- NOVO: Botão de Fechar a IDE --- */
+.wsp-close-ide {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    z-index: 9999; /* Garante que fica acima do Editor Ace */
+    color: #888;
+    font-size: 20px;
+    cursor: pointer;
+    transition: color 0.2s, transform 0.2s;
+    background: rgba(0,0,0,0.2);
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.wsp-close-ide:hover {
+    color: var(--wsp-danger);
+    transform: scale(1.1);
+    background: rgba(0,0,0,0.5);
+}
+
+/* Sidebar e Árvore de Arquivos */
+.workspace-sidebar {
+    width: 280px;
+    min-width: 280px;
+    border-right: 1px solid var(--wsp-border);
+    padding: 10px 0;
+    background: var(--wsp-bg-sidebar);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-title {
+    color: #fff;
+    padding: 0 15px;
+    margin-bottom: 15px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.project-group { margin-bottom: 20px; list-style: none; }
+.project-title { 
+    font-weight: bold; 
+    color: var(--wsp-accent); 
+    padding: 8px 15px;
+    cursor: default; 
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,0.03);
+}
+
+.file-list, .folder-content { list-style: none; padding: 0; margin: 0; }
+
+.folder-title {
+    display: flex;
+    align-items: center;
+    padding: 4px 15px;
+    color: var(--wsp-folder);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.file-item {
+    padding: 3px 15px 3px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.2s;
+    border-left: 2px solid transparent;
+}
+
+.file-item:hover, .folder-title:hover { background: #2a2d2e; }
+
+/* Estado de Arquivo Ativo na Sidebar */
+.active-file {
+    background: #37373d !important;
+    border-left: 2px solid var(--wsp-blue) !important;
+}
+
+.file-item i { font-size: 12px; color: #9cdcfe; margin-right: 8px; }
+.file-item a { color: var(--wsp-text); text-decoration: none; font-size: 13px; flex-grow: 1; outline: none; }
+
+/* Ações de Arquivo (Hover) */
+.file-actions { display: none; gap: 8px; }
+.file-item:hover .file-actions { display: flex; }
+.file-actions a { opacity: 0.5; transition: opacity 0.2s; }
+.file-actions a:hover { opacity: 1; }
+
+/* Área do Editor e Toolbar */
+.workspace-editor-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.workspace-toolbar {
+    height: 35px;
+    background: var(--wsp-bg-toolbar);
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    border-bottom: 1px solid var(--wsp-bg-main);
+    justify-content: space-between;
+}
+
+.toolbar-actions { display: flex; gap: 8px; align-items: center; }
+#editor { flex-grow: 1; width: 100%; font-size: 14px; }
+.file-info { font-size: 12px; color: #888; display: flex; align-items: center; }
+
+/* --- CUSTOMIZAÇÃO DAS CORES DENTRO DO ACE EDITOR (IDE) --- */
+/* Fundo das linhas de mudança */
+#editor .ace_marker-layer .ace_add { background-color: var(--wsp-diff-add-bg) !important; }
+#editor .ace_marker-layer .ace_remove { background-color: var(--wsp-diff-remove-bg) !important; }
+
+/* Cor do texto das linhas de mudança */
+#editor .ace_diff.ace_add { color: var(--wsp-diff-add-line) !important; }
+#editor .ace_diff.ace_remove { color: var(--wsp-diff-remove-line) !important; }
+
+/* Cor e fundo do cabeçalho de contexto (@@) */
+#editor .ace_diff.ace_header { 
+    color: var(--wsp-diff-info-line) !important; 
+    background: var(--wsp-diff-info-bg) !important; 
+}
+
+/* FIX OPACIDADE: Garante nitidez total em todas as linhas */
+#editor .ace_line { opacity: 1 !important; }
+
+/* Botões */
+.btn-save, .btn-copy {
+    color: white;
+    border: none;
+    padding: 4px 12px;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-save { background: var(--wsp-blue); display: none; }
+.btn-save:hover { background: var(--wsp-blue-hover); }
+.btn-copy { background: #444; }
+.btn-copy:hover { background: #555; }
+
+/* ============================================================
+    ESTILIZAÇÃO DO BBCODE DIFF (PATCH WIZARD STYLE)
+   ============================================================ */
+
+.diff-wizard {
+    border: 1px solid #30363d;
+    background: #0d1117;
+    border-radius: 6px;
+    margin: 15px 0;
+    overflow: hidden;
+}
+
+.diff-header {
+    background: #161b22;
+    padding: 6px 15px;
+    color: #e2c08d;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    border-bottom: 1px solid #30363d;
+    font-weight: bold;
+}
+
+.diff-content {
+    background: #0d1117 !important;
+    color: #c9d1d9;
+    padding: 10px 0 !important;
+    font-family: 'Cascadia Code', Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0;
+    overflow-x: auto;
+}
+
+.diff-content span {
+    display: block;
+    padding: 0 15px;
+    white-space: pre;
+    min-height: 1.6em;
+}
+
+.diff-line-add {
+    background-color: var(--wsp-diff-add-bg) !important;
+    color: var(--wsp-diff-add-line) !important;
+}
+
+.diff-line-del {
+    background-color: var(--wsp-diff-remove-bg) !important;
+    color: var(--wsp-diff-remove-line) !important;
+}
+
+.diff-line-info {
+    color: var(--wsp-diff-info-line) !important;
+    background: var(--wsp-diff-info-bg) !important;
+    font-style: italic;
+}
+
+.diff-patch-header {
+    color: #e2c08d !important;
+    font-weight: bold;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Estilo para as Pastas na Barra Lateral */
+.folder-item {
+    list-style: none;
+    margin-left: 10px;
+}
+
+.folder-title {
+    cursor: pointer;
+    padding: 4px 8px;
+    color: #cccccc;
+    font-weight: bold;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+.folder-title:hover {
+    background: #37373d;
+    color: #ffffff;
+}
+
+.folder-title i {
+    color: #e2c08d; /* Cor dourada para pastas */
+    margin-right: 6px;
+}
+
+.folder-content {
+    border-left: 1px solid #444;
+    margin-left: 10px;
+    padding-left: 5px;
+}
+
+/* Destaque para o botão de Pesquisa */
+.open-search-replace:hover i {
+    color: #ffffff !important;
+    transform: scale(1.2);
+}
+
+/* Ajustes no Modal de Busca e Substituição */
+#search-replace-modal input[type="text"] {
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+#search-replace-modal input[type="text"]:focus {
+    border-color: #007acc;
+}
+
+/* Feedback de Arrastar Arquivo (Drag & Drop) */
+.project-title.drag-over {
+    background: #2d2d30 !important;
+    border: 1px dashed #007acc;
+}
+
+/* Botão de Substituição em Massa */
+#exec-replace-btn {
+    transition: opacity 0.2s;
+}
+
+#exec-replace-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Forçar a renderização correta dos ícones Font Awesome */
+.fa, .fa-times {
+    font-family: 'FontAwesome' !important;
+    font-style: normal;
+    font-weight: normal;
+    display: inline-block;
+    text-decoration: inherit;
+}
+
+/* Utilitários */
+.folder-content { padding-left: 10px; border-left: 1px dotted #444; margin-left: 18px; }
+.wsp-btn-full { width: calc(100% - 30px); margin: 5px 15px; padding: 8px; font-size: 12px; }
+.sidebar-divider { border: 0; border-top: 1px solid var(--wsp-border); margin: 15px 0; }
