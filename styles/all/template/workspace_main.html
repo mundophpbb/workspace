@@ -1,0 +1,214 @@
+{% INCLUDE 'overall_header.html' %}
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
+{# CSS com Cache Busting #}
+<link href="{T_WSP_ASSETS}/theme/workspace.css?v={WSP_VERSION}" rel="stylesheet" type="text/css">
+
+<div class="workspace-wrapper">
+    <div class="workspace-sidebar">
+        <h4 class="sidebar-title">{L_WSP_EXPLORER}</h4>
+        
+        {# NOVO: Campo de Filtro de Busca Rápida #}
+        <div class="sidebar-search-container">
+            <i class="icon fa-search fa-fw"></i>
+            <input type="text" id="wsp-sidebar-filter" placeholder="{L_WSP_FILTER_PLACEHOLDER}" autocomplete="off">
+        </div>
+        
+        <ul id="project-list">
+            {% for project in loops.projects %}
+                <li class="project-group">
+                    <div class="project-title" title="Arraste arquivos aqui para fazer upload">
+                        <span><i class="icon fa-folder-open fa-fw"></i> {{ project.NAME }}</span>
+                        
+                        <div class="project-actions" style="float: right;">
+                            {# Procurar e Substituir no Projeto #}
+                            <a href="javascript:void(0);" class="open-search-replace" data-id="{{ project.ID }}" data-name="{{ project.NAME }}" title="{L_WSP_SEARCH_REPLACE}" style="color: #dcdcaa; margin-right: 8px;">
+                                <i class="icon fa-search fa-fw"></i>
+                            </a>
+
+                            {# Upload Manual #}
+                            <a href="javascript:void(0);" class="trigger-upload" data-id="{{ project.ID }}" title="{L_WSP_ADD_FILE}" style="color: #9cdcfe; margin-right: 8px;">
+                                <i class="icon fa-cloud-upload fa-fw"></i>
+                            </a>
+
+                            {# Download ZIP #}
+                            <a href="{{ project.U_DOWNLOAD }}" title="{L_WSP_DOWNLOAD_ZIP}" style="color: #569cd6; margin-right: 8px;">
+                                <i class="icon fa-download fa-fw"></i>
+                            </a>
+
+                            {# Novo Arquivo #}
+                            <a href="javascript:void(0);" class="add-file-to-project" data-id="{{ project.ID }}" title="{L_WSP_ADD_FILE}" style="color: #4CAF50; margin-right: 8px;">
+                                <i class="icon fa-plus-square fa-fw"></i>
+                            </a>
+
+                            {# Deletar Projeto #}
+                            <a href="javascript:void(0);" class="delete-project" data-id="{{ project.ID }}" title="{L_DELETE}" style="color: #f44336;">
+                                <i class="icon fa-trash fa-fw"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <ul class="file-list">
+                        {% for file in project.files %}
+                            <li class="file-item">
+                                <i class="icon fa-file-code-o fa-fw"></i>
+                                <a href="javascript:void(0);" class="load-file" data-id="{{ file.F_ID }}">
+                                    {{ file.F_NAME }}
+                                </a>
+                                
+                                <div class="file-actions">
+                                    <a href="javascript:void(0);" class="rename-file" data-id="{{ file.F_ID }}" data-name="{{ file.F_NAME }}" title="{L_RENAME}" style="color: #e2c08d;">
+                                        <i class="icon fa-pencil fa-fw"></i>
+                                    </a>
+                                    
+                                    <a href="javascript:void(0);" class="delete-file" data-id="{{ file.F_ID }}" title="{L_DELETE}" style="color: #f44336; margin-left: 5px;">
+                                        <i class="icon fa-times fa-fw"></i>
+                                    </a>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            {% else %}
+                <li class="no-projects" style="padding: 10px; color: #888; font-size: 12px; list-style: none;">
+                    {L_WSP_NO_PROJECTS}
+                </li>
+            {% endfor %}
+        </ul>
+        
+        <hr class="sidebar-divider">
+        
+        <div style="padding: 0 10px;">
+            <button id="add-project" class="button button-secondary wsp-btn-full" style="margin-bottom: 5px;">
+                <i class="icon fa-plus fa-fw"></i> {L_WSP_NEW_PROJECT}
+            </button>
+            
+            <button id="open-diff-tool" class="button button-secondary wsp-btn-full" style="background: #333; border-color: #444;">
+                <i class="icon fa-columns fa-fw"></i> {L_WSP_DIFF_TITLE}
+            </button>
+        </div>
+    </div>
+
+    <div class="workspace-editor-area">
+        <div class="workspace-toolbar">
+            <div class="file-info">
+                <i class="icon fa-edit fa-fw" style="font-size: 12px; color: #666; margin-right: 8px;"></i>
+                <span id="current-file">{L_WSP_SELECT_FILE}</span>
+            </div>
+            <div class="toolbar-actions">
+                <button id="copy-bbcode" class="btn-copy" style="display:none;">
+                    <i class="icon fa-copy fa-fw"></i> {L_WSP_COPY_BBCODE}
+                </button>
+
+                <button id="save-file" class="btn-save" style="display:none;">
+                    <i class="icon fa-save fa-fw"></i> {L_WSP_SAVE_CHANGES}
+                </button>
+            </div>
+        </div>
+        <div id="editor"></div>
+    </div>
+</div>
+
+{# Modais permanecem inalterados #}
+<div id="search-replace-modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8);">
+    <div style="background:#252526; margin:10% auto; padding:20px; width:450px; border:1px solid #444; color:#d4d4d4; border-radius: 4px;">
+        <h3 style="margin-top:0; color:#fff;"><i class="fa fa-search"></i> {L_WSP_SEARCH_REPLACE}</h3>
+        <p id="search-project-name" style="font-size: 11px; color: #888; margin-bottom: 15px;"></p>
+        <input type="hidden" id="search-project-id">
+        <div style="margin-bottom:10px;">
+            <label style="display:block; font-size:11px; margin-bottom:5px;">{L_WSP_SEARCH_FOR}:</label>
+            <input type="text" id="wsp-search-term" style="width:100%; background:#333; color:#fff; border:1px solid #555; padding:8px;">
+        </div>
+        <div style="margin-bottom:20px;">
+            <label style="display:block; font-size:11px; margin-bottom:5px;">{L_WSP_REPLACE_WITH}:</label>
+            <input type="text" id="wsp-replace-term" style="width:100%; background:#333; color:#fff; border:1px solid #555; padding:8px;">
+        </div>
+        <div style="text-align:right; gap:10px; display:flex; justify-content:flex-end;">
+            <a href="javascript:void(0);" onclick="document.getElementById('search-replace-modal').style.display='none'" class="button">{L_CANCEL}</a>
+            <button id="exec-replace-btn" class="button button-primary" style="background:#e2c08d; color:#000; font-weight: bold;">{L_WSP_REPLACE_ALL}</button>
+        </div>
+    </div>
+</div>
+
+<div id="diff-modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8);">
+    <div style="background:#252526; margin:10% auto; padding:20px; width:500px; border:1px solid #444; color:#d4d4d4; border-radius: 4px;">
+        <h3 style="margin-top:0; color:#fff;">{L_WSP_DIFF_TITLE}</h3>
+        <div style="margin-bottom:15px;">
+            <label style="display:block; font-size:11px; margin-bottom:5px;">{L_WSP_DIFF_SELECT_ORIG}:</label>
+            <select id="diff-original" style="width:100%; background:#333; color:#fff; border:1px solid #555; padding:5px;"></select>
+        </div>
+        <div style="margin-bottom:20px;">
+            <label style="display:block; font-size:11px; margin-bottom:5px;">{L_WSP_DIFF_SELECT_MOD}:</label>
+            <select id="diff-modified" style="width:100%; background:#333; color:#fff; border:1px solid #555; padding:5px;"></select>
+        </div>
+        <div style="text-align:right; gap:10px; display:flex; justify-content:flex-end;">
+            <a href="javascript:void(0);" onclick="document.getElementById('diff-modal').style.display='none'" class="button">{L_CANCEL}</a>
+            <button id="generate-diff-btn" class="button button-primary" style="background:var(--wsp-blue); color:white;">{L_WSP_DIFF_GENERATE}</button>
+        </div>
+    </div>
+</div>
+
+<script src="{T_WSP_ACE_PATH}/ace.js"></script>
+
+<script>
+    var wspVars = {
+        loadUrl: '{{ U_WORKSPACE_LOAD|e("js") }}'.replace(/&amp;/g, '&'),
+        saveUrl: '{{ U_WORKSPACE_SAVE|e("js") }}'.replace(/&amp;/g, '&'),
+        addUrl:  '{{ U_WORKSPACE_ADD|e("js") }}'.replace(/&amp;/g, '&'),
+        deleteUrl: '{{ U_WORKSPACE_DELETE|e("js") }}'.replace(/&amp;/g, '&'),
+        addFileUrl: '{{ U_WORKSPACE_ADD_FILE|e("js") }}'.replace(/&amp;/g, '&'),
+        uploadUrl: '{{ U_WORKSPACE_UPLOAD|e("js") }}'.replace(/&amp;/g, '&'),
+        renameUrl: '{{ U_WORKSPACE_RENAME|e("js") }}'.replace(/&amp;/g, '&'),
+        deleteFileUrl: '{{ U_WORKSPACE_DELETE_FILE|e("js") }}'.replace(/&amp;/g, '&'),
+        diffUrl: '{{ U_WORKSPACE_DIFF|e("js") }}'.replace(/&amp;/g, '&'),
+        searchUrl: '{{ U_WORKSPACE_SEARCH|e("js") }}'.replace(/&amp;/g, '&'),
+        replaceUrl: '{{ U_WORKSPACE_REPLACE|e("js") }}'.replace(/&amp;/g, '&'),
+        basePath: '{T_WSP_ACE_PATH}',
+        lang: {
+            loading: '{LA_WSP_LOADING}', 
+            saving: '{LA_WSP_SAVING}', 
+            saved: '{LA_WSP_SAVED}',
+            copied: '{LA_WSP_COPIED}', 
+            save_changes: '{LA_WSP_SAVE_CHANGES}', 
+            prompt_name: '{LA_WSP_PROMPT_NAME}',
+            prompt_file_name: '{LA_WSP_PROMPT_FILE_NAME}', 
+            confirm_delete: '{LA_WSP_CONFIRM_DELETE}',
+            confirm_file_delete: '{LA_WSP_CONFIRM_FILE_DELETE}', 
+            diff_generate: '{LA_WSP_DIFF_GENERATE}', 
+            select_file: '{LA_WSP_SELECT_FILE}',
+            cancel: '{LA_WSP_CANCEL}',
+            ok: '{LA_WSP_OK}',
+            welcome_msg: '{LA_WSP_WELCOME_MSG}',
+            file_eliminated: '{LA_WSP_FILE_ELIMINATED}',
+            uploading: '{LA_WSP_UPLOADING}',
+            replace_only_file: '{LA_WSP_REPLACE_ONLY_FILE}',
+            replace_in_project: '{LA_WSP_REPLACE_IN_PROJECT}',
+            search_empty_err: '{LA_WSP_SEARCH_EMPTY_ERR}',
+            confirm_replace_file: '{LA_WSP_CONFIRM_REPLACE_FILE}',
+            confirm_replace_all: '{LA_WSP_CONFIRM_REPLACE_ALL}',
+            processing: '{LA_WSP_PROCESSING}',
+            replace_all: '{L_WSP_REPLACE_ALL}',
+            diff_generating: '{LA_WSP_DIFF_GENERATING}',
+            err_server_500: '{LA_WSP_ERR_SERVER_500}',
+            err_copy: '{LA_WSP_ERR_COPY}',
+            filter_placeholder: '{LA_WSP_FILTER_PLACEHOLDER}'
+        }
+    };
+</script>
+
+{# Carregamento Dinâmico do Workspace JS com Cache Busting #}
+<script>
+    (function checkjQuery() {
+        if (window.jQuery) {
+            var script = document.createElement('script');
+            script.src = "{T_WSP_ASSETS}/template/workspace.js?v={WSP_VERSION}";
+            document.body.appendChild(script);
+        } else {
+            setTimeout(checkjQuery, 50);
+        }
+    })();
+</script>
+
+{% INCLUDE 'overall_footer.html' %}

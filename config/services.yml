@@ -1,0 +1,25 @@
+services:
+    # Controller Principal
+    mundophpbb.workspace.controller.main:
+        class: mundophpbb\workspace\controller\main
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+
+    # Listener Global (Sincronizado com o PHP)
+    mundophpbb.workspace.listener:
+        class: mundophpbb\workspace\event\main_listener
+        arguments:
+            - '@controller.helper' # 1. $helper
+            - '@template'          # 2. $template (O QUE FALTAVA AQUI)
+            - '@user'              # 3. $user
+            - '@auth'              # 4. $auth
+            - '%core.root_path%'   # 5. $phpbb_root_path
+        tags:
+            - { name: event.listener }
