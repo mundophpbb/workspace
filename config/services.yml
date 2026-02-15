@@ -1,5 +1,6 @@
+# config/services.yml da extensão mundophpbb/workspace (phpBB 3.3.x)
 services:
-    # Controller Principal
+    # Controller Principal (Rota e Lógica da Extensão)
     mundophpbb.workspace.controller.main:
         class: mundophpbb\workspace\controller\main
         arguments:
@@ -11,15 +12,17 @@ services:
             - '@user'
             - '@auth'
             - '%core.root_path%'
+        tags:
+            - { name: controller.service }  # Tag obrigatória para controllers em 3.3.x (doc: develop:ext:services)
 
-    # Listener Global (Sincronizado com o PHP)
+    # Listener Global (Eventos como core.page_header e core.permissions)
     mundophpbb.workspace.listener:
         class: mundophpbb\workspace\event\main_listener
         arguments:
-            - '@controller.helper' # 1. $helper
-            - '@template'          # 2. $template (O QUE FALTAVA AQUI)
-            - '@user'              # 3. $user
-            - '@auth'              # 4. $auth
-            - '%core.root_path%'   # 5. $phpbb_root_path
+            - '@controller.helper'  # 1. $helper (para rotas no add_workspace_assets)
+            - '@template'           # 2. $template (agora incluído para assign_vars no page_header)
+            - '@user'               # 3. $user (para add_lang_ext e user_id)
+            - '@auth'               # 4. $auth (para acl_get no listener)
+            - '%core.root_path%'    # 5. $phpbb_root_path (para caminhos de assets/JS)
         tags:
-            - { name: event.listener }
+            - { name: event.listener }  # Tag essencial para subscrição de eventos (doc: develop:ext:events)
