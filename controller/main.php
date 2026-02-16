@@ -53,21 +53,21 @@ class main
         $wsp_version = (file_exists($js_path)) ? filemtime($js_path) : time();
 
         $this->template->assign_vars([
-            'T_WSP_ASSETS' => $wsp_url_path,
-            'T_WSP_ACE_PATH' => $wsp_url_path . '/template/ace',
-            'WSP_VERSION' => $wsp_version,
-            'U_WORKSPACE_MAIN' => $this->helper->route('mundophpbb_workspace_main'),
-            'U_WORKSPACE_LOAD' => $this->helper->route('mundophpbb_workspace_load', [], false),
-            'U_WORKSPACE_SAVE' => $this->helper->route('mundophpbb_workspace_save', [], false),
-            'U_WORKSPACE_ADD' => $this->helper->route('mundophpbb_workspace_add', [], false),
-            'U_WORKSPACE_ADD_FILE' => $this->helper->route('mundophpbb_workspace_add_file', [], false),
-            'U_WORKSPACE_UPLOAD' => $this->helper->route('mundophpbb_workspace_upload', [], false),
-            'U_WORKSPACE_RENAME' => $this->helper->route('mundophpbb_workspace_rename', [], false),
+            'T_WSP_ASSETS'            => $wsp_url_path,
+            'T_WSP_ACE_PATH'          => $wsp_url_path . '/template/ace',
+            'WSP_VERSION'             => $wsp_version,
+            'U_WORKSPACE_MAIN'        => $this->helper->route('mundophpbb_workspace_main'),
+            'U_WORKSPACE_LOAD'        => $this->helper->route('mundophpbb_workspace_load', [], false),
+            'U_WORKSPACE_SAVE'        => $this->helper->route('mundophpbb_workspace_save', [], false),
+            'U_WORKSPACE_ADD'         => $this->helper->route('mundophpbb_workspace_add', [], false),
+            'U_WORKSPACE_ADD_FILE'    => $this->helper->route('mundophpbb_workspace_add_file', [], false),
+            'U_WORKSPACE_UPLOAD'      => $this->helper->route('mundophpbb_workspace_upload', [], false),
+            'U_WORKSPACE_RENAME'      => $this->helper->route('mundophpbb_workspace_rename', [], false),
             'U_WORKSPACE_DELETE_FILE' => $this->helper->route('mundophpbb_workspace_delete_file', [], false),
-            'U_WORKSPACE_DELETE' => $this->helper->route('mundophpbb_workspace_delete_project', [], false),
-            'U_WORKSPACE_DIFF' => $this->helper->route('mundophpbb_workspace_diff', [], false),
-            'U_WORKSPACE_SEARCH' => $this->helper->route('mundophpbb_workspace_search', [], false),
-            'U_WORKSPACE_REPLACE' => $this->helper->route('mundophpbb_workspace_replace', [], false),
+            'U_WORKSPACE_DELETE'      => $this->helper->route('mundophpbb_workspace_delete_project', [], false),
+            'U_WORKSPACE_DIFF'        => $this->helper->route('mundophpbb_workspace_diff', [], false),
+            'U_WORKSPACE_SEARCH'      => $this->helper->route('mundophpbb_workspace_search', [], false),
+            'U_WORKSPACE_REPLACE'     => $this->helper->route('mundophpbb_workspace_replace', [], false),
         ]);
 
         $sql = 'SELECT project_id, project_name
@@ -79,8 +79,8 @@ class main
         {
             $project_id = (int) $row['project_id'];
             $this->template->assign_block_vars('projects', [
-                'ID' => $project_id,
-                'NAME' => $row['project_name'],
+                'ID'         => $project_id,
+                'NAME'       => $row['project_name'],
                 'U_DOWNLOAD' => $this->helper->route('mundophpbb_workspace_download', ['project_id' => $project_id]),
             ]);
 
@@ -92,7 +92,7 @@ class main
             while ($f_row = $this->db->sql_fetchrow($res_files))
             {
                 $this->template->assign_block_vars('projects.files', [
-                    'F_ID' => (int) $f_row['file_id'],
+                    'F_ID'   => (int) $f_row['file_id'],
                     'F_NAME' => $f_row['file_name'],
                     'F_TYPE' => strtolower($f_row['file_type']),
                 ]);
@@ -117,6 +117,7 @@ class main
         $project_id = $this->request->variable('project_id', 0);
         $filename = $this->request->variable('full_path', '', true);
         $file = $this->request->file('file');
+        
         if (empty($filename) && isset($file['name'])) $filename = $file['name'];
         if (!$project_id || !$filename || !isset($file['name']))
         {
@@ -136,18 +137,18 @@ class main
         if ($row)
         {
             $sql_update = 'UPDATE ' . $this->table_prefix . 'workspace_files
-                SET file_content = "' . $this->db->sql_escape($content) . '", file_time = ' . time() . '
+                SET file_content = "' . $this->db->sql_escape($content) . '", file_time = ' . time() . ', file_type = "' . $this->db->sql_escape($ext) . '"
                 WHERE file_id = ' . (int) $row['file_id'];
             $this->db->sql_query($sql_update);
         }
         else
         {
             $file_ary = [
-                'project_id' => (int) $project_id,
-                'file_name' => $filename,
+                'project_id'   => (int) $project_id,
+                'file_name'    => $filename,
                 'file_content' => $content,
-                'file_type' => $ext,
-                'file_time' => time()
+                'file_type'    => $ext,
+                'file_time'    => time()
             ];
             $this->db->sql_query('INSERT INTO ' . $this->table_prefix . 'workspace_files ' . $this->db->sql_build_array('INSERT', $file_ary));
         }
@@ -156,7 +157,7 @@ class main
     }
 
     /**
-     * Criação de novo arquivo com Boilerplate inteligente
+     * Criação de novo arquivo com Boilerplate inteligente (Suporte LUA Adicionado)
      */
     public function add_file()
     {
@@ -174,23 +175,37 @@ class main
 
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION)) ?: 'txt';
         $initial_content = "";
+        
         switch ($ext)
         {
-            case 'php': $initial_content = "<?php\n\n// Arquivo: " . $filename . "\n"; break;
-            case 'py': $initial_content = "# -*- coding: utf-8 -*-\n# Arquivo: " . $filename . "\n"; break;
+            case 'php': 
+                $initial_content = "<?php\n\n// Arquivo: " . $filename . "\n"; 
+                break;
+            case 'lua':
+                $initial_content = "--[[\n    Arquivo: " . $filename . "\n    Mundo phpBB Workspace\n--]]\n\nlocal function main()\n    print('Lua Script Ativo')\nend\n\nmain()\n";
+                break;
+            case 'py': 
+                $initial_content = "# -*- coding: utf-8 -*-\n# Arquivo: " . $filename . "\n"; 
+                break;
             case 'js':
-            case 'ts': $initial_content = "// Arquivo: " . $filename . "\n"; break;
+            case 'ts': 
+                $initial_content = "// Arquivo: " . $filename . "\n"; 
+                break;
             case 'css':
-            case 'sql': $initial_content = "/* Arquivo: " . $filename . " */\n"; break;
-            default: $initial_content = "// Arquivo: " . $filename . "\n"; break;
+            case 'sql': 
+                $initial_content = "/* Arquivo: " . $filename . " */\n"; 
+                break;
+            default: 
+                $initial_content = "// Arquivo: " . $filename . "\n"; 
+                break;
         }
 
         $file_ary = [
-            'project_id' => (int) $project_id,
-            'file_name' => $filename,
+            'project_id'   => (int) $project_id,
+            'file_name'    => $filename,
             'file_content' => $initial_content,
-            'file_type' => $ext,
-            'file_time' => time()
+            'file_type'    => $ext,
+            'file_time'    => time()
         ];
         $this->db->sql_query('INSERT INTO ' . $this->table_prefix . 'workspace_files ' . $this->db->sql_build_array('INSERT', $file_ary));
 
@@ -215,8 +230,8 @@ class main
             return new JsonResponse([
                 'success' => true,
                 'content' => (string) html_entity_decode($row['file_content'], ENT_QUOTES, 'UTF-8'),
-                'name' => (string) $row['file_name'],
-                'type' => strtolower((string) $row['file_type'])
+                'name'    => (string) $row['file_name'],
+                'type'    => strtolower((string) $row['file_type'])
             ]);
         }
 
@@ -224,7 +239,7 @@ class main
     }
 
     /**
-     * Salvamento com Transação SQL para capturar erros de Emoji/Codificação
+     * Salvamento com Transação SQL
      */
     public function save_file()
     {
@@ -240,6 +255,7 @@ class main
         $sql = 'UPDATE ' . $this->table_prefix . 'workspace_files
             SET file_content = "' . $this->db->sql_escape($content) . '", file_time = ' . time() . '
             WHERE file_id = ' . (int) $file_id;
+        
         if ($this->db->sql_query($sql))
         {
             $this->db->sql_transaction('commit');
@@ -319,7 +335,7 @@ class main
 
         $id = (int) $this->request->variable('project_id', 0);
         $this->db->sql_query('DELETE FROM ' . $this->table_prefix . 'workspace_files WHERE project_id = ' . $id);
-        $this->db->sql_query('DELETE FROM ' . $this->table_prefix . 'workspace_projects WHERE project_id = ' . $id);
+        $this->db->sql_query('DELETE FROM ' . $this->table_prefix). 'workspace_projects WHERE project_id = ' . $id;
 
         return new JsonResponse(['success' => true]);
     }
@@ -341,7 +357,7 @@ class main
             'project_name' => $name,
             'project_desc' => $this->user->lang('WSP_DEFAULT_DESC'),
             'project_time' => time(),
-            'user_id' => (int) $this->user->data['user_id']
+            'user_id'      => (int) $this->user->data['user_id']
         ];
         $this->db->sql_query('INSERT INTO ' . $this->table_prefix . 'workspace_projects ' . $this->db->sql_build_array('INSERT', $sql_ary));
 
