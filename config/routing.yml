@@ -31,7 +31,7 @@ mundophpbb_workspace_download:
     defaults: { _controller: mundophpbb.workspace.controller.main:download_project }
     methods: [GET]
 
-# Gestão de Arquivos (Incluindo Upload)
+# Gestão de Arquivos e Pastas (Incluindo Upload)
 mundophpbb_workspace_add_file:
     path: /workspace/add_file
     defaults: { _controller: mundophpbb.workspace.controller.main:add_file }
@@ -52,13 +52,19 @@ mundophpbb_workspace_delete_file:
     defaults: { _controller: mundophpbb.workspace.controller.main:delete_file }
     methods: [POST]
 
+# NOVO: Exclusão Recursiva de Pastas
+mundophpbb_workspace_delete_folder:
+    path: /workspace/delete_folder
+    defaults: { _controller: mundophpbb.workspace.controller.main:delete_folder }
+    methods: [POST]
+
 # Ferramentas de Desenvolvedor
 mundophpbb_workspace_diff:
     path: /workspace/diff
     defaults: { _controller: mundophpbb.workspace.controller.main:generate_diff }
     methods: [POST]
 
-# Ferramentas de Edição em Massa (NOVO)
+# Ferramentas de Edição em Massa
 mundophpbb_workspace_search:
     path: /workspace/search
     defaults: { _controller: mundophpbb.workspace.controller.main:search_project }
@@ -67,4 +73,9 @@ mundophpbb_workspace_search:
 mundophpbb_workspace_replace:
     path: /workspace/replace
     defaults: { _controller: mundophpbb.workspace.controller.main:replace_project }
+    methods: [POST]
+    
+mundophpbb_workspace_changelog:
+    path: /workspace/changelog
+    defaults: { _controller: mundophpbb.workspace.controller.main:generate_changelog }
     methods: [POST]
