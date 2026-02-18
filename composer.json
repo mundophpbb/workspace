@@ -3,7 +3,7 @@
     "type": "phpbb-extension",
     "description": "Mundo phpBB Workspace - Uma IDE virtual completa para gerenciar projetos, codificar e organizar arquivos diretamente no painel do forum.",
     "homepage": "https://github.com/mundophpbb/workspace",
-    "version": "1.1.18-dev",
+    "version": "1.1.20-dev",
     "time": "2026-02-13",
     "license": "GPL-2.0-only",
     "authors": [
