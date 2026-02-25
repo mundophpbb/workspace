@@ -1,0 +1,63 @@
+<div class="workspace-toolbar">
+    <div class="toolbar-logo">
+        <i class="fa fa-terminal"></i> {L_WSP_TITLE} <span class="v-tag">v2.9</span>
+    </div>
+    
+    <ul class="toolbar-menu">
+        <li class="menu-item">
+            {L_WSP_MENU_FILE}
+            <ul class="dropdown">
+                <li id="btn-tb-new-project"><i class="fa fa-plus-circle"></i> {L_WSP_NEW_PROJECT}</li>
+                <li id="menu-open-project"><i class="fa fa-folder-open"></i> {L_WSP_OPEN_PROJECT}</li>
+                <li class="separator"></li>
+                <li id="btn-tb-save"><i class="fa fa-save"></i> {L_WSP_SAVE} <span class="shortcut">Ctrl+S</span></li>
+                <li id="btn-tb-gist"><i class="fa fa-github"></i> {L_WSP_EXPORT_GIST}</li>
+            </ul>
+        </li>
+
+        <li class="menu-item">
+            {L_WSP_MENU_PROJECT}
+            <ul class="dropdown">
+                <li id="btn-tb-new-folder"><i class="fa fa-folder"></i> {L_WSP_NEW_FOLDER}</li>
+                <li id="btn-tb-new-file"><i class="fa fa-file"></i> {L_WSP_NEW_FILE}</li>
+                <li class="separator"></li>
+                <li id="btn-tb-skeleton">
+                    <i class="fa fa-magic"></i> {L_WSP_GENERATE_SKELETON}
+                </li>
+                <li class="separator"></li>
+                <li id="btn-tb-download-zip"><i class="fa fa-file-archive-o"></i> {L_WSP_DOWNLOAD_ZIP}</li>
+                <li id="btn-tb-changelog"><i class="fa fa-history"></i> {L_WSP_GENERATE_LOG}</li>
+            </ul>
+        </li>
+
+        <li class="menu-item">
+            {L_WSP_MENU_TOOLS}
+            <ul class="dropdown">
+                <li id="btn-tb-diff"><i class="fa fa-columns"></i> {L_WSP_DIFF_WIZARD}</li>
+                <li id="btn-tb-search"><i class="fa fa-search"></i> {L_WSP_SEARCH_REPLACE}</li>
+                <li class="separator"></li>
+                <li id="btn-tb-purge-cache" class="text-warning">
+                    <i class="fa fa-bolt"></i> {L_WSP_PURGE_CACHE}
+                </li>
+                <li id="btn-tb-shortcuts">
+                    <i class="fa fa-keyboard-o"></i> {L_WSP_SHORTCUTS} <span class="shortcut">Ctrl+/</span>
+                </li>
+            </ul>
+        </li>
+
+        <li class="menu-item">
+            {L_WSP_MENU_VIEW}
+            <ul class="dropdown">
+                <li id="btn-tb-theme"><i class="fa fa-paint-brush"></i> {L_WSP_CHANGE_THEME}</li>
+                <li id="btn-tb-fullscreen"><i class="fa fa-arrows-alt"></i> {L_WSP_ZEN_MODE} <span class="shortcut">F11</span></li>
+                <li id="btn-toggle-log-menu"><i class="fa fa-terminal"></i> {L_WSP_TOGGLE_CONSOLE} <span class="shortcut">Ctrl+`</span></li>
+            </ul>
+        </li>
+    </ul>
+
+    <div class="toolbar-right">
+        <div id="wsp-active-project-display">
+            <i class="fa fa-cube"></i> <span>{L_WSP_NO_PROJECTS}</span>
+        </div>
+    </div>
+</div>

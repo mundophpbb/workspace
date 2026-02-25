@@ -1,0 +1,84 @@
+{# 1. MODAL CUSTOM GENERICO #}
+<div id="wsp-custom-modal" class="wsp-modal-overlay">
+    <div class="wsp-modal-content" style="width: 400px;">
+        <div class="modal-header">
+            <span id="wsp-modal-title">{L_WSP_TITLE}</span>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <input type="text" id="wsp-modal-input" class="wsp-input" placeholder="{L_WSP_TYPE_HERE}">
+        </div>
+        <div class="modal-footer">
+            <button id="wsp-modal-cancel" class="wsp-btn wsp-btn-secondary">{L_WSP_CANCEL}</button>
+            <button id="wsp-modal-ok" class="wsp-btn wsp-btn-primary">{L_WSP_OK}</button>
+        </div>
+    </div>
+</div>
+
+{# 2. MODAL DE BUSCA E SUBSTITUICAO #}
+<div id="wsp-search-modal" class="wsp-modal-overlay">
+    <div class="wsp-modal-content search-modal">
+        <div class="modal-header">
+            <span><i class="fa fa-search"></i> {L_WSP_SEARCH_REPLACE}</span>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="wsp-form-group">
+                <label>{L_WSP_SEARCH_TERM}:</label>
+                <input type="text" id="wsp-search-term" class="wsp-input" placeholder="{L_WSP_SEARCH_PLACEHOLDER}">
+            </div>
+            <div class="wsp-form-group">
+                <label>{L_WSP_REPLACE_TERM}:</label>
+                <input type="text" id="wsp-replace-term" class="wsp-input" placeholder="{L_WSP_REPLACE_PLACEHOLDER}">
+            </div>
+            <div class="wsp-modal-tools">
+                <button id="btn-do-search" class="wsp-btn wsp-btn-primary"><i class="fa fa-search"></i> {L_WSP_DIFF_GENERATE}</button>
+                <button id="btn-do-replace" class="wsp-btn wsp-btn-danger" style="display:none;"><i class="fa fa-refresh"></i> {L_WSP_REPLACE_ALL}</button>
+            </div>
+            <div id="wsp-search-results" class="search-results-list">
+                <p class="placeholder-text">{L_WSP_SEARCH_RESULTS_HINT}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# 3. MODAL SKELETON (GERADOR) #}
+<div id="wsp-skeleton-modal" class="wsp-modal-overlay">
+    <div class="wsp-modal-content" style="width: 400px;">
+        <div class="modal-header">
+            <span><i class="fa fa-magic"></i> {L_WSP_GENERATE_SKELETON}</span>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="wsp-form-group">
+                <label>{L_WSP_SKEL_VENDOR}:</label>
+                <input type="text" id="skel-vendor" class="wsp-input" placeholder="{L_WSP_SKEL_VENDOR_PLACEHOLDER}">
+            </div>
+            <div class="wsp-form-group">
+                <label>{L_WSP_SKEL_NAME}:</label>
+                <input type="text" id="skel-name" class="wsp-input" placeholder="{L_WSP_SKEL_NAME_PLACEHOLDER}">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="wsp-btn wsp-btn-secondary close-modal">{L_WSP_CANCEL}</button>
+            <button id="btn-run-skeleton" class="wsp-btn wsp-btn-primary">{L_WSP_RUN_GENERATOR}</button>
+        </div>
+    </div>
+</div>
+
+{# 4. MODAL DE ATALHOS #}
+<div id="wsp-shortcuts-modal" class="wsp-modal-overlay">
+    <div class="wsp-modal-content" style="width: 450px;">
+        <div class="modal-header">
+            <span><i class="fa fa-keyboard-o"></i> {L_WSP_SHORTCUTS}</span>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body shortcut-table">
+            <div class="s-row"><span>{L_WSP_SAVE}</span><b>Ctrl + S</b></div>
+            <div class="s-row"><span>{L_WSP_FILTER_EXPLORER}</span><b>Ctrl + P</b></div>
+            <div class="s-row"><span>{L_WSP_TOGGLE_CONSOLE}</span><b>Ctrl + `</b></div>
+            <div class="s-row"><span>{L_WSP_ZEN_MODE}</span><b>F11</b></div>
+            <div class="s-row"><span>{L_WSP_SHOW_SHORTCUTS}</span><b>Ctrl + /</b></div>
+        </div>
+    </div>
+</div>

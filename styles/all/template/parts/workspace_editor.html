@@ -1,0 +1,54 @@
+<div class="workspace-editor-container">
+    <div id="wsp-tabs-container" class="wsp-tabs-bar"></div>
+
+    <div class="editor-status-bar">
+        <span id="current-file"><i class="fa fa-code"></i> {L_WSP_SELECT_FILE}</span>
+        <div class="editor-actions">
+            <button id="save-file" class="wsp-btn-save" style="display:none;">
+                <i class="fa fa-save"></i> {L_WSP_SAVE}
+            </button>
+        </div>
+    </div>
+
+    <div id="editor-wrapper">
+        <div id="editor"></div>
+
+        <div id="wsp-image-viewer" class="wsp-image-preview" style="display:none;">
+            <div class="image-canvas">
+                <img id="wsp-preview-img" src="" alt="{L_WSP_PREVIEW}">
+            </div>
+            <div class="wsp-image-info" id="wsp-preview-info"></div>
+        </div>
+
+        <div id="editor-loader" style="display:none;">
+            <div class="loader-content">
+                <i class="fa fa-refresh fa-spin"></i>
+                <span>{L_WSP_LOADING}</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="wsp-log-console" class="wsp-log-console">
+        <div class="log-header" id="btn-toggle-log">
+            <span><i class="fa fa-terminal"></i> {L_WSP_CONSOLE_OUTPUT}</span>
+            <div class="log-actions">
+                <i class="fa fa-eraser" id="btn-clear-log" title="{L_WSP_CLEAR_LOG}"></i>
+                <i class="fa fa-chevron-up" id="log-chevron"></i>
+            </div>
+        </div>
+        <div class="log-body" id="wsp-log-body">
+            <div class="log-entry system">{L_WSP_CONSOLE_READY}</div>
+        </div>
+    </div>
+
+    <div class="wsp-status-bar-bottom">
+        <div class="status-left">
+            <span id="wsp-status-mode">TEXT</span>
+        </div>
+        <div class="status-right">
+            <span id="wsp-status-position">
+                {L_WSP_LINE}: 1, {L_WSP_COL}: 1
+            </span>
+        </div>
+    </div>
+</div>
