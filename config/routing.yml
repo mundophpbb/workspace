@@ -1,0 +1,128 @@
+# ==========================================================
+# MUNDO PHPBB WORKSPACE - CONFIGURAÇÃO DE ROTAS (ROUTING)
+# ==========================================================
+
+# Página Principal
+mundophpbb_workspace_main:
+    path: /workspace
+    defaults: { _controller: mundophpbb.workspace.controller.main:handle }
+    methods: [GET]
+
+# ----------------------------------------------------------
+# GESTÃO DE ARQUIVOS (FILE CONTROLLER)
+# ----------------------------------------------------------
+mundophpbb_workspace_load:
+    path: /workspace/load
+    defaults: { _controller: mundophpbb.workspace.controller.file:load_file }
+    methods: [POST]
+
+mundophpbb_workspace_save:
+    path: /workspace/save
+    defaults: { _controller: mundophpbb.workspace.controller.file:save_file }
+    methods: [POST]
+
+mundophpbb_workspace_add_file:
+    path: /workspace/add_file
+    defaults: { _controller: mundophpbb.workspace.controller.file:add_file }
+    methods: [POST]
+
+mundophpbb_workspace_upload:
+    path: /workspace/upload
+    defaults: { _controller: mundophpbb.workspace.controller.file:upload_file }
+    methods: [POST]
+
+mundophpbb_workspace_rename_file:
+    path: /workspace/rename_file
+    defaults: { _controller: mundophpbb.workspace.controller.file:rename_file }
+    methods: [POST]
+
+mundophpbb_workspace_move_file:
+    path: /workspace/move_file
+    defaults: { _controller: mundophpbb.workspace.controller.file:move_file }
+    methods: [POST]
+
+mundophpbb_workspace_delete_file:
+    path: /workspace/delete_file
+    defaults: { _controller: mundophpbb.workspace.controller.file:delete_file }
+    methods: [POST]
+
+# ----------------------------------------------------------
+# GESTÃO DE PROJETOS (PROJECT CONTROLLER)
+# ----------------------------------------------------------
+mundophpbb_workspace_add_project:
+    path: /workspace/add_project
+    defaults: { _controller: mundophpbb.workspace.controller.project:add_project }
+    methods: [POST]
+
+mundophpbb_workspace_rename_project:
+    path: /workspace/rename_project
+    defaults: { _controller: mundophpbb.workspace.controller.project:rename_project }
+    methods: [POST]
+
+mundophpbb_workspace_delete_project:
+    path: /workspace/delete_project
+    defaults: { _controller: mundophpbb.workspace.controller.project:delete_project }
+    methods: [POST]
+
+mundophpbb_workspace_delete_folder:
+    path: /workspace/delete_folder
+    defaults: { _controller: mundophpbb.workspace.controller.project:delete_folder }
+    methods: [POST]
+
+mundophpbb_workspace_rename_folder:
+    path: /workspace/rename_folder
+    defaults: { _controller: mundophpbb.workspace.controller.project:rename_folder }
+    methods: [POST]
+
+# ext/mundophpbb/workspace/config/routing.yml
+mundophpbb_workspace_download:
+    path: /workspace/download/{project_id}
+    defaults: { _controller: mundophpbb.workspace.controller.project:download_project }
+    methods: [GET]
+
+# ----------------------------------------------------------
+# FERRAMENTAS (TOOL CONTROLLER)
+# ----------------------------------------------------------
+mundophpbb_workspace_diff:
+    path: /workspace/diff
+    defaults: { _controller: mundophpbb.workspace.controller.tool:generate_diff }
+    methods: [POST]
+
+mundophpbb_workspace_search:
+    path: /workspace/search
+    defaults: { _controller: mundophpbb.workspace.controller.tool:search_project }
+    methods: [POST]
+
+mundophpbb_workspace_replace:
+    path: /workspace/replace
+    defaults: { _controller: mundophpbb.workspace.controller.tool:replace_project }
+    methods: [POST]
+
+mundophpbb_workspace_changelog:
+    path: /workspace/changelog
+    defaults: { _controller: mundophpbb.workspace.controller.tool:generate_changelog }
+    methods: [POST]
+
+mundophpbb_workspace_clear_changelog:
+    path: /workspace/clear_changelog
+    defaults: { _controller: mundophpbb.workspace.controller.tool:clear_changelog }
+    methods: [POST]
+
+mundophpbb_workspace_refresh_cache:
+    path: /workspace/refresh_cache
+    defaults: { _controller: mundophpbb.workspace.controller.tool:refresh_cache }
+    methods: [POST]
+
+# ----------------------------------------------------------
+# (OPCIONAL) LOCK DO PROJETO (para colaboração / "trancar")
+# Só ative quando você implementar os métodos no controller.
+# ----------------------------------------------------------
+# mundophpbb_workspace_lock_project:
+#     path: /workspace/lock_project
+#     defaults: { _controller: mundophpbb.workspace.controller.project:lock_project }
+#     methods: [POST]
+#
+# mundophpbb_workspace_unlock_project:
+#     path: /workspace/unlock_project
+#     defaults: { _controller: mundophpbb.workspace.controller.project:unlock_project }
+#     methods: [POST]

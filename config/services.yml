@@ -1,0 +1,99 @@
+services:
+
+    # =========================================================
+    # SERVICES (REPOSITORY + PERMISSION)
+    # =========================================================
+
+    mundophpbb.workspace.project_repository:
+        class: mundophpbb\workspace\repository\project_repository
+        arguments:
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+
+    mundophpbb.workspace.permission_service:
+        class: mundophpbb\workspace\service\permission_service
+        arguments:
+            - '@auth'
+            - '@user'
+            - '@mundophpbb.workspace.project_repository'
+
+
+    # =========================================================
+    # CONTROLLERS
+    # =========================================================
+
+    # Controller Principal (Renderização da IDE e Estado Inicial)
+    mundophpbb.workspace.controller.main:
+        class: mundophpbb\workspace\controller\main
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+        tags:
+            - { name: controller.service }
+
+    # Controller de Arquivos
+    mundophpbb.workspace.controller.file:
+        class: mundophpbb\workspace\controller\file_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+        tags:
+            - { name: controller.service }
+
+    # Controller de Projetos
+    mundophpbb.workspace.controller.project:
+        class: mundophpbb\workspace\controller\project_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+        tags:
+            - { name: controller.service }
+
+    # Controller de Ferramentas
+    mundophpbb.workspace.controller.tool:
+        class: mundophpbb\workspace\controller\tool_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+        tags:
+            - { name: controller.service }
+
+
+    # =========================================================
+    # LISTENER
+    # =========================================================
+
+    mundophpbb.workspace.listener:
+        class: mundophpbb\workspace\event\main_listener
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+        tags:
+            - { name: event.listener }
