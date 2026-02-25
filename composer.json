@@ -1,7 +1,7 @@
 {
     "name": "mundophpbb/workspace",
     "type": "phpbb-extension",
-    "description": "phpBB Workspace IDE - A complete virtual IDE for managing projects, coding, and organizing files directly in the forum panel.",
+    "description": "phpBB Workspace IDE - A full-featured virtual IDE to manage projects, write code, and organize files directly within the forum panel.",
     "homepage": "https://github.com/mundophpbb/workspace",
     "version": "2.0.0-dev",
     "time": "2026-02-13",
@@ -33,4 +33,5 @@
             "filename": "version_check.json"
         }
     }
+
 }
