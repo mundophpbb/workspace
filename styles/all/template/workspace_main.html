@@ -25,9 +25,13 @@
         </div>
 
         <div class="header-actions">
+            {# Cache purge é GLOBAL: mostrar só para admin + ACL purge_cache #}
+            {% if WSP_CAN_PURGE_CACHE %}
             <button id="refresh-phpbb-cache" class="btn-tool" title="{L_WSP_REFRESH_CACHE}">
                 <i class="icon fa-refresh fa-fw"></i>
             </button>
+            {% endif %}
+
             <button id="toggle-fullscreen" class="btn-tool" title="{L_WSP_TOGGLE_FULLSCREEN}">
                 <i class="icon fa-expand fa-fw"></i>
             </button>
@@ -49,11 +53,27 @@
 
             <ul id="project-list">
                 {% for project in loops.projects %}
-                    <li class="project-group {% if project.IS_ACTIVE %}active-focus{% endif %}" data-project-id="{{ project.ID }}">
+                    {# ? IMPORTANTE: data-can-open/data-locked/data-can-download alimentam o modal “Abrir Projeto” (wsp_projects.js) #}
+                    <li class="project-group {% if project.IS_ACTIVE %}active-focus{% endif %} {% if project.CAN_OPEN is defined and not project.CAN_OPEN %}is-disabled{% endif %}"
+                        data-project-id="{{ project.ID }}"
+                        data-can-open="{% if project.CAN_OPEN is defined %}{{ project.CAN_OPEN }}{% else %}1{% endif %}"
+                        data-can-download="{% if project.CAN_DOWNLOAD is defined %}{{ project.CAN_DOWNLOAD }}{% else %}0{% endif %}"
+                        data-locked="{% if project.IS_LOCKED %}1{% else %}0{% endif %}">
+
                         <div class="project-title-simple">
                             <i class="icon {% if project.IS_ACTIVE %}fa-folder-open{% else %}fa-folder{% endif %} fa-fw"></i>
                             {{ project.NAME }}
+
+                            {# Badge simples de lock #}
+                            {% if project.IS_LOCKED %}
+                                <span class="wsp-lock-badge"
+                                      title="{L_WSP_ERR_PROJECT_LOCKED}"
+                                      data-wsp-i18n-title="WSP_ERR_PROJECT_LOCKED">
+                                    <i class="fa fa-lock"></i>
+                                </span>
+                            {% endif %}
                         </div>
+
                         <ul class="file-list">
                             {% if project.IS_ACTIVE or ACTIVE_PROJECT_ID == 0 %}
                                 {% for file in project.files %}
@@ -84,8 +104,10 @@
                     </li>
                 {% else %}
                     <div class="no-project-selected">
-                        <i class="fa fa-folder-open-o"></i>
-                        <p>{L_WSP_SELECT_TO_BEGIN}</p>
+                        <div class="no-project-icon" aria-hidden="true">
+                            <i class="fa fa-folder-open-o"></i>
+                        </div>
+                        <p class="no-project-text">{L_WSP_SELECT_TO_BEGIN}</p>
                     </div>
                 {% endfor %}
             </ul>
@@ -97,6 +119,7 @@
         {# EDITOR AREA #}
         <div class="workspace-editor-area" id="main-panel">
             <div class="editor-toolbar-rich">
+
                 {# Grupo 1: Gestao de Projetos #}
                 <div class="toolbar-section">
                     <button id="add-project" class="btn-main" title="{L_WSP_NEW_PROJECT}">
@@ -106,58 +129,99 @@
                         <i class="icon fa-folder-open-o fa-fw"></i>
                     </button>
                 </div>
+
                 <div class="v-divider"></div>
 
                 {# Grupo 2: Acoes do Projeto Ativo #}
                 <div class="toolbar-section actions-active">
-                    <button class="add-file-to-project btn-icon" title="{L_WSP_ADD_FILE}"><i class="fa fa-file-text"></i></button>
-                    <button class="add-folder-to-project btn-icon" title="{L_WSP_NEW_ROOT_FOLDER_TITLE}"><i class="fa fa-folder"></i></button>
-                    <button class="trigger-upload btn-icon" title="{L_WSP_UPLOAD_FILES}"><i class="fa fa-cloud-upload"></i></button>
-                    <button class="open-search-replace btn-icon" title="{L_WSP_SEARCH_REPLACE}"><i class="fa fa-search"></i></button>
-                    <button id="open-diff-tool" class="btn-icon" title="{L_WSP_DIFF_TITLE}"><i class="fa fa-columns"></i></button>
+                    <button class="add-file-to-project btn-icon" title="{L_WSP_ADD_FILE}">
+                        <i class="fa fa-file-text"></i>
+                    </button>
 
-                    {# Changelog (mantem icone, tooltip traduzida) #}
-                    {# Changelog (icone + texto visivel + tooltip traduzida) #}
-<button class="generate-project-changelog btn-icon btn-with-label"
-        title="{L_WSP_GENERATE_CHANGELOG}"
-        aria-label="{L_WSP_GENERATE_CHANGELOG}"
-        data-wsp-i18n-title="WSP_GENERATE_CHANGELOG">
-    <i class="fa fa-code-fork"></i>
-    <span class="btn-label">{L_WSP_GENERATE_CHANGELOG}</span>
-</button>
+                    <button class="add-folder-to-project btn-icon" title="{L_WSP_NEW_ROOT_FOLDER_TITLE}">
+                        <i class="fa fa-folder"></i>
+                    </button>
 
-<button class="clear-project-changelog btn-icon btn-with-label btn-danger-icon"
-        title="{L_WSP_CLEAR_CHANGELOG}"
-        aria-label="{L_WSP_CLEAR_CHANGELOG}"
-        data-wsp-i18n-title="WSP_CLEAR_CHANGELOG">
-    <i class="fa fa-eraser"></i>
-    <span class="btn-label">{L_WSP_CLEAR_CHANGELOG}</span>
-</button>
+                    <button class="trigger-upload btn-icon" title="{L_WSP_UPLOAD_FILES}">
+                        <i class="fa fa-cloud-upload"></i>
+                    </button>
+
+                    <button class="open-search-replace btn-icon" title="{L_WSP_SEARCH_REPLACE}">
+                        <i class="fa fa-search"></i>
+                    </button>
+
+                    <button id="open-diff-tool" class="btn-icon" title="{L_WSP_DIFF_TITLE}">
+                        <i class="fa fa-columns"></i>
+                    </button>
+
+                    {# Changelog (ÍCONE-ONLY) #}
+                    <button class="generate-project-changelog btn-icon"
+                            title="{L_WSP_GENERATE_CHANGELOG}"
+                            aria-label="{L_WSP_GENERATE_CHANGELOG}"
+                            data-wsp-i18n-title="WSP_GENERATE_CHANGELOG">
+                        <i class="fa fa-code-fork"></i>
+                    </button>
+
+                    <button class="clear-project-changelog btn-icon btn-danger-icon"
+                            title="{L_WSP_CLEAR_CHANGELOG}"
+                            aria-label="{L_WSP_CLEAR_CHANGELOG}"
+                            data-wsp-i18n-title="WSP_CLEAR_CHANGELOG">
+                        <i class="fa fa-eraser"></i>
+                    </button>
 
                     <div class="v-divider"></div>
-                    <button class="rename-active-project btn-icon" title="{L_WSP_RENAME_PROJECT}"><i class="fa fa-pencil-square-o"></i></button>
-                    <button class="delete-project btn-icon btn-danger-icon" title="{L_DELETE}"><i class="fa fa-trash"></i></button>
+
+                    {# Lock/Unlock (Admin do Workspace + ACL lock) #}
+                    {% if WSP_CAN_LOCK %}
+                        <button id="lock-project"
+                                class="btn-icon lock-project"
+                                title="{L_WSP_PROJECT_LOCK}"
+                                aria-label="{L_WSP_PROJECT_LOCK}"
+                                data-wsp-i18n-title="WSP_PROJECT_LOCK">
+                            <i class="fa fa-lock"></i>
+                        </button>
+
+                        <button id="unlock-project"
+                                class="btn-icon unlock-project"
+                                title="{L_WSP_PROJECT_UNLOCK}"
+                                aria-label="{L_WSP_PROJECT_UNLOCK}"
+                                data-wsp-i18n-title="WSP_PROJECT_UNLOCK">
+                            <i class="fa fa-unlock"></i>
+                        </button>
+
+                        <div class="v-divider"></div>
+                    {% endif %}
+
+                    <button class="rename-active-project btn-icon" title="{L_WSP_RENAME_PROJECT}">
+                        <i class="fa fa-pencil-square-o"></i>
+                    </button>
+
+                    <button class="delete-project btn-icon btn-danger-icon" title="{L_DELETE}">
+                        <i class="fa fa-trash"></i>
+                    </button>
                 </div>
 
                 {# Grupo 3: Salvar e Exportar #}
                 <div class="toolbar-section align-right">
+                    {# ? NÃO use wspVars aqui (isso é JS). Renderiza sempre se há projeto e deixa o JS decidir mostrar/ocultar. #}
                     {% if ACTIVE_PROJECT_ID > 0 %}
-                    <button id="download-project" class="btn-icon" title="{L_WSP_DOWNLOAD_PROJECT}"
-                            onclick="var pid = '{{ ACTIVE_PROJECT_ID }}'; if(parseInt(pid) > 0) { window.location.href = '{{ U_WORKSPACE_DOWNLOAD }}'.replace('/0', '/' + pid).replace('project_id=0', 'project_id=' + pid); }">
+                    <button id="download-project" class="btn-icon" title="{L_WSP_DOWNLOAD_PROJECT}" style="display:none">
                         <i class="icon fa-download fa-fw"></i>
                     </button>
                     {% endif %}
+
                     <button id="copy-bbcode" class="btn-icon btn-copy-alt" title="{L_WSP_COPY_BBCODE}">
                         <i class="icon fa-copy fa-fw"></i>
                     </button>
 
-                    {# Save (mantem icone, tooltip traduzida) #}
+                    {# Save (ÍCONE-ONLY) #}
                     <button id="save-file" class="btn-save-icon"
-        title="{L_WSP_SAVE_CHANGES}"
-        aria-label="{L_WSP_SAVE_CHANGES}">
-    <i class="fa fa-save fa-fw"></i>
-</button>
+                            title="{L_WSP_SAVE_CHANGES}"
+                            aria-label="{L_WSP_SAVE_CHANGES}">
+                        <i class="fa fa-save fa-fw"></i>
+                    </button>
                 </div>
+
             </div>
 
             <div id="editor"></div>
@@ -204,160 +268,119 @@
 </div>
 
 <script>
-    /**
-     * CONFIGURACO GLOBAL DO WORKSPACE v4.2
-     */
-    var wspVars = {
-        activeProjectId: '{{ ACTIVE_PROJECT_ID }}',
-        allowedExt: '{{ WSP_ALLOWED_EXT }}',
-        basePath: '{T_WSP_ACE_PATH}',
+/**
+ * ? SSOT GLOBAL:
+ * O PHP (main controller) entrega tudo em WSP_VARS_JSON (um único objeto).
+ * Aqui apenas expomos window.wspVars + var wspVars (compat).
+ */
+(function () {
+    try {
+        window.wspVars = {{ WSP_VARS_JSON|default('{}')|raw }};
+    } catch (e) {
+        window.wspVars = null;
+    }
 
-        loadUrl: '{{ U_WORKSPACE_LOAD|e("js") }}'.replace(/&amp;/g, '&'),
-        saveUrl: '{{ U_WORKSPACE_SAVE|e("js") }}'.replace(/&amp;/g, '&'),
-        addUrl: '{{ U_WORKSPACE_ADD|e("js") }}'.replace(/&amp;/g, '&'),
-        deleteUrl: '{{ U_WORKSPACE_DELETE|e("js") }}'.replace(/&amp;/g, '&'),
-        addFileUrl: '{{ U_WORKSPACE_ADD_FILE|e("js") }}'.replace(/&amp;/g, '&'),
-        uploadUrl: '{{ U_WORKSPACE_UPLOAD|e("js") }}'.replace(/&amp;/g, '&'),
-        renameUrl: '{{ U_WORKSPACE_RENAME|e("js") }}'.replace(/&amp;/g, '&'),
-        moveFileUrl: '{{ U_WORKSPACE_MOVE|e("js") }}'.replace(/&amp;/g, '&'),
-        renameProjectUrl: '{{ U_WORKSPACE_RENAME_PROJECT|e("js") }}'.replace(/&amp;/g, '&'),
-        deleteFileUrl: '{{ U_WORKSPACE_DELETE_FILE|e("js") }}'.replace(/&amp;/g, '&'),
-        deleteFolderUrl: '{{ U_WORKSPACE_DELETE_FOLDER|e("js") }}'.replace(/&amp;/g, '&'),
-        renameFolderUrl: '{{ U_WORKSPACE_RENAME_FOLDER|e("js") }}'.replace(/&amp;/g, '&'),
-        changelogUrl: '{{ U_WORKSPACE_CHANGELOG|e("js") }}'.replace(/&amp;/g, '&'),
-        clearChangelogUrl: '{{ U_WORKSPACE_CLEAR_CHANGELOG|e("js") }}'.replace(/&amp;/g, '&'),
-        diffUrl: '{{ U_WORKSPACE_DIFF|e("js") }}'.replace(/&amp;/g, '&'),
-        searchUrl: '{{ U_WORKSPACE_SEARCH|e("js") }}'.replace(/&amp;/g, '&'),
-        replaceUrl: '{{ U_WORKSPACE_REPLACE|e("js") }}'.replace(/&amp;/g, '&'),
-        refreshCacheUrl: '{{ U_WORKSPACE_REFRESH_CACHE|e("js") }}'.replace(/&amp;/g, '&'),
+    window.wspVars = window.wspVars || { basePath: '', allowedExt: '', activeProjectId: 0, lang: {} };
+    window.wspVars.lang = window.wspVars.lang || {};
 
-        lang: {
-            WSP_WELCOME_MSG: '{LA_WSP_WELCOME_MSG}',
-            WSP_EDITOR_START_MSG: '{LA_WSP_EDITOR_START_MSG}',
-            WSP_SELECT_FILE: '{LA_WSP_SELECT_FILE}',
-            WSP_READY: '{LA_WSP_READY}',
-            WSP_INIT_START: '{LA_WSP_INIT_START}',
-            WSP_TIMEOUT: '{LA_WSP_TIMEOUT}',
-            WSP_MODULE_LOADED: '{LA_WSP_MODULE_LOADED}',
-            WSP_MODULE_ERROR: '{LA_WSP_MODULE_ERROR}',
-            WSP_UNSAVED_CHANGES: '{LA_WSP_UNSAVED_CHANGES}',
-            WSP_LOADING_FILE: '{LA_WSP_LOADING_FILE}',
+    // Compat legado
+    window.wspVars.WSP_CAN_MANAGE_ALL = window.wspVars.WSP_CAN_MANAGE_ALL || window.wspVars.canManageAll || 0;
+    window.wspVars.WSP_ACTIVE_LOCKED = window.wspVars.WSP_ACTIVE_LOCKED || window.wspVars.activeLocked || 0;
+    window.wspVars.WSP_ACTIVE_LOCKED_BY = window.wspVars.WSP_ACTIVE_LOCKED_BY || window.wspVars.activeLockedBy || 0;
+    window.wspVars.WSP_ACTIVE_LOCKED_TIME = window.wspVars.WSP_ACTIVE_LOCKED_TIME || window.wspVars.activeLockedTime || 0;
 
-            // FIX: avisos "crus" usados em notify/toolbars
-            WSP_PROCESSING: '{LA_WSP_PROCESSING}',
-            WSP_CACHE_CLEANED: '{LA_WSP_CACHE_CLEANED}',
+    // eslint-disable-next-line no-var
+    var wspVars = window.wspVars;
 
-            WSP_SAVING: '{LA_WSP_SAVING}',
-            WSP_SAVED_SHORT: '{LA_WSP_SAVED_SHORT}',
-            WSP_SAVE: '{LA_WSP_SAVE}',
+    function fixTitlesByAttr() {
+        var nodes = document.querySelectorAll('[data-wsp-i18n-title]');
+        if (!nodes || !nodes.length) return;
 
-            // Toolbar labels (necessarios p/ tooltips e fallback)
-            WSP_SAVE_CHANGES: '{LA_WSP_SAVE_CHANGES}',
-            WSP_GENERATE_CHANGELOG: '{LA_WSP_GENERATE_CHANGELOG}',
-            WSP_CLEAR_CHANGELOG: '{LA_WSP_CLEAR_CHANGELOG}',
+        for (var i = 0; i < nodes.length; i++) {
+            var el = nodes[i];
+            var key = (el.getAttribute('data-wsp-i18n-title') || '').trim();
+            if (!key) continue;
 
-            WSP_BBCODE_COPIED: '{LA_WSP_BBCODE_COPIED}',
-            WSP_EDITOR_LOADING: '{LA_WSP_EDITOR_LOADING}',
-            WSP_LOG_BACKUP_UPDATED: '{LA_WSP_LOG_BACKUP_UPDATED}',
-
-            WSP_PROMPT_PROJECT_NAME: '{LA_WSP_PROMPT_PROJECT_NAME}',
-            WSP_PROJECT_NOT_FOUND: '{LA_WSP_PROJECT_NOT_FOUND}',
-            WSP_OPEN_PROJECT: '{LA_WSP_OPEN_PROJECT}',
-            WSP_RENAME_PROJECT: '{LA_WSP_RENAME_PROJECT}',
-            WSP_RENAME_PROJECT_TITLE: '{LA_WSP_RENAME_PROJECT_TITLE}',
-            WSP_CONFIRM_DELETE_PROJ: '{LA_WSP_CONFIRM_DELETE_PROJ}',
-            WSP_LABEL_ACTIVE_PROJECT: '{LA_WSP_LABEL_ACTIVE_PROJECT}',
-            WSP_LABEL_CLICK_OPEN: '{LA_WSP_LABEL_CLICK_OPEN}',
-            WSP_MODAL_TITLE_SELECT: '{LA_WSP_MODAL_TITLE_SELECT}',
-            WSP_MODAL_TITLE_MOVE: '{LA_WSP_MODAL_TITLE_MOVE}',
-            WSP_LABEL_MOVE_ROOT: '{LA_WSP_LABEL_MOVE_ROOT}',
-
-            WSP_TREE_ROOT: '{LA_WSP_TREE_ROOT}',
-            WSP_TREE_NEW_FILE: '{LA_WSP_TREE_NEW_FILE}',
-            WSP_TREE_NEW_FOLDER: '{LA_WSP_TREE_NEW_FOLDER}',
-            WSP_TREE_RENAME: '{LA_WSP_TREE_RENAME}',
-            WSP_TREE_DELETE: '{LA_WSP_TREE_DELETE}',
-            WSP_TREE_MOVE: '{LA_WSP_TREE_MOVE}',
-
-            WSP_PROMPT_RENAME_FILE: '{LA_WSP_PROMPT_RENAME_FILE}',
-            WSP_PROMPT_RENAME_FOLDER: '{LA_WSP_PROMPT_RENAME_FOLDER}',
-            WSP_CONFIRM_DELETE_FILE: '{LA_WSP_CONFIRM_DELETE_FILE}',
-            WSP_CONFIRM_DELETE_FOLDER: '{LA_WSP_CONFIRM_DELETE_FOLDER}',
-            WSP_PROMPT_NEW_FILE: '{LA_WSP_PROMPT_NEW_FILE}',
-            WSP_PROMPT_NEW_FOLDER: '{LA_WSP_PROMPT_NEW_FOLDER}',
-            WSP_PROMPT_ROOT_FILE: '{LA_WSP_PROMPT_ROOT_FILE}',
-            WSP_PROMPT_ROOT_FOLDER: '{LA_WSP_PROMPT_ROOT_FOLDER}',
-
-            WSP_LOG_PROJECT_CREATED: '{LA_WSP_LOG_PROJECT_CREATED}',
-            WSP_HISTORY_CLEANED: '{LA_WSP_HISTORY_CLEANED}',
-            WSP_NOTIFY_CHANGELOG_OK: '{LA_WSP_NOTIFY_CHANGELOG_OK}',
-            WSP_CONFIRM_CLEAR_CHANGE: '{LA_WSP_CONFIRM_CLEAR_CHANGE}',
-
-            WSP_UPLOAD_LIST_UPDATED: '{LA_WSP_UPLOAD_LIST_UPDATED}',
-            WSP_UPLOAD_PROCESSING: '{LA_WSP_UPLOAD_PROCESSING}',
-            WSP_UPLOAD_FAILED: '{LA_WSP_UPLOAD_FAILED}',
-            WSP_UPLOAD_NEED_PROJECT: '{LA_WSP_UPLOAD_NEED_PROJECT}',
-            WSP_UPLOAD_SENDING_COUNT: '{LA_WSP_UPLOAD_SENDING_COUNT}',
-            WSP_UPLOAD_DROP_PROJECT: '{LA_WSP_UPLOAD_DROP_PROJECT}',
-
-            WSP_TOOLS_SEARCH_NEED_PROJECT: '{LA_WSP_TOOLS_SEARCH_NEED_PROJECT}',
-            WSP_TOOLS_SEARCH_INTERFACE_ERROR: '{LA_WSP_TOOLS_SEARCH_INTERFACE_ERROR}',
-            WSP_TOOLS_SEARCH_TERM_REQUIRED: '{LA_WSP_TOOLS_SEARCH_TERM_REQUIRED}',
-            WSP_TOOLS_SEARCH_CONFIRM: '{LA_WSP_TOOLS_SEARCH_CONFIRM}',
-            WSP_TOOLS_SEARCH_SUCCESS: '{LA_WSP_TOOLS_SEARCH_SUCCESS}',
-            WSP_REPLACE_ALL: '{LA_WSP_REPLACE_ALL}',
-
-            WSP_TOOLS_DIFF_MIN_FILES: '{LA_WSP_TOOLS_DIFF_MIN_FILES}',
-            WSP_TOOLS_COMPARING: '{LA_WSP_TOOLS_COMPARING}',
-            WSP_TOOLS_DIFF_SAME_FILES: '{LA_WSP_TOOLS_DIFF_SAME_FILES}',
-            WSP_LABEL_DIFF: '{LA_WSP_LABEL_DIFF}',
-
-            WSP_UI_CANCEL: '{LA_WSP_UI_CANCEL}',
-            WSP_UI_CONFIRM: '{LA_WSP_UI_CONFIRM}',
-            WSP_UI_ROOT_FOCUS: '{LA_WSP_UI_ROOT_FOCUS}',
-            WSP_UI_ACTION_WARNING: '{LA_WSP_UI_ACTION_WARNING}',
-            WSP_UI_SPLITTER_READY: '{LA_WSP_UI_SPLITTER_READY}',
-
-            WSP_ERR_INVALID_DATA: '{LA_WSP_ERR_INVALID_DATA}',
-            WSP_ERR_FILE_NOT_FOUND: '{LA_WSP_ERR_FILE_NOT_FOUND}',
-            WSP_ERROR_CRITICAL: '{LA_WSP_ERROR_CRITICAL}',
-            WSP_CRITICAL_ACE: '{LA_WSP_CRITICAL_ACE}',
-            WSP_ERR_DELETE_FAILED: '{LA_WSP_ERR_DELETE_FAILED}',
-            WSP_ERROR_OPEN_FILE: '{LA_WSP_ERROR_OPEN_FILE}',
-            WSP_ERROR_SAVE: '{LA_WSP_ERROR_SAVE}',
-            WSP_ERROR_PROJECT_CREATE: '{LA_WSP_ERROR_PROJECT_CREATE}',
-            WSP_LOG_FILE_OPEN: '{LA_WSP_LOG_FILE_OPEN}'
-        }
-    };
-
-    // Airbag: se algum title veio como "WSP_...", tenta corrigir via wspVars.lang
-    (function () {
-        function fixTitle(selector, key) {
-            var el = document.querySelector(selector);
-            if (!el) return;
+            var val = (wspVars && wspVars.lang && wspVars.lang[key]) ? wspVars.lang[key] : '';
+            if (!val) continue;
 
             var t = (el.getAttribute('title') || '').trim();
-            if (!t) return;
-
-            // Se veio "WSP_xxx" cru
-            if (t === key || t.indexOf('WSP_') === 0) {
-                var val = (wspVars && wspVars.lang && wspVars.lang[key]) ? wspVars.lang[key] : t;
+            if (!t || t === key || t.indexOf('WSP_') === 0) {
                 el.setAttribute('title', val);
                 el.setAttribute('aria-label', val);
             }
         }
+    }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            fixTitle('#save-file', 'WSP_SAVE_CHANGES');
-            fixTitle('.generate-project-changelog', 'WSP_GENERATE_CHANGELOG');
-            fixTitle('.clear-project-changelog', 'WSP_CLEAR_CHANGELOG');
+    function toggleLockButtons() {
+        var lockBtn = document.getElementById('lock-project');
+        var unlockBtn = document.getElementById('unlock-project');
+        if (!lockBtn || !unlockBtn) return;
+
+        var locked = (String(wspVars.activeLocked || wspVars.WSP_ACTIVE_LOCKED || 0) === '1');
+        lockBtn.style.display = locked ? 'none' : '';
+        unlockBtn.style.display = locked ? '' : 'none';
+    }
+
+    // expõe para o módulo projects chamar após lock/unlock
+    window.WSP_toggleLockButtons = toggleLockButtons;
+
+    // ? controla o botão de download por permissão real (activeCanDownload)
+    function toggleDownloadButton() {
+        var btn = document.getElementById('download-project');
+        if (!btn) return;
+
+        var pid = parseInt(String(wspVars.activeProjectId || 0), 10) || 0;
+        var canDownload = (typeof wspVars.activeCanDownload !== 'undefined') ? wspVars.activeCanDownload : 0;
+
+        var ok = (pid > 0) && (String(canDownload || 0) === '1');
+        btn.style.display = ok ? '' : 'none';
+    }
+
+    function bindDownload() {
+        var btn = document.getElementById('download-project');
+        if (!btn) return;
+
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            var pid = parseInt(String(wspVars.activeProjectId || 0), 10) || 0;
+            if (pid <= 0) return;
+
+            var canDownload = (String(wspVars.activeCanDownload || 0) === '1');
+            if (!canDownload) return;
+
+            var u = String(wspVars.downloadUrl || '').trim();
+            if (!u) return;
+
+            if (u.indexOf('project_id=0') !== -1) {
+                u = u.replace('project_id=0', 'project_id=' + pid);
+            } else {
+                u = u.replace(/\/0(\b|\/)?/, '/' + pid);
+            }
+
+            window.location.href = u;
         });
-    })();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        fixTitlesByAttr();
+        toggleLockButtons();
+        toggleDownloadButton();
+        bindDownload();
+    });
+
+    if (window.jQuery) {
+        jQuery(document).on('wsp:lockChanged', function () {
+            toggleLockButtons();
+            toggleDownloadButton();
+        });
+    }
+})();
 </script>
 
 {# CARREGAMENTO DE SCRIPTS #}
 <script src="{T_WSP_ACE_PATH}/ace.js?v={WSP_JS_VERSION}"></script>
-{# FIX: Carrega ferramentas de linguagem para habilitar Autocomplete #}
 <script src="{T_WSP_ACE_PATH}/ext-language_tools.js?v={WSP_JS_VERSION}"></script>
 
 {% INCLUDEJS '@mundophpbb_workspace/js/wsp_core.js' %}

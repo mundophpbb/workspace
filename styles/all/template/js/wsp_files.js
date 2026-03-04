@@ -1,128 +1,197 @@
 /**
  * Mundo phpBB Workspace - File Operations
- * Versão 4.1: i18n Pura & Conformidade CDB (Sem omissões)
- *
- * Correções aplicadas:
- * - Confirmação de alterações não salvas ANTES de trocar arquivo (WSP_UNSAVED_CHANGES)
- * - Não seta WSP.activeFileId antes do load ter sucesso (evita estado quebrado)
- * - Restaura UI (highlight/breadcrumb) se o load falhar
- * - Dirty detector usando evento correto do Ace (session.on('change')) em vez de "input"
- * - Uso seguro do mapa de modos (WSP.modes / window.WSP.modes)
- * - Fail handler no save (conexão)
- * - Loading effect via classe (mantém compatível com seu CSS)
- * - Corrige label do botão SALVAR para WSP_SAVE_CHANGES (e evita aparecer chave literal)
- * - Corrige botões/labels do Changelog caso o template tenha renderizado a chave literal
+ * Versão 4.4 (SSOT + granular edit + toolbar ícone-only)
+ * - Toolbar: NÃO injeta texto (save/changelog)
+ * - Mantém title/aria-label (i18n) para acessibilidade/tooltip
  */
-
 WSP.files = {
     autoSaveInterval: null,
     _dirtyBound: false,
     _saveCommandBound: false,
     _toolbarI18nApplied: false,
 
-    /**
-     * Helper: obtém a instância do Ace Editor (compatível com core/legado)
-     * - Core: WSP.editor é a instância do Ace
-     * - Legado: WSP.editor.ace é a instância do Ace
-     */
+    _ui: null,
+    _dirtyRafQueued: false,
+
+    _getUI: function () {
+        if (this._ui) return this._ui;
+
+        this._ui = {
+            $body: jQuery('body'),
+            $currentFile: jQuery('#current-file'),
+            $saveBtn: jQuery('#save-file'),
+            $bbcodeBtn: jQuery('#copy-bbcode'),
+            $modalBody: jQuery('#wsp-modal-body-custom')
+        };
+        return this._ui;
+    },
+
+    _endsWith: function (str, suffix) {
+        if (window.WSP && typeof WSP._endsWith === 'function') return WSP._endsWith(str, suffix);
+
+        str = String(str || '');
+        suffix = String(suffix || '');
+        if (!suffix) return true;
+        if (typeof str.endsWith === 'function') return str.endsWith(suffix);
+        return str.indexOf(suffix, str.length - suffix.length) !== -1;
+    },
+
+    _escape: function (s) {
+        s = String(s == null ? '' : s);
+        return s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+
     _getEditor: function () {
-        if (WSP && WSP.editor && typeof WSP.editor.getValue === 'function' && WSP.editor.session) {
-            return WSP.editor;
-        }
-        if (WSP && WSP.editor && WSP.editor.ace && typeof WSP.editor.ace.getValue === 'function' && WSP.editor.ace.session) {
-            return WSP.editor.ace;
-        }
+        if (WSP && WSP.editor && typeof WSP.editor.getValue === 'function' && WSP.editor.session) return WSP.editor;
+        if (WSP && WSP.editor && WSP.editor.ace && typeof WSP.editor.ace.getValue === 'function' && WSP.editor.ace.session) return WSP.editor.ace;
         return null;
     },
 
     /**
-     * Aplica traduções na toolbar quando o template renderiza texto literal (ex: "WSP_SAVE_CHANGES")
-     * Isso é um "airbag" — o ideal é o Twig usar {{ lang('WSP_...') }}.
+     * ✅ Edit real (granular): preferir WSP.canEditUI()
+     */
+    _canEdit: function () {
+        if (window.WSP && typeof WSP.canEditUI === 'function') return !!WSP.canEditUI();
+        if (window.WSP && typeof WSP.canWriteUI === 'function') return !!WSP.canWriteUI();
+
+        // fallback antigo
+        if (!WSP || !WSP.activeProjectId) return false;
+        if (WSP.activeProjectLocked && !WSP.canManageAll) return false;
+        return true;
+    },
+
+    _notifyLockedOrDenied: function () {
+        // Se existir notifyLocked no core, usa
+        if (window.WSP && typeof WSP.notifyLocked === 'function') return WSP.notifyLocked();
+
+        var msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_ERR_PERMISSION') : '';
+        if (!msg || msg === '[WSP_ERR_PERMISSION]') msg = 'Sem permissão.';
+        if (WSP && WSP.ui && typeof WSP.ui.notify === 'function') WSP.ui.notify(msg, 'error');
+    },
+
+    _postJson: function ($, url, data, onDone, onFailMsgKey) {
+        url = (window.WSP && typeof WSP.normalizeUrl === 'function') ? WSP.normalizeUrl(url) : url;
+
+        if (!url) {
+            if (WSP && WSP.ui) WSP.ui.notify(WSP.lang('WSP_ERR_INVALID_DATA'), 'error');
+            return;
+        }
+
+        if (window.WSP && typeof WSP.ajaxPostJson === 'function') {
+            WSP.ajaxPostJson(url, data, function (r) { onDone(r); }, onFailMsgKey || 'WSP_ERROR_CRITICAL');
+            return;
+        }
+
+        data = data || {};
+        if (typeof data._nocache === 'undefined') data._nocache = Date.now();
+
+        $.post(url, data, function (r) {
+            onDone(r);
+        }, 'json').fail(function () {
+            WSP.ui.notify(WSP.lang(onFailMsgKey || 'WSP_ERROR_CRITICAL'), 'error');
+        });
+    },
+
+    /**
+     * Toolbar i18n: ÍCONE-ONLY
+     * - Não seta texto nos botões
+     * - Apenas garante title/aria-label traduzidos
      */
     applyToolbarTranslations: function () {
         if (this._toolbarI18nApplied) return;
         this._toolbarI18nApplied = true;
 
-        // Botão salvar
-        var $save = jQuery('#save-file');
-        if ($save.length) {
-            // Se o botão estiver com texto literal "WSP_SAVE_CHANGES" ou vazio, força tradução
-            var cur = ($save.text() || '').trim();
-            if (!cur || cur === 'WSP_SAVE_CHANGES' || cur === 'WSP_SAVE') {
-                $save.html('<i class="fa fa-save"></i> ' + WSP.lang('WSP_SAVE_CHANGES'));
+        var ui = this._getUI();
+        var saveTitle = WSP.lang('WSP_SAVE_CHANGES');
+
+        // SAVE: ícone-only + title/aria (não injeta texto)
+        if (ui.$saveBtn.length) {
+            ui.$saveBtn.attr('title', saveTitle);
+            ui.$saveBtn.attr('aria-label', saveTitle);
+
+            // garante ícone se algum código tiver apagado
+            if (!ui.$saveBtn.find('i.fa').length) {
+                ui.$saveBtn.html('<i class="fa fa-save fa-fw"></i>');
             }
         }
 
-        // Botão gerar changelog (caso exista)
+        // CHANGELOG: ícone-only (não seta texto)
         jQuery('.generate-project-changelog').each(function () {
             var $el = jQuery(this);
-            var t = ($el.text() || '').trim();
-            if (!t || t === 'WSP_GENERATE_CHANGELOG') {
-                $el.text(WSP.lang('WSP_GENERATE_CHANGELOG'));
-            }
+            $el.attr('title', WSP.lang('WSP_GENERATE_CHANGELOG'));
+            $el.attr('aria-label', WSP.lang('WSP_GENERATE_CHANGELOG'));
         });
 
-        // Botão limpar changelog (caso exista)
         jQuery('.clear-project-changelog').each(function () {
             var $el = jQuery(this);
-            var t = ($el.text() || '').trim();
-            if (!t || t === 'WSP_CLEAR_CHANGELOG') {
-                $el.text(WSP.lang('WSP_CLEAR_CHANGELOG'));
-            }
+            $el.attr('title', WSP.lang('WSP_CLEAR_CHANGELOG'));
+            $el.attr('aria-label', WSP.lang('WSP_CLEAR_CHANGELOG'));
         });
 
-        // Mensagens que às vezes aparecem em spans/labels no painel
+        // Outros data-wsp-i18n continuam traduzindo texto (se você usa)
         jQuery('[data-wsp-i18n]').each(function () {
             var $el = jQuery(this);
             var key = ($el.attr('data-wsp-i18n') || '').trim();
-            if (key) {
-                $el.text(WSP.lang(key));
-            }
+            if (key) $el.text(WSP.lang(key));
         });
     },
 
-    /**
-     * Vincula todos os eventos de manipulação de arquivos
-     */
+    renderBreadcrumbs: function (path) {
+        var ui = this._getUI();
+        path = (path || '').trim();
+
+        if (!path) {
+            ui.$currentFile.text(WSP.lang('WSP_SELECT_FILE'));
+            return;
+        }
+
+        var parts = path.split('/');
+        var out = ['<i class="fa fa-folder-open-o breadcrumb-folder-icon"></i> '];
+
+        for (var i = 0; i < parts.length; i++) {
+            out.push('<span class="breadcrumb-item">', this._escape(parts[i]), '</span>');
+            if (i < parts.length - 1) out.push(' <i class="fa fa-angle-right breadcrumb-sep"></i> ');
+        }
+
+        ui.$currentFile.html(out.join(''));
+    },
+
     bindEvents: function ($) {
         var self = this;
+        var ui = self._getUI();
+        var $body = ui.$body;
 
-        // Airbag de tradução para toolbar (evita aparecer "WSP_SAVE_CHANGES" literal)
         self.applyToolbarTranslations();
+        $body.off('.wsp_files');
 
-        // Helper para verificar se o editor está pronto
-        var isEditorReady = function () {
-            return !!self._getEditor();
-        };
+        function isEditorReady() { return !!self._getEditor(); }
 
-        // Helper: aplica/remove efeito de carregamento (compatível com seu CSS)
-        var setLoadingEffect = function (on) {
-            if (on) $('#current-file').addClass('loading-effect');
-            else $('#current-file').removeClass('loading-effect');
-        };
+        function setLoadingEffect(on) {
+            if (on) ui.$currentFile.addClass('loading-effect');
+            else ui.$currentFile.removeClass('loading-effect');
+        }
 
-        // Helper: detecta alterações não salvas com comparação real
-        var hasUnsavedChanges = function () {
+        function hasUnsavedChanges() {
             var ed = self._getEditor();
-            if (!ed) return false;
-            if (!WSP.activeFileId) return false;
+            if (!ed || !WSP.activeFileId) return false;
+            return ed.getValue() !== (typeof WSP.originalContent === 'string' ? WSP.originalContent : '');
+        }
 
-            var current = ed.getValue();
-            var original = (typeof WSP.originalContent === 'string') ? WSP.originalContent : '';
-            return current !== original;
-        };
-
-        // Helper: restaura highlight/breadcrumb para o arquivo anterior (quando load falha)
-        var restorePreviousSelection = function (prevActiveId) {
+        function restorePreviousSelection(prevActiveId) {
             if (!prevActiveId) {
-                // Sem anterior: limpa UI
-                $('.file-item').removeClass('active-file');
+                jQuery('.file-item').removeClass('active-file');
                 self.renderBreadcrumbs('');
                 return;
             }
 
-            var $prevLink = $('.load-file[data-id="' + prevActiveId + '"]');
-            $('.file-item').removeClass('active-file');
+            var $prevLink = jQuery('.load-file[data-id="' + prevActiveId + '"]');
+            jQuery('.file-item').removeClass('active-file');
+
             if ($prevLink.length) {
                 $prevLink.closest('.file-item').addClass('active-file');
                 var prevPath = ($prevLink.attr('data-path') || $prevLink.text() || '').trim();
@@ -130,188 +199,176 @@ WSP.files = {
             } else {
                 self.renderBreadcrumbs('');
             }
-        };
+        }
 
-        // 1) CARREGAR ARQUIVO (Click na Sidebar)
-        $('body').off('click', '.load-file').on('click', '.load-file', function (e) {
+        function setSaveButtonVisible(visible) {
+            if (!ui.$saveBtn.length) return;
+
+            var saveTitle = WSP.lang('WSP_SAVE_CHANGES');
+
+            if (visible) {
+                ui.$saveBtn
+                    .stop(true, true)
+                    .fadeIn(200)
+                    .attr('title', saveTitle)
+                    .attr('aria-label', saveTitle);
+
+                if (!ui.$saveBtn.find('i.fa').length) {
+                    ui.$saveBtn.html('<i class="fa fa-save fa-fw"></i>');
+                }
+            } else {
+                ui.$saveBtn.hide();
+            }
+        }
+
+        // 1) LOAD FILE
+        $body.on('click.wsp_files', '.load-file', function (e) {
             e.preventDefault();
 
             if (!isEditorReady()) {
-                // Notificação via motor de tradução
                 WSP.ui.notify(WSP.lang('WSP_EDITOR_LOADING'), 'warning');
                 return;
             }
 
-            var $link = $(this);
+            var $link = jQuery(this);
             var fileId = $link.data('id');
             if (!fileId) return;
 
-            // Proteção: Não deixa trocar se tiver alteração não salva
-            if (hasUnsavedChanges() && !confirm(WSP.lang('WSP_UNSAVED_CHANGES'))) {
-                return;
-            }
+            if (hasUnsavedChanges() && !confirm(WSP.lang('WSP_UNSAVED_CHANGES'))) return;
 
-            // Guarda estado anterior para rollback se falhar
             var prevActiveId = WSP.activeFileId || null;
 
-            // Breadcrumbs dinâmicos (pode renderizar já, mesmo antes do load)
             var fullPath = ($link.attr('data-path') || $link.text() || '').trim();
             self.renderBreadcrumbs(fullPath);
 
-            // Highlight visual na sidebar (visual imediato)
-            $('.file-item').removeClass('active-file');
+            jQuery('.file-item').removeClass('active-file');
             $link.closest('.file-item').addClass('active-file');
 
-            // Feedback de progresso via classe CSS
             setLoadingEffect(true);
 
-            $.post(
-                window.wspVars.loadUrl,
-                { file_id: fileId, _nocache: Date.now() },
-                function (r) {
-                    setLoadingEffect(false);
+            self._postJson($, window.wspVars.loadUrl, { file_id: fileId }, function (r) {
+                setLoadingEffect(false);
 
-                    if (!r || !r.success) {
-                        // Erro traduzido vindo do servidor ou fallback do motor
-                        var errorMsg = (r && r.error) ? r.error : WSP.lang('WSP_ERROR_OPEN_FILE');
-                        WSP.ui.notify(errorMsg, 'error');
+                if (!r || !r.success) {
+                    var errorMsg = (r && r.error) ? r.error : WSP.lang('WSP_ERROR_OPEN_FILE');
+                    WSP.ui.notify(errorMsg, 'error');
+                    restorePreviousSelection(prevActiveId);
+                    return;
+                }
 
-                        // Restaura seleção anterior para não deixar UI “presa” no arquivo que falhou
-                        restorePreviousSelection(prevActiveId);
-                        return;
-                    }
+                WSP.activeFileId = fileId;
+                localStorage.setItem('wsp_active_file_id', fileId);
 
-                    // Agora sim define o arquivo ativo e persiste no localStorage
-                    WSP.activeFileId = fileId;
-                    localStorage.setItem('wsp_active_file_id', fileId);
+                var ed = self._getEditor();
+                if (!ed) {
+                    WSP.ui.notify(WSP.lang('WSP_EDITOR_LOADING'), 'warning');
+                    restorePreviousSelection(prevActiveId);
+                    return;
+                }
 
-                    var ed = self._getEditor();
-                    if (!ed) {
-                        WSP.ui.notify(WSP.lang('WSP_EDITOR_LOADING'), 'warning');
-                        restorePreviousSelection(prevActiveId);
-                        return;
-                    }
+                // ✅ Edit real (granular)
+                ed.setReadOnly(!self._canEdit());
 
-                    // Prepara o editor
-                    ed.setReadOnly(false);
+                var fileName = String(r.name || '').toLowerCase();
 
-                    // --- LÓGICA DE COLORIZAÇÃO ---
-                    var fileName = (r.name || '').toLowerCase();
-                    if (fileName === 'changelog.txt') {
-                        ed.session.setMode("ace/mode/diff");
-                        $('#copy-bbcode').fadeIn(200);
-                    } else if (fileName.endsWith('.txt')) {
-                        ed.session.setMode("ace/mode/text");
-                        $('#copy-bbcode').hide();
-                    } else {
-                        // Usa o mapa de modos definido no core (com fallback seguro)
-                        var modesMap = (WSP.modes && typeof WSP.modes === 'object')
-                            ? WSP.modes
-                            : ((window.WSP && window.WSP.modes) ? window.WSP.modes : {});
+                if (fileName === 'changelog.txt') {
+                    ed.session.setMode("ace/mode/diff");
+                    ui.$bbcodeBtn.stop(true, true).fadeIn(200);
+                } else if (self._endsWith(fileName, '.txt')) {
+                    ed.session.setMode("ace/mode/text");
+                    ui.$bbcodeBtn.hide();
+                } else {
+                    var modesMap = (WSP.modes && typeof WSP.modes === 'object') ? WSP.modes : ((window.WSP && window.WSP.modes) ? window.WSP.modes : {});
+                    ed.session.setMode(modesMap[r.type] || 'ace/mode/text');
+                    ui.$bbcodeBtn.hide();
+                }
 
-                        ed.session.setMode(modesMap[r.type] || 'ace/mode/text');
-                        $('#copy-bbcode').hide();
-                    }
+                var finalContent = (typeof r.content === 'string') ? r.content : '';
+                ed.setValue(finalContent, -1);
+                WSP.originalContent = finalContent;
 
-                    // Gerencia conteúdo
-                    var finalContent = (typeof r.content === 'string') ? r.content : '';
+                ed.resize();
+                ed.focus();
 
-                    ed.setValue(finalContent, -1);
-                    WSP.originalContent = finalContent;
+                var $activeLink = jQuery('.load-file[data-id="' + WSP.activeFileId + '"]');
+                if ($activeLink.length) {
+                    var cleanName = ($activeLink.text() || '').replace(/^\* /, '');
+                    $activeLink.text(cleanName).removeClass('is-dirty');
+                }
 
-                    ed.resize();
-                    ed.focus();
+                // ✅ Só mostra save se pode editar de verdade (ícone-only)
+                setSaveButtonVisible(self._canEdit());
 
-                    // Limpa marcador de dirty no link ativo (caso viesse com "* ")
-                    var $activeLink = $('.load-file[data-id="' + WSP.activeFileId + '"]');
+                if (typeof WSP.updateUIState === 'function') WSP.updateUIState();
+
+                self.initAutoSave();
+                self.bindDirtyDetector();
+                self.bindSaveShortcut();
+            }, 'WSP_ERROR_CRITICAL');
+        });
+
+        // 2) SAVE FILE
+        $body.on('click.wsp_files', '#save-file', function () {
+            if (!isEditorReady() || !WSP.activeFileId) return;
+
+            if (!self._canEdit()) return self._notifyLockedOrDenied();
+
+            var ed = self._getEditor();
+            if (!ed) return;
+
+            var $btn = ui.$saveBtn;
+            if ($btn.prop('disabled')) return;
+
+            var saveTitle = WSP.lang('WSP_SAVE_CHANGES');
+
+            // ícone-only loading + mantém title/aria
+            $btn
+                .prop('disabled', true)
+                .attr('title', saveTitle)
+                .attr('aria-label', saveTitle)
+                .html('<i class="fa fa-spinner fa-spin fa-fw"></i>');
+
+            var contentToSave = ed.getValue();
+
+            self._postJson($, window.wspVars.saveUrl, { file_id: WSP.activeFileId, content: contentToSave }, function (r) {
+                if (r && r.success) {
+                    WSP.originalContent = contentToSave;
+                    localStorage.removeItem('wsp_backup_' + WSP.activeFileId);
+
+                    var $activeLink = jQuery('.load-file[data-id="' + WSP.activeFileId + '"]');
                     if ($activeLink.length) {
                         var cleanName = ($activeLink.text() || '').replace(/^\* /, '');
                         $activeLink.text(cleanName).removeClass('is-dirty');
                     }
 
-                    // Mostra botão salvar e garante label traduzida
-                    $('#save-file').fadeIn(200)
-                        .html('<i class="fa fa-save"></i> ' + WSP.lang('WSP_SAVE_CHANGES'));
+                    // ícone-only success
+                    $btn.html('<i class="fa fa-check fa-fw"></i>').addClass('btn-success-temporary');
 
-                    if (typeof WSP.updateUIState === 'function') {
-                        WSP.updateUIState();
-                    }
-
-                    // Inicia rotinas auxiliares (bound flags impedem duplicar)
-                    self.initAutoSave();
-                    self.bindDirtyDetector();
-                    self.bindSaveShortcut();
-                },
-                'json'
-            ).fail(function () {
-                setLoadingEffect(false);
-                // Erro crítico de conexão traduzido
-                WSP.ui.notify(WSP.lang('WSP_ERROR_CRITICAL'), "error");
-
-                // rollback UI para arquivo anterior
-                restorePreviousSelection(prevActiveId);
-            });
-        });
-
-        // 2) SALVAR ARQUIVO (Botão ou Atalho)
-        $('body').off('click', '#save-file').on('click', '#save-file', function () {
-            if (!isEditorReady() || !WSP.activeFileId) return;
-
-            var ed = self._getEditor();
-            if (!ed) return;
-
-            var $btn = $(this);
-            if ($btn.prop('disabled')) return;
-
-            // Tradução dinâmica de "Salvando..." via motor
-            $btn.prop('disabled', true)
-                .html('<i class="fa fa-spinner fa-spin"></i> ' + WSP.lang('WSP_SAVING'));
-
-            var contentToSave = ed.getValue();
-
-            $.post(
-                window.wspVars.saveUrl,
-                { file_id: WSP.activeFileId, content: contentToSave },
-                function (r) {
-                    if (r && r.success) {
-                        WSP.originalContent = contentToSave;
-                        localStorage.removeItem('wsp_backup_' + WSP.activeFileId);
-
-                        // Remove a marca de "sujo (*)" usando classes
-                        var $activeLink = $('.load-file[data-id="' + WSP.activeFileId + '"]');
-                        if ($activeLink.length) {
-                            var cleanName = ($activeLink.text() || '').replace(/^\* /, '');
-                            $activeLink.text(cleanName).removeClass('is-dirty');
+                    setTimeout(function () {
+                        if (!self._canEdit()) {
+                            $btn.hide();
+                            return;
                         }
 
-                        // Tradução de "Salvo!" via motor
-                        $btn.html('<i class="fa fa-check"></i> ' + WSP.lang('WSP_SAVED_SHORT'))
-                            .addClass('btn-success-temporary');
-
-                        setTimeout(function () {
-                            $btn.prop('disabled', false)
-                                .html('<i class="fa fa-save"></i> ' + WSP.lang('WSP_SAVE_CHANGES'))
-                                .removeClass('btn-success-temporary');
-                        }, 1000);
-                    } else {
-                        // Erro ao salvar traduzido
-                        WSP.ui.notify((r && r.error) ? r.error : WSP.lang('WSP_ERROR_SAVE'), 'error');
-                        $btn.prop('disabled', false)
-                            .html('<i class="fa fa-save"></i> ' + WSP.lang('WSP_SAVE_CHANGES'));
-                    }
-                },
-                'json'
-            ).fail(function () {
-                WSP.ui.notify(WSP.lang('WSP_ERROR_CRITICAL'), 'error');
-                $btn.prop('disabled', false)
-                    .html('<i class="fa fa-save"></i> ' + WSP.lang('WSP_SAVE_CHANGES'));
-            });
+                        $btn
+                            .prop('disabled', false)
+                            .attr('title', saveTitle)
+                            .attr('aria-label', saveTitle)
+                            .html('<i class="fa fa-save fa-fw"></i>')
+                            .removeClass('btn-success-temporary');
+                    }, 900);
+                } else {
+                    WSP.ui.notify((r && r.error) ? r.error : WSP.lang('WSP_ERROR_SAVE'), 'error');
+                    $btn
+                        .prop('disabled', false)
+                        .attr('title', saveTitle)
+                        .attr('aria-label', saveTitle)
+                        .html('<i class="fa fa-save fa-fw"></i>');
+                }
+            }, 'WSP_ERROR_CRITICAL');
         });
     },
 
-    /**
-     * Monitora mudanças no editor para mostrar o asterisco (*) na sidebar
-     */
     bindDirtyDetector: function () {
         if (this._dirtyBound) return;
         this._dirtyBound = true;
@@ -320,8 +377,11 @@ WSP.files = {
         var ed = self._getEditor();
         if (!ed) return;
 
-        var handler = function () {
+        var run = function () {
+            self._dirtyRafQueued = false;
+
             if (!WSP.activeFileId) return;
+            if (!self._canEdit()) return;
 
             var current = ed.getValue();
             var $link = jQuery('.load-file[data-id="' + WSP.activeFileId + '"]');
@@ -338,22 +398,22 @@ WSP.files = {
             }
         };
 
-        // Ace: o evento correto é change (preferir session.on)
-        if (ed.session && typeof ed.session.on === 'function') {
-            ed.session.on('change', handler);
-        } else if (typeof ed.on === 'function') {
-            ed.on('change', handler);
-        }
+        var schedule = function () {
+            if (self._dirtyRafQueued) return;
+            self._dirtyRafQueued = true;
+            (window.requestAnimationFrame || function (cb) { return setTimeout(cb, 16); })(run);
+        };
+
+        if (ed.session && typeof ed.session.on === 'function') ed.session.on('change', schedule);
+        else if (typeof ed.on === 'function') ed.on('change', schedule);
     },
 
-    /**
-     * Atalhos de teclado (Ctrl+S / Cmd+S)
-     */
     bindSaveShortcut: function () {
         if (this._saveCommandBound) return;
         this._saveCommandBound = true;
 
         var self = this;
+        var ui = self._getUI();
         var ed = self._getEditor();
         if (!ed) return;
 
@@ -361,74 +421,43 @@ WSP.files = {
             ed.commands.addCommand({
                 name: 'save',
                 bindKey: { win: 'Ctrl-S', mac: 'Command-S' },
-                exec: function () { jQuery('#save-file').click(); }
+                exec: function () {
+                    if (!self._canEdit()) return self._notifyLockedOrDenied();
+                    ui.$saveBtn.click();
+                }
             });
         }
 
-        // Evento do botão de Copiar BBCode para o fórum
-        jQuery('body').off('click', '#copy-bbcode').on('click', '#copy-bbcode', function () {
-            var content = ed.getValue();
-            var name = jQuery('.active-file .load-file').text().replace(/^\* /, '');
-            var bbcode = "[diff=" + name + "]\n" + content + "\n[/diff]";
+        ui.$body.off('click.wsp_files', '#copy-bbcode')
+            .on('click.wsp_files', '#copy-bbcode', function () {
+                var content = ed.getValue();
+                var name = jQuery('.active-file .load-file').text().replace(/^\* /, '');
+                var bbcode = "[diff=" + name + "]\n" + content + "\n[/diff]";
 
-            var $temp = jQuery("<textarea>").val(bbcode).appendTo("body").select();
-            document.execCommand("copy");
-            $temp.remove();
+                var $temp = jQuery("<textarea>").val(bbcode).appendTo("body").select();
+                document.execCommand("copy");
+                $temp.remove();
 
-            // Notificação de sucesso traduzida
-            WSP.ui.notify(WSP.lang('WSP_BBCODE_COPIED'), 'info');
-        });
+                WSP.ui.notify(WSP.lang('WSP_BBCODE_COPIED'), 'info');
+            });
     },
 
-    /**
-     * Renderiza o caminho do arquivo (Breadcrumbs)
-     */
-    renderBreadcrumbs: function (path) {
-        var self = this;
-        var $target = jQuery('#current-file');
-
-        path = (path || '').trim();
-        if (!path) {
-            // Placeholder traduzido quando não há arquivo
-            $target.text(WSP.lang('WSP_SELECT_FILE'));
-            return;
-        }
-
-        var parts = path.split('/');
-        var html = '<i class="fa fa-folder-open-o breadcrumb-folder-icon"></i> ';
-
-        parts.forEach(function (part, index) {
-            html += '<span class="breadcrumb-item">' + self._escape(part) + '</span>';
-            if (index < parts.length - 1) {
-                html += ' <i class="fa fa-angle-right breadcrumb-sep"></i> ';
-            }
-        });
-
-        $target.html(html);
-    },
-
-    _escape: function (s) {
-        return jQuery('<div/>').text(s).html();
-    },
-
-    /**
-     * Auto-Save Local
-     */
     initAutoSave: function () {
         if (this.autoSaveInterval) clearInterval(this.autoSaveInterval);
 
         var self = this;
 
         this.autoSaveInterval = setInterval(function () {
+            if (!self._canEdit()) return;
+
             var ed = self._getEditor();
             if (WSP.activeFileId && ed) {
                 var current = ed.getValue();
                 if (current !== WSP.originalContent) {
                     localStorage.setItem('wsp_backup_' + WSP.activeFileId, current);
 
-                    // Log de depuração traduzido via motor
                     var logMsg = WSP.lang('WSP_LOG_BACKUP_UPDATED', { '%s': WSP.activeFileId });
-                    console.log("WSP: " + logMsg);
+                    if (window.console && console.log) console.log("WSP: " + logMsg);
                 }
             }
         }, 15000);

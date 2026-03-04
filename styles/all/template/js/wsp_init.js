@@ -1,40 +1,98 @@
 /**
  * Mundo phpBB Workspace - Inicializador Blindado
- * Versão 4.1: i18n Pura, CSS de Estado e Log Estruturado (Sem omissões)
- * Gerencia o carregamento de módulos, dependências e restauração de estado.
+ * Versão 4.2 (SSOT core): usa WSP.canWriteUI() do wsp_core.js
  */
 (function ($) {
     'use strict';
 
-    var MAX_DEP_TRIES = 200; // 20 segundos de limite
+    var MAX_DEP_TRIES = 200; // ~20s
     var depTries = 0;
+    var started = false;
 
-    /**
-     * Verifica se o elemento do editor existe na página atual.
-     */
-    var hasWorkspaceDom = function () {
+    function hasWorkspaceDom() {
         return !!document.getElementById('editor');
-    };
+    }
+
+    function safeLang(key, replacements) {
+        try {
+            if (window.WSP && typeof WSP.lang === 'function') return WSP.lang(key, replacements);
+        } catch (e) {}
+        return '[' + key + ']';
+    }
+
+    function getEditor() {
+        // Compat core/legado
+        if (window.WSP && WSP.editor && typeof WSP.editor.getValue === 'function' && WSP.editor.session) {
+            return WSP.editor;
+        }
+        if (window.WSP && WSP.editor && WSP.editor.ace && typeof WSP.editor.ace.getValue === 'function' && WSP.editor.ace.session) {
+            return WSP.editor.ace;
+        }
+        return null;
+    }
 
     /**
-     * Função principal de ativação da IDE.
+     * ✅ SSOT: prefere WSP.canWriteUI() do core
+     * Fallback apenas se core antigo estiver carregado.
      */
-    var startWorkspace = function () {
+    function canWriteUI() {
+        if (!window.WSP) return false;
+
+        if (typeof WSP.canWriteUI === 'function') {
+            return !!WSP.canWriteUI();
+        }
+
+        // fallback compat (core antigo)
+        if (typeof WSP.canEditActiveProjectUI === 'function') {
+            return !!WSP.canEditActiveProjectUI();
+        }
+        if (WSP.activeProjectId && WSP.activeProjectLocked && !WSP.canManageAll) return false;
+
+        if (window.wspVars) {
+            var locked = window.wspVars.activeLocked || window.wspVars.WSP_ACTIVE_LOCKED || 0;
+            var canManageAll = window.wspVars.canManageAll || window.wspVars.WSP_CAN_MANAGE_ALL || 0;
+            locked = (locked === true || locked === 1 || locked === '1');
+            canManageAll = (canManageAll === true || canManageAll === 1 || canManageAll === '1');
+            if (locked && !canManageAll) return false;
+        }
+
+        return true;
+    }
+
+    function endsWith(str, suffix) {
+        // ✅ usa helper do core se existir
+        if (window.WSP && typeof WSP._endsWith === 'function') {
+            return WSP._endsWith(str, suffix);
+        }
+
+        // fallback
+        str = String(str || '');
+        suffix = String(suffix || '');
+        if (!suffix) return true;
+        if (typeof str.endsWith === 'function') return str.endsWith(suffix);
+        return str.indexOf(suffix, str.length - suffix.length) !== -1;
+    }
+
+    function startWorkspace() {
+        if (started) return;
         if (!hasWorkspaceDom()) return;
+        started = true;
 
-        // Log de início traduzido
-        console.log("WSP: " + WSP.lang('WSP_INIT_START'));
+        var $currentFile = $('#current-file');
+        var $saveBtn = $('#save-file');
+        var $bbcodeBtn = $('#copy-bbcode');
 
-        // Desativa cache global para AJAX
+        console.log("WSP: " + safeLang('WSP_INIT_START'));
+
         $.ajaxSetup({ cache: false });
 
-        // 1. Inicializa o Editor ACE primeiro (Dependência base)
+        // 1) Inicializa ACE
         if (!window.WSP || typeof WSP.initEditor !== 'function' || !WSP.initEditor()) {
-            console.error("WSP: " + WSP.lang('WSP_CRITICAL_ACE'));
+            console.error("WSP: " + safeLang('WSP_CRITICAL_ACE'));
             return;
         }
 
-        // 2. Ordem de Inicialização dos Módulos (Init -> Bind)
+        // 2) Init/Render/Bind módulos
         var modules = [
             { name: 'UI', ref: WSP.ui },
             { name: 'Tree', ref: WSP.tree },
@@ -44,109 +102,113 @@
             { name: 'Tools', ref: WSP.tools }
         ];
 
-        modules.forEach(function (m) {
+        for (var i = 0; i < modules.length; i++) {
+            var m = modules[i];
             try {
-                if (m.ref) {
-                    // Executa o ciclo de vida do módulo
-                    if (typeof m.ref.init === 'function') m.ref.init($);
-                    if (typeof m.ref.render === 'function') m.ref.render($); 
-                    if (typeof m.ref.bindEvents === 'function') m.ref.bindEvents($);
-                    
-                    // Log de sucesso com placeholder para o nome do módulo
-                    var msg = WSP.lang('WSP_MODULE_LOADED', {'%s': m.name});
-                    console.log("WSP: " + msg);
-                }
+                if (!m.ref) continue;
+
+                if (typeof m.ref.init === 'function') m.ref.init($);
+                if (typeof m.ref.render === 'function') m.ref.render($);
+                if (typeof m.ref.bindEvents === 'function') m.ref.bindEvents($);
+
+                console.log("WSP: " + safeLang('WSP_MODULE_LOADED', { '%s': m.name }));
             } catch (e) {
-                // Log de erro com placeholder
-                var errMsg = WSP.lang('WSP_MODULE_ERROR', {'%s': m.name});
-                console.error("WSP: " + errMsg, e);
+                console.error("WSP: " + safeLang('WSP_MODULE_ERROR', { '%s': m.name }), e);
             }
-        });
+        }
 
-        // 3. Sincroniza o estado visual da Toolbar (Core)
-        WSP.updateUIState();
+        // 3) Estado visual toolbar (Core)
+        if (typeof WSP.updateUIState === 'function') {
+            WSP.updateUIState();
+        }
 
-        /**
-         * 4. RESTAURAÇÃO DE ESTADO (PÓS-F5)
-         * Recupera o último arquivo aberto do localStorage
-         */
+        // 4) RESTAURAÇÃO (pós-F5)
         var savedFileId = localStorage.getItem('wsp_active_file_id');
         var hasProject = !!WSP.activeProjectId;
 
-        if (savedFileId && hasProject) {
-            WSP.activeFileId = savedFileId;
-
-            // Feedback visual usando classes CSS e tradução motorizada
-            $('#current-file')
+        if (savedFileId && hasProject && window.wspVars && window.wspVars.loadUrl) {
+            $currentFile
                 .addClass('is-loading')
                 .removeClass('is-empty')
-                .text(WSP.lang('WSP_LOADING_FILE'));
+                .text(safeLang('WSP_LOADING_FILE'));
 
-            // Tenta carregar do servidor (autoridade máxima)
-            $.post(window.wspVars.loadUrl, { 
-                file_id: savedFileId, 
-                _nocache: Date.now() 
-            }, function (r) {
+            $.post(window.wspVars.loadUrl, { file_id: savedFileId, _nocache: Date.now() }, function (r) {
                 if (r && r.success) {
-                    // Configuração do Editor
-                    WSP.editor.setValue(r.content || '', -1);
-                    WSP.editor.setReadOnly(false);
-                    WSP.originalContent = r.content;
+                    WSP.activeFileId = savedFileId;
 
-                    // Atualiza Breadcrumbs (agora via UI Module)
+                    var ed = getEditor();
+                    if (!ed) {
+                        localStorage.removeItem('wsp_active_file_id');
+                        $currentFile.removeClass('is-loading').addClass('is-empty').text(safeLang('WSP_SELECT_FILE'));
+                        return;
+                    }
+
+                    var content = (typeof r.content === 'string') ? r.content : '';
+                    ed.setValue(content, -1);
+
+                    // ✅ SSOT do core
+                    ed.setReadOnly(!canWriteUI());
+
+                    WSP.originalContent = content;
+
                     if (WSP.ui && typeof WSP.ui.updateBreadcrumbs === 'function') {
                         WSP.ui.updateBreadcrumbs(r.name);
+                    } else {
+                        $currentFile.text(r.name || safeLang('WSP_SELECT_FILE'));
                     }
 
-                    // Configura modo do ACE
-                    var nameLower = (r.name || '').toLowerCase();
+                    var nameLower = String(r.name || '').toLowerCase();
                     if (nameLower === 'changelog.txt') {
-                        WSP.editor.session.setMode("ace/mode/diff");
-                        $('#copy-bbcode').show();
+                        ed.session.setMode("ace/mode/diff");
+                        $bbcodeBtn.show();
+                    } else if (endsWith(nameLower, '.txt')) {
+                        ed.session.setMode("ace/mode/text");
+                        $bbcodeBtn.hide();
                     } else {
                         var mode = (WSP.modes && WSP.modes[r.type]) ? WSP.modes[r.type] : 'ace/mode/text';
-                        WSP.editor.session.setMode(mode);
-                        $('#copy-bbcode').hide();
+                        ed.session.setMode(mode);
+                        $bbcodeBtn.hide();
                     }
 
-                    $('#save-file').show();
-                    $('#current-file').removeClass('is-loading');
+                    // Save só se puder escrever
+                    if (canWriteUI()) $saveBtn.show();
+                    else $saveBtn.hide();
 
-                    // Re-expande a árvore lateral (Sidebar Sync)
+                    $currentFile.removeClass('is-loading');
+
                     setTimeout(function () {
                         var $target = $('.load-file[data-id="' + savedFileId + '"]');
                         if ($target.length) {
                             $('.file-item').removeClass('active-file');
                             $target.closest('.file-item').addClass('active-file');
-                            
-                            // Interface: Abre as pastas pai de forma recursiva
+
                             $target.parents('.folder-content').show();
-                            $target.parents('.folder-item').addClass('is-open')
+                            $target.parents('.folder-item')
+                                .addClass('is-open')
                                 .find('> .folder-title i.icon')
                                 .removeClass('fa-folder').addClass('fa-folder-open');
                         }
                     }, 300);
+
+                    if (typeof WSP.updateUIState === 'function') {
+                        WSP.updateUIState();
+                    }
                 } else {
-                    // Falha na restauração (limpa ID órfão)
                     localStorage.removeItem('wsp_active_file_id');
-                    $('#current-file')
-                        .removeClass('is-loading')
-                        .addClass('is-empty')
-                        .text(WSP.lang('WSP_SELECT_FILE'));
+                    $currentFile.removeClass('is-loading').addClass('is-empty').text(safeLang('WSP_SELECT_FILE'));
                 }
-            }, 'json');
+            }, 'json').fail(function () {
+                localStorage.removeItem('wsp_active_file_id');
+                $currentFile.removeClass('is-loading').addClass('is-empty').text(safeLang('WSP_SELECT_FILE'));
+            });
         }
 
-        // Log de conclusão
-        console.log("WSP: " + WSP.lang('WSP_READY'));
-    };
+        console.log("WSP: " + safeLang('WSP_READY'));
+    }
 
-    /**
-     * Verificador de Dependências (Polling)
-     * Garante que bibliotecas externas e módulos WSP existam antes de rodar.
-     */
-    var checkDeps = function () {
+    function checkDeps() {
         if (!hasWorkspaceDom()) return;
+        if (started) return;
 
         depTries++;
 
@@ -154,19 +216,18 @@
         var modulesReady = (window.WSP && WSP.ui && WSP.tree && WSP.files && WSP.projects && WSP.upload && WSP.tools);
 
         if (libsReady && modulesReady) {
-            $(document).ready(startWorkspace);
+            $(startWorkspace);
             return;
         }
 
         if (depTries >= MAX_DEP_TRIES) {
-            console.error("WSP: " + WSP.lang('WSP_TIMEOUT'));
+            console.error("WSP: " + safeLang('WSP_TIMEOUT'));
             return;
         }
 
         setTimeout(checkDeps, 100);
-    };
+    }
 
-    // Inicia a verificação de dependências
     checkDeps();
 
 })(jQuery);

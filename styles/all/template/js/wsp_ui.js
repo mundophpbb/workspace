@@ -1,9 +1,60 @@
 /**
  * Mundo phpBB Workspace - UI & Modals
- * Versão 4.1: i18n Pura & Conformidade CDB (Sem omissões)
- * Gerencia notificações, diálogos e a persistência de eventos via delegação.
+ * Versão 4.2 (SSOT core): Lock-aware + i18n pura + delegação + splitter leve
  */
 WSP.ui = {
+    _ui: null,
+
+    _getUI: function () {
+        if (this._ui) return this._ui;
+
+        this._ui = {
+            $body: jQuery('body'),
+            $doc: jQuery(document),
+
+            $modal: jQuery('#wsp-custom-modal'),
+            $modalTitle: jQuery('#wsp-modal-title'),
+            $modalBody: jQuery('#wsp-modal-body-custom'),
+            $modalInput: jQuery('#wsp-modal-input'),
+            $modalOk: jQuery('#wsp-modal-ok'),
+            $modalCancel: jQuery('#wsp-modal-cancel'),
+
+            $notify: jQuery('#wsp-notify-container'),
+
+            $sidebar: jQuery('#sidebar-dropzone'),
+            $splitter: jQuery('#wsp-splitter'),
+
+            $projectList: jQuery('#project-list'),
+            $currentFile: jQuery('#current-file'),
+
+            $copyBbcode: jQuery('#copy-bbcode'),
+            $saveFile: jQuery('#save-file')
+        };
+
+        return this._ui;
+    },
+
+    _escape: function (s) {
+        s = String(s == null ? '' : s);
+        return s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+
+    _getEditor: function () {
+        // Compat core/legado
+        if (window.WSP && WSP.editor && typeof WSP.editor.getValue === 'function' && WSP.editor.session) {
+            return WSP.editor;
+        }
+        if (window.WSP && WSP.editor && WSP.editor.ace && typeof WSP.editor.ace.getValue === 'function' && WSP.editor.ace.session) {
+            return WSP.editor.ace;
+        }
+        return null;
+    },
+
     /**
      * Inicialização
      */
@@ -11,35 +62,94 @@ WSP.ui = {
         this.injectModal($);
         this.bindEvents($);
         this.initSplitter();
+
+        // Aplica estado visual do lock (se já houver sidebar renderizada)
+        this.applyLockUIState();
     },
 
     /**
-     * Injeta a estrutura de Modais e Notificações (Singleton)
+     * ✅ SSOT/Compat:
+     * Mantido como alias para não quebrar chamadas antigas.
+     * Preferir: WSP.canWriteUI() (core).
+     */
+    _canWrite: function () {
+        if (window.WSP && typeof WSP.canWriteUI === 'function') {
+            return !!WSP.canWriteUI();
+        }
+
+        // fallback (core antigo)
+        if (!window.WSP || !WSP.activeProjectId) return false;
+        if (typeof WSP.canEditActiveProjectUI === 'function') return !!WSP.canEditActiveProjectUI();
+        if (WSP.activeProjectLocked && !WSP.canManageAll) return false;
+
+        if (window.wspVars) {
+            var locked = window.wspVars.activeLocked || window.wspVars.WSP_ACTIVE_LOCKED || 0;
+            var canManageAll = window.wspVars.canManageAll || window.wspVars.WSP_CAN_MANAGE_ALL || 0;
+            locked = (locked === true || locked === 1 || locked === '1');
+            canManageAll = (canManageAll === true || canManageAll === 1 || canManageAll === '1');
+            if (locked && !canManageAll) return false;
+        }
+
+        return true;
+    },
+
+    /**
+     * Aplica estado visual de lock na sidebar (ícones de contexto).
+     * - Agora usando SSOT do core: WSP.canWriteUI()
+     */
+    applyLockUIState: function () {
+        var locked = false;
+
+        // Sem projeto ativo -> não trava UI
+        if (!window.WSP || !WSP.activeProjectId) {
+            locked = false;
+        } else if (typeof WSP.canWriteUI === 'function') {
+            locked = !WSP.canWriteUI(); // ✅ SSOT
+        } else {
+            locked = !this._canWrite(); // fallback compat
+        }
+
+        var val = locked ? '1' : '0';
+        jQuery('.folder-context-actions i, .file-context-actions i')
+            .toggleClass('wsp-disabled', locked)
+            .attr('data-wsp-disabled', val);
+    },
+
+    /**
+     * Injeta Modais + Container de Notificações (Singleton)
      */
     injectModal: function ($) {
-        if ($('#wsp-custom-modal').length === 0) {
-            $('body').append(`
-                <div id="wsp-custom-modal">
-                    <div id="wsp-modal-card">
-                        <h4 id="wsp-modal-title"></h4>
-                        <div id="wsp-modal-body-custom" style="display:none;"></div>
-                        <input type="text" id="wsp-modal-input" style="display:none;">
-                        <div class="wsp-modal-footer">
-                            <button id="wsp-modal-cancel" class="button">${WSP.lang('WSP_UI_CANCEL')}</button>
-                            <button id="wsp-modal-ok" class="button secondary">${WSP.lang('WSP_UI_CONFIRM')}</button>
-                        </div>
-                    </div>
-                </div>
-            `);
+        var ui = this._getUI();
+
+        if (!ui.$modal.length) {
+            ui.$body.append(
+                '<div id="wsp-custom-modal">' +
+                    '<div id="wsp-modal-card">' +
+                        '<h4 id="wsp-modal-title"></h4>' +
+                        '<div id="wsp-modal-body-custom" style="display:none;"></div>' +
+                        '<input type="text" id="wsp-modal-input" style="display:none;">' +
+                        '<div class="wsp-modal-footer">' +
+                            '<button id="wsp-modal-cancel" class="button">' + WSP.lang('WSP_UI_CANCEL') + '</button>' +
+                            '<button id="wsp-modal-ok" class="button secondary">' + WSP.lang('WSP_UI_CONFIRM') + '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>'
+            );
         }
 
-        if ($('#wsp-notify-container').length === 0) {
-            $('body').append('<div id="wsp-notify-container"></div>');
+        if (!ui.$notify.length) {
+            ui.$body.append('<div id="wsp-notify-container"></div>');
         }
+
+        // Atualiza cache após injeção
+        this._ui = null;
+        ui = this._getUI();
 
         // Fechar modal ao clicar no fundo
-        $('body').off('mousedown.wsp_modal').on('mousedown.wsp_modal', '#wsp-custom-modal', function (e) {
-            if ($(e.target).attr('id') === 'wsp-custom-modal') $('#wsp-custom-modal').hide();
+        ui.$body.off('mousedown.wsp_modal').on('mousedown.wsp_modal', '#wsp-custom-modal', function (e) {
+            if (jQuery(e.target).attr('id') === 'wsp-custom-modal') {
+                jQuery('#wsp-custom-modal').hide();
+            }
         });
     },
 
@@ -48,64 +158,87 @@ WSP.ui = {
      */
     notify: function (message, type) {
         type = type || 'success';
-        var id = 'notif-' + Date.now();
-        var icons = { success: 'check-circle', error: 'exclamation-triangle', info: 'info-circle', warning: 'exclamation-circle' };
 
-        var html = `
-            <div id="${id}" class="wsp-notification is-${type}">
-                <i class="fa fa-${icons[type]}"></i>
-                <span>${message}</span>
-            </div>
-        `;
+        var ui = this._getUI();
+        var id = 'notif-' + Date.now() + '-' + Math.floor(Math.random() * 100000);
 
-        $('#wsp-notify-container').append(html);
-        setTimeout(function () { 
-            $('#' + id).fadeOut(400, function () { $(this).remove(); }); 
+        var icons = {
+            success: 'check-circle',
+            error: 'exclamation-triangle',
+            info: 'info-circle',
+            warning: 'exclamation-circle'
+        };
+
+        var html =
+            '<div id="' + id + '" class="wsp-notification is-' + type + '">' +
+                '<i class="fa fa-' + (icons[type] || icons.info) + '"></i>' +
+                '<span>' + message + '</span>' +
+            '</div>';
+
+        ui.$notify.append(html);
+
+        setTimeout(function () {
+            jQuery('#' + id).fadeOut(400, function () { jQuery(this).remove(); });
         }, 4000);
     },
 
     /**
-     * Diálogo de Prompt / Lista
+     * Diálogo Prompt / Lista (mesma API)
      */
     prompt: function (title, defaultValue, callback) {
         callback = callback || function () { };
-        $('#wsp-modal-title').text(title);
-        $('#wsp-modal-body-custom').hide().empty();
-        $('#wsp-modal-ok, #wsp-modal-cancel').off('click');
+
+        var ui = this._getUI();
+
+        ui.$modalTitle.text(title);
+        ui.$modalBody.hide().empty();
+
+        ui.$modalOk.off('.wsp_prompt');
+        ui.$modalCancel.off('.wsp_prompt');
+        ui.$modalInput.off('.wsp_prompt');
 
         if (defaultValue === 'LIST_MODE') {
-            $('#wsp-modal-input').hide();
-            $('#wsp-modal-ok').hide();
-            $('#wsp-modal-body-custom').show();
+            ui.$modalInput.hide();
+            ui.$modalOk.hide();
+            ui.$modalBody.show();
         } else {
-            $('#wsp-modal-input').val(defaultValue || '').show();
-            $('#wsp-modal-ok').show();
+            ui.$modalInput.val(defaultValue || '').show();
+            ui.$modalOk.show();
         }
 
-        $('#wsp-custom-modal').css('display', 'flex');
+        ui.$modal.css('display', 'flex');
 
         if (defaultValue !== 'LIST_MODE') {
-            $('#wsp-modal-input').focus().select();
-            $('#wsp-modal-ok').on('click', function () {
-                var val = $('#wsp-modal-input').val();
-                $('#wsp-custom-modal').hide();
+            ui.$modalInput.focus().select();
+
+            ui.$modalOk.on('click.wsp_prompt', function () {
+                var val = ui.$modalInput.val();
+                ui.$modal.hide();
                 callback(val);
+            });
+
+            ui.$modalInput.on('keypress.wsp_prompt', function (e) {
+                if (e.which === 13) ui.$modalOk.trigger('click');
             });
         }
 
-        $('#wsp-modal-cancel').on('click', function () { $('#wsp-custom-modal').hide(); });
-        $('#wsp-modal-input').on('keypress', function (e) { if (e.which === 13) $('#wsp-modal-ok').click(); });
+        ui.$modalCancel.on('click.wsp_prompt', function () {
+            ui.$modal.hide();
+        });
     },
 
     /**
      * Confirmação de ação crítica
      */
     confirm: function (title, callback) {
-        this.prompt(title, 'LIST_MODE');
-        // Mensagem de aviso irrevessível traduzida
-        $('#wsp-modal-body-custom').html(`<p style="margin:10px 0; color:#aaa;">${WSP.lang('WSP_UI_ACTION_WARNING')}</p>`).show();
-        $('#wsp-modal-ok').show().off('click').on('click', function() {
-            $('#wsp-custom-modal').hide();
+        var self = this;
+        self.prompt(title, 'LIST_MODE');
+
+        var ui = self._getUI();
+        ui.$modalBody.html('<p style="margin:10px 0; color:#aaa;">' + self._escape(WSP.lang('WSP_UI_ACTION_WARNING')) + '</p>').show();
+
+        ui.$modalOk.show().off('.wsp_confirm').on('click.wsp_confirm', function () {
+            ui.$modal.hide();
             callback();
         });
     },
@@ -115,51 +248,93 @@ WSP.ui = {
      */
     seamlessRefresh: function (fileIdToOpen) {
         var self = this;
+        var ui = self._getUI();
         var currentUrl = window.location.href;
 
-        // 1. Salva o estado atual das pastas abertas
         var openFolders = [];
-        jQuery('.folder-item').each(function() {
-            if (jQuery(this).find('> .folder-content').is(':visible')) {
-                var path = jQuery(this).find('> .folder-title').attr('data-path');
+        jQuery('.folder-item').each(function () {
+            var $it = jQuery(this);
+            var $content = $it.find('> .folder-content');
+            if ($content.length && $content.is(':visible')) {
+                var path = $it.find('> .folder-title').attr('data-path');
                 if (path) openFolders.push(path);
             }
         });
 
-        // 2. Busca o novo HTML
         jQuery.get(currentUrl, { _nocache: Date.now() }, function (data) {
-            var $newSidebar = jQuery(data).find('#project-list');
-            if ($newSidebar.length) {
-                jQuery('#project-list').html($newSidebar.html());
+            var $page = jQuery('<div>').append(jQuery.parseHTML(data));
+            var $newSidebar = $page.find('#project-list');
 
-                // 3. RECONSTRÓI A ÁRVORE
-                if (window.WSP.tree && typeof window.WSP.tree.render === 'function') {
-                    window.WSP.tree.render(jQuery);
-                    window.WSP.tree.bindEvents(jQuery);
+            if (!$newSidebar.length) return;
+
+            ui.$projectList.html($newSidebar.html());
+
+            if (window.WSP.tree && typeof window.WSP.tree.render === 'function') {
+                window.WSP.tree.render(jQuery);
+                window.WSP.tree.bindEvents(jQuery);
+            }
+
+            if (openFolders.length) {
+                var $titles = jQuery('.folder-title');
+                for (var i = 0; i < openFolders.length; i++) {
+                    var path = openFolders[i];
+                    var $folder = $titles.filter(function () {
+                        return jQuery(this).attr('data-path') === path;
+                    });
+
+                    if ($folder.length) {
+                        $folder.next('.folder-content').show();
+                        $folder.find('i.icon').removeClass('fa-folder').addClass('fa-folder-open');
+                        $folder.closest('.folder-item').addClass('is-open');
+                    }
                 }
+            }
 
-                // 4. Restaura pastas abertas
-                openFolders.forEach(function(path) {
-                    var $folder = jQuery(`.folder-title[data-path="${path}"]`);
-                    $folder.next('.folder-content').show();
-                    $folder.find('i.icon').removeClass('fa-folder').addClass('fa-folder-open');
-                });
-
-                // 5. Restaura arquivo ativo
-                if (window.WSP.activeFileId) {
-                    jQuery(`.load-file[data-id="${window.WSP.activeFileId}"]`).closest('.file-item').addClass('active-file');
+            if (window.WSP.activeFileId) {
+                var $active = jQuery('.load-file[data-id="' + window.WSP.activeFileId + '"]');
+                if ($active.length) {
+                    $active.closest('.file-item').addClass('active-file');
+                } else {
+                    window.WSP.activeFileId = null;
+                    localStorage.removeItem('wsp_active_file_id');
                 }
+            }
 
-                // 6. Abre arquivo recém-criado (se solicitado)
-                if (fileIdToOpen) {
-                    setTimeout(function() {
-                        var $target = jQuery(`.load-file[data-id="${fileIdToOpen}"]`);
-                        if ($target.length) $target.click();
-                    }, 200);
+            // 6) Abre arquivo recém-criado (se solicitado) — protegido contra perda de alterações
+if (fileIdToOpen) {
+    setTimeout(function () {
+        try {
+            // Usa o helper do próprio WSP.ui (compat core/legado)
+            var ed = self._getEditor ? self._getEditor() : null;
+
+            if (window.WSP && WSP.activeFileId && ed && typeof ed.getValue === 'function') {
+                var original = (typeof WSP.originalContent === 'string') ? WSP.originalContent : '';
+                var current = ed.getValue();
+
+                if (current !== original) {
+                    if (!confirm(WSP.lang('WSP_UNSAVED_CHANGES'))) {
+                        return; // não troca de arquivo
+                    }
                 }
+            }
+        } catch (e) {}
 
-                // 7. Re-inicializa o splitter
-                self.initSplitter();
+        var $target = jQuery('.load-file[data-id="' + fileIdToOpen + '"]');
+        if ($target.length) $target.trigger('click');
+    }, 200);
+}
+
+            self.initSplitter();
+
+            // ✅ reaplica lock visual via SSOT
+            self.applyLockUIState();
+
+            if (window.WSP && typeof WSP.updateUIState === 'function') {
+                WSP.updateUIState();
+            }
+        }, 'html').fail(function () {
+            if (window.WSP && WSP.ui && typeof WSP.ui.notify === 'function') {
+                WSP.ui.notify(WSP.lang('WSP_ERROR_CRITICAL'), 'error');
             }
         });
     },
@@ -169,129 +344,166 @@ WSP.ui = {
      */
     bindEvents: function ($) {
         var self = this;
+        var ui = self._getUI();
+        var $body = ui.$body;
 
-        // 1. GESTÃO DE PASTA ATIVA (RESET)
-        $('body').off('click', '#wsp-active-folder-indicator').on('click', '#wsp-active-folder-indicator', function() {
+        $body.off('.wsp_ui');
+
+        $body.on('click.wsp_ui', '#wsp-active-folder-indicator', function () {
             if (window.WSP.tree && window.WSP.tree.clearActiveFolder) {
                 window.WSP.tree.clearActiveFolder();
                 self.notify(WSP.lang('WSP_UI_ROOT_FOCUS'), "info");
             }
         });
 
-        // 2. FILTRO DA SIDEBAR
-        $('body').off('input', '#wsp-sidebar-filter').on('input', '#wsp-sidebar-filter', function () {
-            var term = $(this).val().toLowerCase();
+        $body.on('input.wsp_ui', '#wsp-sidebar-filter', function () {
+            var term = String(jQuery(this).val() || '').toLowerCase();
+
+            var $files = jQuery('.file-item');
+            var $folders = jQuery('.folder-item');
 
             if (term === '') {
-                $('.file-item, .folder-item').show();
+                $files.show();
+                $folders.show();
                 return;
             }
 
-            $('.file-item').each(function () {
-                var fileName = $(this).find('.load-file').text().toLowerCase();
-                $(this).toggle(fileName.indexOf(term) > -1);
+            $files.each(function () {
+                var fileName = jQuery(this).find('.load-file').text().toLowerCase();
+                jQuery(this).toggle(fileName.indexOf(term) > -1);
             });
 
-            $('.folder-item').each(function() {
-                var hasMatch = $(this).find('.file-item:visible').length > 0;
-                $(this).toggle(hasMatch);
+            $folders.each(function () {
+                var $f = jQuery(this);
+                var hasMatch = $f.find('.file-item:visible').length > 0;
+                $f.toggle(hasMatch);
 
                 if (hasMatch) {
-                    $(this).find('> .folder-content').show();
-                    $(this).find('> .folder-title i.icon').removeClass('fa-folder').addClass('fa-folder-open');
+                    $f.find('> .folder-content').show();
+                    $f.find('> .folder-title i.icon').removeClass('fa-folder').addClass('fa-folder-open');
+                    $f.addClass('is-open');
                 }
             });
         });
 
-        // 3. FULLSCREEN TOGGLE
-        $('body').off('click', '#toggle-fullscreen').on('click', '#toggle-fullscreen', function () {
-            $('.workspace-container').toggleClass('fullscreen-mode');
-            $(this).find('i').toggleClass('fa-expand fa-compress');
-            if (window.WSP.editor) {
-                setTimeout(function() { window.WSP.editor.resize(); }, 150);
-            }
+        $body.on('click.wsp_ui', '#toggle-fullscreen', function () {
+            jQuery('.workspace-container').toggleClass('fullscreen-mode');
+            jQuery(this).find('i').toggleClass('fa-expand fa-compress');
+
+            var ed = self._getEditor();
+            if (ed) setTimeout(function () { ed.resize(); }, 150);
         });
     },
 
     /**
-     * Atualiza o label do arquivo atual e o breadcrumb
+     * Breadcrumbs do arquivo atual
      */
     updateBreadcrumbs: function (path) {
-        var $target = $('#current-file');
+        var ui = this._getUI();
 
         if (!path) {
-            $target.text(WSP.lang('WSP_UI_SELECT_FILE'));
+            var msg = WSP.lang('WSP_UI_SELECT_FILE');
+            if (msg === '[WSP_UI_SELECT_FILE]') msg = WSP.lang('WSP_SELECT_FILE');
+            ui.$currentFile.text(msg);
             return;
         }
 
         var parts = String(path).split('/');
-        var html = '<i class="fa fa-folder-open-o" style="color:var(--wsp-accent); margin-right:5px;"></i> ';
-        parts.forEach(function (part, index) {
-            html += `<span class="breadcrumb-item">${$('<div/>').text(part).html()}</span>`;
-            if (index < parts.length - 1) {
-                html += ' <i class="fa fa-angle-right breadcrumb-separator"></i> ';
+        var out = ['<i class="fa fa-folder-open-o" style="color:var(--wsp-accent); margin-right:5px;"></i> '];
+
+        for (var i = 0; i < parts.length; i++) {
+            out.push('<span class="breadcrumb-item">', this._escape(parts[i]), '</span>');
+            if (i < parts.length - 1) {
+                out.push(' <i class="fa fa-angle-right breadcrumb-separator"></i> ');
             }
-        });
-        $target.html(html);
+        }
+
+        ui.$currentFile.html(out.join(''));
     },
 
     /**
-     * BARRA DIVISÓRIA REDIMENSIONÁVEL
+     * Splitter (otimizado com rAF)
      */
     initSplitter: function () {
-        var $sidebar  = $('#sidebar-dropzone');
-        var $splitter = $('#wsp-splitter');
+        var self = this;
+        var ui = self._getUI();
+
+        var $sidebar = ui.$sidebar;
+        var $splitter = ui.$splitter;
 
         if (!$splitter.length || !$sidebar.length) return;
 
         var isDragging = false;
-        var startX, startWidth;
+        var startX = 0;
+        var startWidth = 0;
+
+        var queued = false;
+        var lastPageX = 0;
 
         var savedWidth = localStorage.getItem('wsp_sidebar_width');
         if (savedWidth) $sidebar.css('width', savedWidth + 'px');
 
-        $splitter.off('mousedown.wsp_splitter').on('mousedown.wsp_splitter', function (e) {
+        ui.$doc.off('.wsp_splitter');
+        $splitter.off('.wsp_splitter');
+
+        function clampWidth(w) { return Math.max(180, Math.min(620, w)); }
+
+        function scheduleUpdate() {
+            if (queued) return;
+            queued = true;
+
+            (window.requestAnimationFrame || function (cb) { return setTimeout(cb, 16); })(function () {
+                queued = false;
+                if (!isDragging) return;
+
+                var delta = lastPageX - startX;
+                var newWidth = clampWidth(startWidth + delta);
+
+                $sidebar.css('width', newWidth + 'px');
+                localStorage.setItem('wsp_sidebar_width', newWidth);
+
+                var ed = self._getEditor();
+                if (ed) ed.resize();
+            });
+        }
+
+        $splitter.on('mousedown.wsp_splitter', function (e) {
             isDragging = true;
             startX = e.pageX;
             startWidth = $sidebar.outerWidth();
-            $('body').addClass('is-resizing');
+            ui.$body.addClass('is-resizing');
             $splitter.addClass('dragging');
         });
 
-        $(document).off('mousemove.wsp_splitter').on('mousemove.wsp_splitter', function (e) {
+        ui.$doc.on('mousemove.wsp_splitter', function (e) {
             if (!isDragging) return;
-            var delta = e.pageX - startX;
-            var newWidth = Math.max(180, Math.min(620, startWidth + delta));
-
-            $sidebar.css('width', newWidth + 'px');
-            localStorage.setItem('wsp_sidebar_width', newWidth);
-
-            if (window.WSP.editor) window.WSP.editor.resize();
+            lastPageX = e.pageX;
+            scheduleUpdate();
         });
 
-        $(document).off('mouseup.wsp_splitter').on('mouseup.wsp_splitter', function () {
-            if (isDragging) {
-                isDragging = false;
-                $('body').removeClass('is-resizing');
-                $splitter.removeClass('dragging');
-            }
+        ui.$doc.on('mouseup.wsp_splitter', function () {
+            if (!isDragging) return;
+            isDragging = false;
+            ui.$body.removeClass('is-resizing');
+            $splitter.removeClass('dragging');
         });
 
-        // Atalho de teclado (Alt + ← / →)
-        $(document).off('keydown.wsp_splitter').on('keydown.wsp_splitter', function (e) {
+        ui.$doc.on('keydown.wsp_splitter', function (e) {
             if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
                 e.preventDefault();
-                var step = e.key === 'ArrowLeft' ? -30 : 30;
+
+                var step = (e.key === 'ArrowLeft') ? -30 : 30;
                 var current = $sidebar.outerWidth();
-                var newW = Math.max(180, Math.min(620, current + step));
+                var newW = clampWidth(current + step);
 
                 $sidebar.css('width', newW + 'px');
                 localStorage.setItem('wsp_sidebar_width', newW);
-                if (window.WSP.editor) window.WSP.editor.resize();
+
+                var ed = self._getEditor();
+                if (ed) ed.resize();
             }
         });
 
-        // Log de inicialização do splitter traduzido
         console.log("WSP: " + WSP.lang('WSP_UI_SPLITTER_READY'));
     }
 };

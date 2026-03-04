@@ -1,198 +1,284 @@
 /**
  * Mundo phpBB Workspace - Upload & DragDrop
- * Versão 4.1: i18n Pura & Normalização Blindada (Sem omissões)
- * Gerencia o envio de arquivos e a varredura de pastas via API Webkit.
+ * Versão 4.2 (SSOT core): Lock-aware + i18n pura + normalização blindada
  */
 WSP.upload = {
     _refreshTimer: null,
     _pendingUploads: 0,
+    _ui: null,
+
+    _getUI: function () {
+        if (this._ui) return this._ui;
+        this._ui = {
+            $body: jQuery('body'),
+            $zone: jQuery('#sidebar-dropzone'),
+            $uploadInput: jQuery('#wsp-upload-input')
+        };
+        return this._ui;
+    },
+
+    _endsWith: function (str, suffix) {
+        // ✅ helper do core se existir
+        if (window.WSP && typeof WSP._endsWith === 'function') {
+            return WSP._endsWith(str, suffix);
+        }
+        // fallback
+        str = String(str || '');
+        suffix = String(suffix || '');
+        if (!suffix) return true;
+        if (typeof str.endsWith === 'function') return str.endsWith(suffix);
+        return str.indexOf(suffix, str.length - suffix.length) !== -1;
+    },
 
     /**
-     * Normaliza caminhos para o padrão Unix e previne Path Traversal
+     * ✅ SSOT/Compat: preferir WSP.canWriteUI() do core
      */
-    _normalizePath: function(p) {
+    _canWrite: function () {
+        if (window.WSP && typeof WSP.canWriteUI === 'function') {
+            return !!WSP.canWriteUI();
+        }
+
+        // fallback (core antigo)
+        if (!window.WSP || !WSP.activeProjectId) return false;
+        if (typeof WSP.canEditActiveProjectUI === 'function') return !!WSP.canEditActiveProjectUI();
+        if (WSP.activeProjectLocked && !WSP.canManageAll) return false;
+
+        if (window.wspVars) {
+            var locked = window.wspVars.activeLocked || window.wspVars.WSP_ACTIVE_LOCKED || 0;
+            var canManageAll = window.wspVars.canManageAll || window.wspVars.WSP_CAN_MANAGE_ALL || 0;
+            locked = (locked === true || locked === 1 || locked === '1');
+            canManageAll = (canManageAll === true || canManageAll === 1 || canManageAll === '1');
+            if (locked && !canManageAll) return false;
+        }
+
+        return true;
+    },
+
+    /**
+     * ✅ SSOT/Compat: preferir WSP.notifyLocked() do core
+     */
+    _notifyLocked: function () {
+        if (window.WSP && typeof WSP.notifyLocked === 'function') {
+            WSP.notifyLocked();
+            return;
+        }
+
+        var msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_PROJECT_LOCKED_MSG') : '';
+        if (!msg || msg === '[WSP_PROJECT_LOCKED_MSG]') {
+            msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_ERR_PROJECT_LOCKED') : 'Projeto trancado.';
+        }
+        if (WSP && WSP.ui && typeof WSP.ui.notify === 'function') {
+            WSP.ui.notify(msg, "warning");
+        }
+    },
+
+    _guardWrite: function () {
+        if (!this._canWrite()) {
+            this._notifyLocked();
+            return false;
+        }
+        return true;
+    },
+
+    _normalizePath: function (p) {
         if (!p) return '';
-        p = p.toString().trim().replace(/\\/g, '/');
-        p = p.replace(/^\/+/, '');              // Remove / inicial
-        p = p.replace(/(\.\.\/)+/g, '');        // Bloqueia traversal
-        p = p.replace(/(^|\/)\.\//g, '$1');     // Remove ./
-        p = p.replace(/\/{2,}/g, '/');          // Colapsa barras duplas
+        p = String(p).trim().replace(/\\/g, '/');
+        p = p.replace(/^\/+/, '');
+        p = p.replace(/(\.\.\/)+/g, '');
+        p = p.replace(/(^|\/)\.\//g, '$1');
+        p = p.replace(/\/{2,}/g, '/');
         return p;
     },
 
-    /**
-     * Filtra arquivos inúteis de sistema que poluem o projeto
-     */
-    _isIgnoredFile: function(name) {
+    _isIgnoredFile: function (name) {
         var ignored = ['thumbs.db', '.ds_store', 'desktop.ini', '__macosx'];
-        var base = name.toLowerCase();
-        return ignored.some(item => base.includes(item));
+        var base = String(name || '').toLowerCase();
+        for (var i = 0; i < ignored.length; i++) {
+            if (base.indexOf(ignored[i]) !== -1) return true;
+        }
+        return false;
     },
 
-    /**
-     * Debounce: Atualiza a Sidebar apenas quando o lote de uploads termina
-     */
-    _scheduleRefresh: function() {
+    _scheduleRefresh: function () {
         var self = this;
         clearTimeout(self._refreshTimer);
-        
-        self._refreshTimer = setTimeout(function() {
+
+        self._refreshTimer = setTimeout(function () {
             if (self._pendingUploads <= 0) {
-                self._pendingUploads = 0; // Reset de segurança
+                self._pendingUploads = 0;
                 WSP.ui.seamlessRefresh();
-                // Notificação de sucesso traduzida
                 WSP.ui.notify(WSP.lang('WSP_UPLOAD_LIST_UPDATED'), "success");
             }
         }, 800);
     },
 
-    /**
-     * Envia o arquivo para o servidor via AJAX (Base64 Encode para evitar Firewall)
-     */
-    performUpload: function(file, projectId, customPath) {
+    performUpload: function (file, projectId, customPath) {
         var self = this;
         if (!file || !projectId) return;
 
+        if (!self._guardWrite()) return;
+
         var finalPath = self._normalizePath(customPath || file.name);
+        if (!finalPath) return;
         if (self._isIgnoredFile(finalPath)) return;
 
         var reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             var formData = new FormData();
-            formData.append('file_content', e.target.result); 
+            formData.append('file_content', e.target.result);
             formData.append('project_id', projectId);
             formData.append('full_path', finalPath);
-            formData.append('is_encoded', '1'); 
+            formData.append('is_encoded', '1');
 
             self._pendingUploads++;
-            $.ajax({
+
+            jQuery.ajax({
                 url: window.wspVars.uploadUrl,
                 type: 'POST',
                 data: formData,
                 contentType: false,
                 processData: false,
-                success: function(r) {
-                    self._pendingUploads--;
+
+                success: function (r) {
                     if (!r || !r.success) {
-                        // Erro traduzido com placeholder %s para o nome do arquivo
-                        var errorMsg = (r && r.error) ? r.error : WSP.lang('WSP_UPLOAD_FAILED', {'%s': finalPath});
+                        var errorMsg = (r && r.error) ? r.error : WSP.lang('WSP_UPLOAD_FAILED', { '%s': finalPath });
                         WSP.ui.notify(errorMsg, "error");
                     }
-                    self._scheduleRefresh();
                 },
-                error: function() {
+
+                error: function () {
+                    var msg = WSP.lang('WSP_ERROR_CRITICAL');
+                    if (!msg || msg === '[WSP_ERROR_CRITICAL]') {
+                        msg = WSP.lang('WSP_UPLOAD_FAILED', { '%s': finalPath });
+                    }
+                    WSP.ui.notify(msg, "error");
+                },
+
+                complete: function () {
                     self._pendingUploads--;
                     self._scheduleRefresh();
                 }
             });
         };
-        reader.readAsDataURL(file); 
+
+        reader.readAsDataURL(file);
     },
 
-    /**
-     * Varre estruturas de pastas arrastadas (API Webkit)
-     */
-    traverseFileTree: function(item, path, projectId) {
+    traverseFileTree: function (item, path, projectId) {
         var self = this;
+
+        if (!self._guardWrite()) return;
+
         path = self._normalizePath(path || '');
-        if (path && !path.endsWith('/')) path += '/';
+        if (path && !self._endsWith(path, '/')) path += '/';
 
         if (!item) return;
 
         if (item.isFile) {
-            item.file(function(file) {
+            item.file(function (file) {
                 self.performUpload(file, projectId, path + file.name);
             });
         } else if (item.isDirectory) {
             var dirReader = item.createReader();
-            dirReader.readEntries(function(entries) {
-                // TRATAMENTO DE PASTA VAZIA: Envia marcador .placeholder
-                if (entries.length === 0) {
+            dirReader.readEntries(function (entries) {
+                if (!entries || entries.length === 0) {
                     var blob = new Blob([""], { type: 'text/plain' });
                     var placeholder = new File([blob], ".placeholder");
                     self.performUpload(placeholder, projectId, path + item.name + "/.placeholder");
-                } else {
-                    for (var i = 0; i < entries.length; i++) {
-                        self.traverseFileTree(entries[i], path + item.name + "/", projectId);
-                    }
+                    return;
+                }
+
+                for (var i = 0; i < entries.length; i++) {
+                    self.traverseFileTree(entries[i], path + item.name + "/", projectId);
                 }
             });
         }
     },
 
-    /**
-     * Vincula eventos de upload e drag-and-drop
-     */
-    bindEvents: function($) {
+    bindEvents: function ($) {
         var self = this;
+        var ui = self._getUI();
+        var $body = ui.$body;
 
-        // 1. UPLOAD VIA BOTÃO (TOOLBAR)
-        $('body').off('click', '.trigger-upload').on('click', '.trigger-upload', function(e) {
+        $body.off('.wsp_upload');
+
+        $body.on('click.wsp_upload', '.trigger-upload', function (e) {
             e.preventDefault();
+
             if (!WSP.activeProjectId) {
                 return WSP.ui.notify(WSP.lang('WSP_UPLOAD_NEED_PROJECT'), "warning");
             }
 
-            if ($('#wsp-upload-input').length === 0) {
-                $('body').append('<input type="file" id="wsp-upload-input" multiple>');
+            if (!self._guardWrite()) return;
+
+            if (!jQuery('#wsp-upload-input').length) {
+                $body.append('<input type="file" id="wsp-upload-input" multiple>');
             }
-            $('#wsp-upload-input').click();
+            jQuery('#wsp-upload-input').trigger('click');
         });
 
-        $('body').off('change', '#wsp-upload-input').on('change', '#wsp-upload-input', function() {
+        $body.on('change.wsp_upload', '#wsp-upload-input', function () {
             var files = this.files;
-            if (files.length > 0) {
-                // Mensagem com placeholder %d para contagem de arquivos
-                var msg = WSP.lang('WSP_UPLOAD_SENDING_COUNT', {'%d': files.length});
-                WSP.ui.notify(msg, "info");
-                
+
+            if (!self._guardWrite()) {
+                jQuery(this).val('');
+                return;
+            }
+
+            if (files && files.length > 0) {
+                WSP.ui.notify(WSP.lang('WSP_UPLOAD_SENDING_COUNT', { '%d': files.length }), "info");
+
                 for (var i = 0; i < files.length; i++) {
                     self.performUpload(files[i], WSP.activeProjectId, null);
                 }
             }
-            $(this).val(''); // Limpa para permitir re-upload
+
+            jQuery(this).val('');
         });
 
-        // 2. DRAG & DROP (SIDEBAR)
-        var $zone = $('#sidebar-dropzone');
+        var $zone = jQuery('#sidebar-dropzone');
         if ($zone.length) {
-            $zone.on('dragover', function(e) {
+            $zone.off('.wsp_upload');
+
+            $zone.on('dragover.wsp_upload', function (e) {
                 e.preventDefault();
-                $(this).addClass('sidebar-drag-active');
+                jQuery(this).addClass('sidebar-drag-active');
             });
 
-            $zone.on('dragleave', function(e) {
+            $zone.on('dragleave.wsp_upload', function (e) {
                 e.preventDefault();
-                $(this).removeClass('sidebar-drag-active');
+                jQuery(this).removeClass('sidebar-drag-active');
             });
 
-            $zone.on('drop', function(e) {
+            $zone.on('drop.wsp_upload', function (e) {
                 e.preventDefault();
-                $(this).removeClass('sidebar-drag-active');
+                jQuery(this).removeClass('sidebar-drag-active');
 
                 if (!WSP.activeProjectId) {
                     return WSP.ui.notify(WSP.lang('WSP_UPLOAD_DROP_PROJECT'), "warning");
                 }
 
-                var dt = e.originalEvent.dataTransfer;
-                var items = dt.items;
+                if (!self._guardWrite()) return;
+
+                var dt = e.originalEvent && e.originalEvent.dataTransfer ? e.originalEvent.dataTransfer : null;
+                if (!dt) return;
 
                 WSP.ui.notify(WSP.lang('WSP_UPLOAD_PROCESSING'), "info");
 
-                // Se houver uma pasta ativa selecionada na árvore, os arquivos serão enviados para dentro dela
-                var prefix = WSP.activeFolderPath || "";
+                var prefix = self._normalizePath(WSP.activeFolderPath || '');
+                if (prefix) prefix += '/';
 
+                var items = dt.items;
                 if (items && items.length) {
                     for (var i = 0; i < items.length; i++) {
-                        // webkitGetAsEntry permite processar pastas recursivamente
-                        var entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
+                        var entry = (items[i].webkitGetAsEntry) ? items[i].webkitGetAsEntry() : null;
+
                         if (entry) {
                             self.traverseFileTree(entry, prefix, WSP.activeProjectId);
                         } else {
-                            var f = items[i].getAsFile();
+                            var f = items[i].getAsFile ? items[i].getAsFile() : null;
                             if (f) {
-                                var path = self._normalizePath(prefix) ? self._normalizePath(prefix) + '/' + f.name : f.name;
-                                self.performUpload(f, WSP.activeProjectId, path);
+                                self.performUpload(f, WSP.activeProjectId, prefix ? (prefix + f.name) : f.name);
                             }
                         }
                     }
