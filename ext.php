@@ -1,8 +1,9 @@
 <?php
 /**
- * Honeypot Bot Protection Extension for phpBB 3.3.x
+ * Mundo phpBB Workspace Extension for phpBB 3.3.x
  *
- * @copyright (c) 2025 roma30
+ * @package mundophpbb/workspace
+ * @copyright (c) 2026 Chico Gois
  * @license GNU General Public License, version 2 (GPL-2.0)
  */
 

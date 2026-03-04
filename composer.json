@@ -3,7 +3,7 @@
     "type": "phpbb-extension",
     "description": "phpBB Workspace IDE - A full-featured virtual IDE to manage projects, write code, and organize files directly within the forum panel.",
     "homepage": "https://github.com/mundophpbb/workspace",
-    "version": "2.0.1-dev",
+    "version": "1.0.0",
     "time": "2026-02-13",
     "license": "GPL-2.0-only",
     "authors": [
@@ -15,24 +15,23 @@
     ],
     "require": {
         "php": ">=7.4",
-        "composer/installers": "~1.0"
+        "composer/installers": "^1.0 || ^2.0"
     },
     "autoload": {
         "psr-4": {
-            "mundophpbb\\workspace\\": "src/"
+            "mundophpbb\\workspace\\": ""
         }
     },
     "extra": {
-        "display-name": "Mundo phpBB Workspace",
+        "display-name": "phpBB Workspace IDE",
         "soft-require": {
             "phpbb/phpbb": ">=3.3.0"
         },
         "version-check": {
-            "host": "github.com",
-            "directory": "/mundophpbb/workspace/master",
-            "filename": "version_check.json"
-        }
-    }
-
+    "host": "mundophpbb.com.br",
+    "directory": "/ext/",
+    "filename": "workspace.json",
+    "ssl": true
 }
-
+    }
+}
