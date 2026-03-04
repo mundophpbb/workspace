@@ -1,0 +1,854 @@
+/* ==========================================================
+   MUNDO PHPBB WORKSPACE - FLATBOOTS DARK (Consolidado)
+   - Dark + flat UI (estilo flatboots/flat-ui colors)
+   - Mantém IDs/classes usados pelo JS
+   - FIX: modais iniciam ocultos e centralizam no fadeIn()
+   - FIX: options do <select> visíveis no dark
+   ========================================================== */
+
+/* ==========================================================
+   DESIGN SYSTEM (DARK FLAT)
+   ========================================================== */
+:root {
+    --wsp-bg-dark: #1f232a;          /* fundo geral/editor area */
+    --wsp-sidebar-bg: #232830;      /* sidebar/toolbar */
+    --wsp-header-bg: #2c3e50;       /* topo (flat navbar) */
+    --wsp-border: rgba(255,255,255,.10);
+
+    --wsp-accent: #3498db;          /* flat blue */
+    --wsp-accent-rgb: 52, 152, 219;
+
+    --wsp-text: rgba(255,255,255,.86);
+    --wsp-text-bright: #ffffff;
+    --wsp-muted: rgba(255,255,255,.55);
+
+    --wsp-hover: rgba(255,255,255,.07);
+    --wsp-active-bg: rgba(52,152,219,.16);
+
+    --wsp-folder: #f1c40f;          /* flat yellow */
+    --wsp-danger: #e74c3c;          /* flat red */
+    --wsp-success: #2ecc71;         /* flat green */
+    --wsp-warning: #f39c12;         /* flat orange */
+    --wsp-info: #2980b9;            /* flat deep blue */
+
+    --wsp-radius: 4px;
+    --wsp-radius-sm: 3px;
+}
+
+/* ==========================================================
+   CONTAINER
+   ========================================================== */
+.workspace-container {
+    display: flex;
+    flex-direction: column;
+    height: 85vh;
+    background: var(--wsp-bg-dark);
+    color: var(--wsp-text);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    border: 1px solid var(--wsp-border);
+    border-radius: var(--wsp-radius);
+    overflow: hidden;
+}
+
+/* Fullscreen */
+.workspace-container.fullscreen-mode {
+    position: fixed !important;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 9999;
+    border-radius: 0;
+}
+
+/* ==========================================================
+   HEADER
+   ========================================================== */
+.workspace-header {
+    background: var(--wsp-header-bg);
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0,0,0,.35);
+    font-size: 12px;
+}
+
+.header-left { display: flex; align-items: center; gap: 8px; }
+.path-divider { color: rgba(255,255,255,.35); margin: 0 6px; }
+
+/* Breadcrumb / arquivo atual */
+#current-file {
+    color: var(--wsp-text-bright);
+    font-weight: 600;
+}
+#current-file.is-active { color: #bfe1ff; }
+#current-file.is-empty { opacity: .75; }
+#current-file.is-loading { color: #bfe1ff; font-weight: 600; }
+
+.breadcrumb-folder-icon { color: var(--wsp-accent); }
+.breadcrumb-item { opacity: .90; padding: 0 2px; }
+.breadcrumb-sep { opacity: .5; margin: 0 4px; }
+
+/* Pasta ativa */
+.wsp-active-folder-indicator {
+    cursor: pointer;
+    background: rgba(255,255,255,.10);
+    padding: 3px 8px;
+    border-radius: var(--wsp-radius-sm);
+    transition: .15s;
+    display: flex;
+    align-items: center;
+}
+.wsp-active-folder-indicator:hover { background: rgba(var(--wsp-accent-rgb), .95); color: #fff; }
+.wsp-active-folder-indicator strong { color: #bfe1ff; margin-left: 4px; }
+.wsp-active-folder-indicator:hover strong { color: #fff; }
+
+/* Botões do header (cache/fullscreen) */
+.header-actions { display:flex; gap: 6px; }
+
+.btn-tool{
+    height: 30px;
+    min-width: 30px;
+    border-radius: var(--wsp-radius-sm);
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.08);
+    color: #fff;
+    cursor:pointer;
+    transition: background .15s, transform .1s, border-color .15s;
+}
+.btn-tool:hover{
+    background: rgba(255,255,255,.14);
+    border-color: rgba(255,255,255,.28);
+    transform: translateY(-1px);
+}
+.btn-cache-loading { pointer-events: none; opacity: .75; }
+
+/* ==========================================================
+   MAIN BODY
+   ========================================================== */
+.workspace-main-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    align-items: stretch;
+}
+
+/* Splitter */
+#wsp-splitter {
+    width: 8px;
+    background: rgba(255,255,255,.06);
+    cursor: col-resize;
+    transition: background 0.2s;
+    z-index: 10;
+}
+#wsp-splitter:hover,
+#wsp-splitter.dragging {
+    background: rgba(var(--wsp-accent-rgb), .65) !important;
+    z-index: 1000;
+}
+body.is-resizing {
+    cursor: col-resize !important;
+    user-select: none !important;
+}
+
+/* ==========================================================
+   SIDEBAR / EXPLORER
+   ========================================================== */
+.workspace-sidebar {
+    width: 280px;
+    background: var(--wsp-sidebar-bg);
+    border-right: 1px solid var(--wsp-border);
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+}
+
+/* Oculta projetos inativos */
+.project-group { display: none; border-bottom: 1px solid rgba(0,0,0,0.12); }
+.project-group.active-focus { display: block; }
+.workspace-container[data-active-project="0"] .project-group { display: block; }
+
+.sidebar-label {
+    padding: 10px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--wsp-muted);
+    border-bottom: 1px solid rgba(0,0,0,.22);
+}
+
+.sidebar-search-container {
+    padding: 10px 12px;
+    position: relative;
+    border-bottom: 1px solid rgba(0,0,0,.22);
+}
+.sidebar-search-container input {
+    width: 100%;
+    background: rgba(0,0,0,.25);
+    border: 1px solid var(--wsp-border);
+    color: var(--wsp-text-bright);
+    padding: 8px 10px 8px 30px;
+    font-size: 12px;
+    border-radius: var(--wsp-radius-sm);
+    outline: none;
+}
+.sidebar-search-container input:focus{
+    border-color: rgba(var(--wsp-accent-rgb), .65);
+    box-shadow: 0 0 0 3px rgba(var(--wsp-accent-rgb), .18);
+}
+.sidebar-search-container i {
+    position: absolute;
+    left: 20px;
+    top: 18px;
+    color: rgba(255,255,255,.45);
+}
+
+/* Lista */
+#project-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.project-title-simple {
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.16);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--wsp-text-bright);
+    border-bottom: 1px solid rgba(0,0,0,.22);
+}
+
+/* Itens */
+.folder-item, .file-item { list-style: none; position: relative; }
+
+/* Linha padrão */
+.folder-title, .file-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    margin: 4px 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.12s, border-color 0.12s, transform 0.12s;
+    border-radius: var(--wsp-radius-sm);
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.folder-content { padding-left: 14px; list-style: none; margin: 0; display: none; }
+.folder-item.is-open > .folder-content { display: block; }
+
+.folder-title i.icon { color: var(--wsp-folder); margin-right: 6px; }
+.file-item i.icon { color: rgba(255,255,255,.55); margin-right: 6px; font-size: 14px; }
+
+.folder-title:hover, .file-item:hover {
+    background: var(--wsp-hover);
+    border-color: rgba(255,255,255,.08);
+}
+
+/* Seleção */
+.active-folder {
+    border-left: 3px solid var(--wsp-accent);
+    background: rgba(var(--wsp-accent-rgb), 0.12) !important;
+}
+.active-file {
+    background: var(--wsp-active-bg) !important;
+    color: var(--wsp-text-bright) !important;
+}
+.active-file a {
+    color: #bfe1ff !important;
+    font-weight: 700;
+}
+
+/* Nome com ellipsis */
+.file-item{
+    gap: 8px;
+}
+.load-file {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--wsp-text);
+    text-decoration: none;
+}
+
+/* Dirty */
+.load-file.is-dirty {
+    font-style: italic;
+    font-weight: 700;
+}
+
+/* Ações contexto (opacity, sem “display:none” pra não quebrar layout) */
+.folder-context-actions, .file-context-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+.folder-title:hover .folder-context-actions,
+.file-item:hover .file-context-actions {
+    opacity: 1;
+}
+.folder-context-actions i, .file-context-actions i {
+    opacity: .75;
+    transition: 0.12s;
+    padding: 2px 4px;
+    border-radius: var(--wsp-radius-sm);
+    cursor: pointer;
+}
+.folder-context-actions i:hover, .file-context-actions i:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.08);
+    color: var(--wsp-accent);
+}
+.ctx-delete-file:hover, .ctx-delete-folder:hover { color: var(--wsp-danger) !important; }
+
+/* Drag and drop */
+#sidebar-dropzone {
+    transition: all 0.2s ease-in-out;
+    border: 2px solid transparent;
+}
+#sidebar-dropzone.sidebar-drag-active,
+.sidebar-drag-active {
+    background-color: rgba(var(--wsp-accent-rgb), 0.06) !important;
+    border: 2px dashed var(--wsp-accent) !important;
+    outline: none;
+}
+
+/* input técnico upload */
+#wsp-upload-input { display: none !important; }
+
+/* ==========================================================
+   TOOLBAR (Acima do Editor)
+   ========================================================== */
+.editor-toolbar-rich {
+    background: rgba(0,0,0,.18);
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid var(--wsp-border);
+}
+
+.toolbar-section { display: flex; align-items: center; gap: 6px; }
+.v-divider { width: 1px; height: 22px; background: var(--wsp-border); margin: 0 8px; }
+.align-right { margin-left: auto; }
+
+/* enable/disable via JS */
+.actions-active.is-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+.actions-active.is-enabled {
+    opacity: 1;
+    pointer-events: auto;
+    cursor: default;
+}
+
+/* Botões flat (dark) */
+.btn-icon, .btn-main, .btn-copy, .btn-copy-alt, .btn-save-icon, .btn-save {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.10);
+    color: var(--wsp-text);
+    padding: 0 10px;
+    height: 32px;
+    min-width: 32px;
+    cursor: pointer;
+    border-radius: var(--wsp-radius-sm);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background .12s, border-color .12s, transform .1s;
+}
+
+.btn-icon:hover, .btn-main:hover, .btn-copy:hover, .btn-copy-alt:hover {
+    background: rgba(255,255,255,.10);
+    border-color: rgba(255,255,255,.14);
+    transform: translateY(-1px);
+}
+
+/* Botão salvar só ícone (verde) */
+.btn-save-icon {
+    background: rgba(46, 204, 113, .85);
+    border-color: rgba(46, 204, 113, .20);
+    color: #fff;
+}
+.btn-save-icon:hover { background: rgba(46, 204, 113, .95); }
+
+/* Botão do modal (azul) */
+.btn-save {
+    background: rgba(var(--wsp-accent-rgb), .92) !important;
+    border-color: rgba(var(--wsp-accent-rgb), .25) !important;
+    color: #fff !important;
+    padding: 0 14px !important;
+}
+.btn-save:hover { background: rgba(var(--wsp-accent-rgb), 1) !important; }
+
+/* Danger icon */
+.btn-danger-icon:hover {
+    background: rgba(231,76,60,.18) !important;
+    border-color: rgba(231,76,60,.30) !important;
+    color: #fff !important;
+}
+
+/* saving / success feedback */
+.btn-saving { cursor: not-allowed; opacity: 0.85; }
+.btn-success-temporary {
+    background-color: rgba(46, 204, 113, .92) !important;
+    border-color: rgba(46, 204, 113, .35) !important;
+    color: #fff !important;
+}
+
+/* ==========================================================
+   EDITOR AREA
+   ========================================================== */
+.workspace-editor-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--wsp-bg-dark);
+}
+
+#editor {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    display: block;
+    min-height: 300px;
+    font-size: 14px;
+    font-family: Consolas, 'Courier New', monospace;
+}
+
+/* ==========================================================
+   MODAIS (Search/Diff) + FIX "abre sozinho" no Ctrl+F5
+   ========================================================== */
+/* Base: começa escondido */
+.wsp-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.70);
+    display: none; /* FIX: evita aparecer no reload */
+    align-items: center;
+    justify-content: center;
+    z-index: 100010;
+    backdrop-filter: blur(2px);
+}
+
+/* Quando jQuery fadeIn() coloca display:block, forçamos flex */
+.wsp-modal-overlay[style*="display: block"]{
+    display: flex !important;
+}
+
+/* Extra: garante por id */
+#search-replace-modal, #diff-modal {
+    display: none;
+}
+
+.wsp-modal-box {
+    background: #2a2f38;
+    padding: 18px;
+    border-radius: var(--wsp-radius);
+    border: 1px solid var(--wsp-border);
+    width: 440px;
+    box-shadow: 0 12px 35px rgba(0,0,0,0.45);
+    color: var(--wsp-text);
+}
+
+.wsp-input-dark {
+    width: 100%;
+    background: rgba(0,0,0,.25);
+    border: 1px solid var(--wsp-border);
+    color: var(--wsp-text-bright);
+    padding: 8px 10px;
+    margin-top: 6px;
+    border-radius: var(--wsp-radius-sm);
+    outline: none;
+}
+.wsp-input-dark:focus {
+    border-color: rgba(var(--wsp-accent-rgb), .70);
+    box-shadow: 0 0 0 3px rgba(var(--wsp-accent-rgb), .18);
+}
+
+/* FIX: options visíveis no dark (dropdown não “some”) */
+select.wsp-input-dark option {
+    background: #1f232a;
+    color: #ffffff;
+}
+
+/* Botões do modal */
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+/* ==========================================================
+   MODAL SYSTEM (custom)
+   ========================================================== */
+#wsp-custom-modal {
+    display: none;
+    position: fixed;
+    z-index: 100010;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.80);
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+}
+
+/* Se seu JS usar show() (display:block), centraliza */
+#wsp-custom-modal[style*="display: block"]{
+    display: flex !important;
+}
+
+#wsp-modal-card {
+    background: #2a2f38;
+    padding: 18px;
+    width: 460px;
+    border: 1px solid var(--wsp-border);
+    border-radius: var(--wsp-radius);
+    color: var(--wsp-text);
+    box-shadow: 0 12px 35px rgba(0,0,0,0.45);
+}
+
+#wsp-modal-title {
+    margin: 0 0 12px 0;
+    color: var(--wsp-text-bright);
+    font-size: 15px;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,.10);
+    padding-bottom: 10px;
+}
+
+#wsp-modal-body-custom {
+    margin-bottom: 12px;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+#wsp-modal-input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 12px;
+    background: rgba(0,0,0,.25);
+    border: 1px solid var(--wsp-border);
+    color: var(--wsp-text-bright);
+    border-radius: var(--wsp-radius-sm);
+    outline: none;
+}
+
+.wsp-modal-footer {
+    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Switcher */
+.project-switcher-box { display: flex; flex-direction: column; gap: 10px; }
+.switcher-item {
+    padding: 12px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.10);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: var(--wsp-radius);
+    transition: background 0.12s, border-color 0.12s, transform 0.12s;
+}
+.switcher-item:hover {
+    background: rgba(255,255,255,.10);
+    border-color: rgba(var(--wsp-accent-rgb), .35);
+    transform: translateY(-1px);
+}
+.switcher-item.active {
+    border-color: rgba(var(--wsp-accent-rgb), .55);
+    background: rgba(var(--wsp-accent-rgb), .10);
+}
+.switcher-info { display:flex; flex-direction:column; text-align:left; }
+
+/* Tree selector modal */
+.modal-folder-tree-selector {
+    max-height: 360px;
+    overflow-y: auto;
+    background: rgba(0,0,0,.18);
+    padding: 12px;
+    border-radius: var(--wsp-radius);
+    border: 1px solid rgba(255,255,255,.10);
+}
+.modal-tree-ul {
+    list-style: none;
+    padding-left: 18px;
+    margin: 6px 0;
+    border-left: 1px solid rgba(255,255,255,.10);
+}
+.folder-option {
+    padding: 6px 10px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.10);
+    cursor: pointer;
+    border-radius: var(--wsp-radius-sm);
+    display: inline-block;
+    transition: 0.12s;
+    margin: 4px 0;
+}
+.folder-option:hover {
+    border-color: rgba(var(--wsp-accent-rgb), .45);
+    background: rgba(var(--wsp-accent-rgb), .10);
+}
+.folder-option.is-root {
+    padding: 8px 12px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12);
+    display: block;
+    margin-bottom: 12px;
+}
+
+/* ==========================================================
+   NOTIFICATIONS (TOASTS)
+   ========================================================== */
+#wsp-notify-container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 100020;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+#wsp-notify-container > div { pointer-events: auto; }
+
+.wsp-notification {
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: var(--wsp-radius);
+    font-size: 13px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.30);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 260px;
+    border-left: 5px solid rgba(0,0,0,0.20);
+    animation: wspFadeIn 0.25s ease;
+}
+
+.wsp-notification.is-success { background: rgba(46, 204, 113, .92); }
+.wsp-notification.is-error   { background: rgba(231, 76, 60, .92); }
+.wsp-notification.is-info    { background: rgba(52, 152, 219, .92); }
+.wsp-notification.is-warning { background: rgba(243, 156, 18, .92); color: #1b1b1b; }
+
+@keyframes wspFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================
+   LOADING EFFECT
+   ========================================================== */
+.loading-effect {
+    animation: wspPulse 1.5s infinite ease-in-out;
+    pointer-events: none;
+}
+@keyframes wspPulse {
+    0%   { opacity: 0.60; }
+    50%  { opacity: 1; }
+    100% { opacity: 0.60; }
+}
+
+/* Toolbar: botões com texto (sem quebrar layout) */
+.btn-with-label{
+  padding: 0 10px !important;
+  gap: 8px !important;
+}
+.btn-with-label .btn-label{
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: .95;
+}
+
+/* Em telas menores: vira só ícone (tooltip continua) */
+@media (max-width: 1250px){
+  .btn-with-label .btn-label{
+    display: none;
+  }
+  .btn-with-label{
+    padding: 0 10px !important;
+    min-width: 32px;
+  }
+}
+
+/* ==========================================================
+   NOVO (v4.3+): Estado "Locked" (UI) + Badge
+   - NÃO usa pointer-events:none para permitir o notify do JS
+   ========================================================== */
+
+/* Ícones desabilitados por lock (classe aplicada via JS) */
+.folder-context-actions i.wsp-disabled,
+.file-context-actions i.wsp-disabled {
+    opacity: .28 !important;
+    color: rgba(255,255,255,.55) !important;
+    background: transparent !important;
+    transform: none !important;
+    cursor: not-allowed !important;
+}
+
+/* Evita highlight/hover quando desabilitado */
+.folder-context-actions i.wsp-disabled:hover,
+.file-context-actions i.wsp-disabled:hover {
+    opacity: .28 !important;
+    color: rgba(255,255,255,.55) !important;
+    background: transparent !important;
+    transform: none !important;
+}
+
+/* Badge "Trancado" ao lado do nome do projeto (opcional) */
+.wsp-lock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: var(--wsp-radius-sm);
+    background: rgba(0,0,0,.18);
+    border: 1px solid rgba(255,255,255,.12);
+    color: var(--wsp-warning);
+    vertical-align: middle;
+}
+
+.wsp-lock-badge i {
+    font-size: 11px;
+}
+
+.no-project-selected{
+    text-align: center;
+    padding: 18px 12px;
+}
+
+.no-project-selected .no-project-icon{
+    font-size: 38px;
+    line-height: 1;
+    margin-bottom: 10px;
+    opacity: .95;
+}
+
+.no-project-selected .no-project-text{
+    margin: 0;
+    font-size: 13px;
+    opacity: .9;
+}
+
+/* Toolbar: botões com label viram ícone-only */
+.editor-toolbar-rich .btn-with-label .btn-label,
+.editor-toolbar-rich .btn-save-icon .btn-label {
+    display: none !important;
+}
+
+/* Se algum botão tiver texto direto, força fonte zero (mantém ícone visível) */
+.editor-toolbar-rich .btn-with-label {
+    font-size: 0;
+}
+.editor-toolbar-rich .btn-with-label i,
+.editor-toolbar-rich .btn-with-label .icon,
+.editor-toolbar-rich .btn-save-icon i {
+    font-size: 14px; /* ajuste se quiser maior */
+}
+
+.editor-toolbar-rich .btn-with-label{
+  padding: 0 10px !important;
+  min-width: 32px;
+  gap: 0 !important;
+}
+
+/* ==========================================================
+   Workspace - Disabled projects / switcher items
+   (lock/sem permissão para abrir/download)
+   ========================================================== */
+
+/* Sidebar: projeto sem permissão de abrir */
+.project-group.is-disabled {
+  opacity: 0.55;
+  filter: grayscale(35%);
+}
+
+/* Título do projeto: feedback visual */
+.project-group.is-disabled .project-title-simple {
+  cursor: not-allowed;
+}
+
+/* Ícone mais fraco no projeto desabilitado */
+.project-group.is-disabled .project-title-simple .icon {
+  opacity: 0.75;
+}
+
+/* Badge de lock continua visível, mas sem “gritar” */
+.project-group.is-disabled .wsp-lock-badge {
+  opacity: 0.9;
+}
+
+/* (Opcional) Se você quiser impedir ações na árvore quando projeto não abre */
+.project-group.is-disabled .file-list {
+  pointer-events: none;
+}
+
+/* ----------------------------------------------------------
+   Modal "Abrir Projeto" (project switcher)
+   ---------------------------------------------------------- */
+
+.project-switcher-box .switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.08s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.project-switcher-box .switcher-item:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Item desabilitado (sem permissão ou lock -> CAN_OPEN=0) */
+.project-switcher-box .switcher-item.disabled {
+  opacity: 0.55;
+  filter: grayscale(40%);
+  cursor: not-allowed;
+  background: rgba(255, 90, 90, 0.05);
+  transform: none;
+}
+
+/* Evita hover “enganoso” no desabilitado */
+.project-switcher-box .switcher-item.disabled:hover {
+  background: rgba(255, 90, 90, 0.07);
+  transform: none;
+}
+
+/* Se você quiser BLOQUEAR clique total via CSS (recomendado),
+   deixe ligado. Se preferir que o JS mostre aviso ao clicar,
+   comente esta linha. */
+.project-switcher-box .switcher-item.disabled {
+  pointer-events: none;
+}
+
+/* Texto/mini-hint no desabilitado fica mais evidente */
+.project-switcher-box .switcher-item.disabled .switcher-info small {
+  opacity: 0.95;
+}
