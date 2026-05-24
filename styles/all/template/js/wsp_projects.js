@@ -364,7 +364,7 @@ WSP.projects = {
                 var $p = $(this);
 
                 var pid = $p.data('project-id');
-                var pname = $p.find('.project-title-simple').text().trim();
+                var pname = String($p.attr('data-project-name') || $p.find('.wsp-project-name').text() || '').trim();
                 var isActive = (String(pid) === String(WSP.activeProjectId));
 
                 // ✅ novos data-attrs vindos do template/main.php
@@ -432,7 +432,8 @@ WSP.projects = {
                 return self._notifyDenied();
             }
 
-            var oldName = $('.project-group.active-focus .project-title-simple').text().trim();
+            var $activeProject = $('.project-group.active-focus');
+            var oldName = String($activeProject.attr('data-project-name') || $activeProject.find('.wsp-project-name').text() || '').trim();
 
             WSP.ui.prompt(WSP.lang('WSP_RENAME_PROJECT_TITLE'), oldName, function (newName) {
                 if (!newName || newName === oldName) return;
@@ -768,5 +769,54 @@ WSP.projects = {
                 }, 'WSP_ERROR_CRITICAL');
             });
         });
+
+        // =====================================================
+        // 6) COLABORACAO PRIVADA / PEDIDO POR MP
+        // =====================================================
+        $body.on('change.wsp_projects', '#wsp-collaboration-mode', function () {
+            if (!WSP.activeProjectId || !window.wspVars || !window.wspVars.collaborationModeUrl) return;
+
+            var $select = $(this);
+            var oldMode = $select.attr('data-current-mode') || 'private';
+            var mode = String($select.val() || 'private');
+
+            self._postJson($, window.wspVars.collaborationModeUrl, {
+                project_id: WSP.activeProjectId,
+                mode: mode
+            }, function (r) {
+                $select.attr('data-current-mode', r.mode || mode);
+                WSP.ui.notify(WSP.lang('WSP_COLLAB_MODE_UPDATED'), 'success');
+                WSP.ui.seamlessRefresh();
+            }, 'WSP_ERR_UPDATE_FAILED');
+        });
+
+        $body.on('click.wsp_projects', '#wsp-request-collaboration', function (e) {
+            e.preventDefault();
+            if (!WSP.activeProjectId || !window.wspVars || !window.wspVars.requestCollaborationUrl) return;
+
+            var roleOptions = '<div class="wsp-request-collab-form">'
+                + '<label>' + WSP.lang('WSP_REQUEST_ROLE') + '</label>'
+                + '<select id="wsp-request-collab-role">'
+                + '<option value="collab">' + WSP.lang('WSP_ROLE_COLLAB') + '</option>'
+                + '<option value="viewer">' + WSP.lang('WSP_ROLE_VIEWER') + '</option>'
+                + '</select>'
+                + '<label>' + WSP.lang('WSP_REQUEST_MESSAGE') + '</label>'
+                + '<textarea id="wsp-request-collab-message" rows="5" maxlength="1000" placeholder="' + WSP._escapeHtml(WSP.lang('WSP_REQUEST_MESSAGE_PLACEHOLDER')) + '"></textarea>'
+                + '</div>';
+
+            WSP.ui.prompt(WSP.lang('WSP_REQUEST_COLLABORATION'), 'LIST_MODE');
+            $('#wsp-modal-body-custom').html(roleOptions).show();
+            $('#wsp-modal-ok').show().off('.wsp_collab_request').on('click.wsp_collab_request', function () {
+                $('#wsp-custom-modal').hide();
+                self._postJson($, window.wspVars.requestCollaborationUrl, {
+                    project_id: WSP.activeProjectId,
+                    role: $('#wsp-request-collab-role').val() || 'collab',
+                    message: $('#wsp-request-collab-message').val() || ''
+                }, function (r) {
+                    WSP.ui.notify((r && r.message) ? r.message : WSP.lang('WSP_COLLAB_REQUEST_SENT'), 'success');
+                }, 'WSP_ERR_COLLAB_REQUEST_FAILED');
+            });
+        });
+
     }
 };

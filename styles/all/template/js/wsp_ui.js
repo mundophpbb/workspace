@@ -65,6 +65,116 @@ WSP.ui = {
 
         // Aplica estado visual do lock (se já houver sidebar renderizada)
         this.applyLockUIState();
+
+        // Refinamento visual/acessibilidade: tooltips, Escape e clique fora.
+        this.initAccessibilityPolish($);
+    },
+
+
+    /**
+     * Refinamentos leves de UI:
+     * - normaliza aria-label/data-tooltip a partir do title;
+     * - fecha drawers/painéis com ESC;
+     * - fecha colaboração/notificações ao clicar fora;
+     * - não altera regras de negócio nem permissões.
+     */
+    initAccessibilityPolish: function ($) {
+        var $doc = jQuery(document);
+        var $body = jQuery('body');
+
+        function refreshTooltips() {
+            jQuery('#wsp-main-container button, #wsp-main-container [title]').each(function () {
+                var $el = jQuery(this);
+                var label = $el.attr('aria-label') || $el.attr('title');
+                if (!label) return;
+                $el.attr('aria-label', label);
+                $el.attr('data-tooltip', label);
+            });
+        }
+
+        refreshTooltips();
+        setTimeout(refreshTooltips, 500);
+
+        // Tooltip flutuante fora do container do editor.
+        // Evita que o Ace Editor, drawers ou containers com overflow escondam o tooltip.
+        function ensureFloatingTooltip() {
+            var $tip = jQuery('#wsp-floating-tooltip');
+            if (!$tip.length) {
+                $tip = jQuery('<div id="wsp-floating-tooltip" role="tooltip" aria-hidden="true"></div>').appendTo('body');
+            }
+            return $tip;
+        }
+
+        function hideFloatingTooltip() {
+            jQuery('#wsp-floating-tooltip').removeClass('is-visible').attr('aria-hidden', 'true');
+        }
+
+        function showFloatingTooltip(el) {
+            var $el = jQuery(el);
+            var label = $el.attr('data-tooltip') || $el.attr('aria-label') || $el.attr('title');
+            if (!label) return;
+
+            var $tip = ensureFloatingTooltip();
+            $tip.text(label).addClass('is-visible').attr('aria-hidden', 'false');
+
+            var rect = el.getBoundingClientRect();
+            var tipRect = $tip[0].getBoundingClientRect();
+            var gap = 8;
+            var left = rect.left + (rect.width / 2) - (tipRect.width / 2);
+            var top = rect.bottom + gap;
+
+            // Mantém dentro da viewport.
+            left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
+
+            // Preferência: abaixo da toolbar, sobre o editor.
+            // Se faltar espaço, joga para cima do botão.
+            if (top + tipRect.height + 8 > window.innerHeight) {
+                top = rect.top - tipRect.height - gap;
+            }
+            top = Math.max(8, top);
+
+            $tip.css({ left: Math.round(left) + 'px', top: Math.round(top) + 'px' });
+        }
+
+        $doc.off('.wsp_floating_tooltip')
+            .on('mouseenter.wsp_floating_tooltip focusin.wsp_floating_tooltip', '#wsp-main-container [data-tooltip]', function () {
+                showFloatingTooltip(this);
+            })
+            .on('mouseleave.wsp_floating_tooltip focusout.wsp_floating_tooltip mousedown.wsp_floating_tooltip', '#wsp-main-container [data-tooltip]', function () {
+                hideFloatingTooltip();
+            });
+
+        jQuery(window).off('scroll.wsp_floating_tooltip resize.wsp_floating_tooltip')
+            .on('scroll.wsp_floating_tooltip resize.wsp_floating_tooltip', hideFloatingTooltip);
+
+        $doc.off('keydown.wsp_accessibility_polish').on('keydown.wsp_accessibility_polish', function (e) {
+            var isEsc = (e.key === 'Escape' || e.keyCode === 27);
+            if (!isEsc) return;
+
+            var $collab = jQuery('#wsp-collab-panels');
+            if ($collab.length && !$collab.hasClass('is-collapsed')) {
+                $collab.addClass('is-collapsed');
+                jQuery('#wsp-toggle-collab').removeClass('is-active').attr('aria-expanded', 'false');
+            }
+
+            jQuery('#wsp-notifications-panel').hide();
+        });
+
+        $doc.off('mousedown.wsp_drawer_outside').on('mousedown.wsp_drawer_outside', function (e) {
+            var $target = jQuery(e.target);
+
+            if (!$target.closest('#wsp-collab-panels, #wsp-toggle-collab').length) {
+                var $collab = jQuery('#wsp-collab-panels');
+                if ($collab.length && !$collab.hasClass('is-collapsed')) {
+                    $collab.addClass('is-collapsed');
+                    jQuery('#wsp-toggle-collab').removeClass('is-active').attr('aria-expanded', 'false');
+                }
+            }
+
+            if (!$target.closest('#wsp-notifications-panel, #wsp-notifications-toggle').length) {
+                jQuery('#wsp-notifications-panel').hide();
+            }
+        });
     },
 
     /**

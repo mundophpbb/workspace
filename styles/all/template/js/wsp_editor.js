@@ -399,7 +399,7 @@ WSP.projects = {
             $projects.each(function () {
                 var $p = $(this);
                 var pid = $p.data('project-id');
-                var pname = $p.find('.project-title-simple').text().trim();
+                var pname = String($p.attr('data-project-name') || $p.find('.wsp-project-name').text() || '').trim();
                 var isActive = (String(pid) === String(WSP.activeProjectId));
 
                 out.push(
@@ -440,7 +440,8 @@ WSP.projects = {
                 return self._notifyDenied();
             }
 
-            var oldName = $('.project-group.active-focus .project-title-simple').text().trim();
+            var $activeProject = $('.project-group.active-focus');
+            var oldName = String($activeProject.attr('data-project-name') || $activeProject.find('.wsp-project-name').text() || '').trim();
 
             WSP.ui.prompt(WSP.lang('WSP_RENAME_PROJECT_TITLE'), oldName, function (newName) {
                 if (!newName || newName === oldName) return;

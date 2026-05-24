@@ -4,6 +4,7 @@
  */
 WSP.tools = {
     _ui: null,
+    _lastValidationReport: null,
 
     _getUI: function () {
         if (this._ui) return this._ui;
@@ -27,7 +28,15 @@ WSP.tools = {
             $copyBbcode: jQuery('#copy-bbcode'),
             $saveFile: jQuery('#save-file'),
 
-            $refreshCacheBtn: jQuery('#refresh-phpbb-cache')
+            $refreshCacheBtn: jQuery('#refresh-phpbb-cache'),
+
+            $validatorModal: jQuery('#release-validator-modal'),
+            $validatorSummary: jQuery('#wsp-validator-summary'),
+            $validatorChecklist: jQuery('#wsp-validator-checklist'),
+            $validatorIssues: jQuery('#wsp-validator-issues'),
+            $validatorScope: jQuery('#wsp-validator-scope'),
+            $runValidatorBtn: jQuery('#run-release-validator'),
+            $applyFixesBtn: jQuery('#apply-release-fixes')
         };
 
         return this._ui;
@@ -112,6 +121,116 @@ WSP.tools = {
             cbErr && cbErr(null);
         }).always(function () {
             cbAlways && cbAlways();
+        });
+    },
+
+
+
+    renderReleaseValidation: function (r) {
+        var ui = this._getUI();
+        var summary = r.summary || {};
+        this._lastValidationReport = r;
+        function pill(cls, icon, text) {
+            return '<span class="wsp-validator-pill ' + cls + '"><i class="fa ' + icon + '"></i> ' + text + '</span>';
+        }
+        ui.$validatorSummary.html([
+            pill(summary.ready ? 'is-pass' : 'is-error', summary.ready ? 'fa-check' : 'fa-times', summary.ready ? WSP.lang('WSP_VALIDATOR_READY') : WSP.lang('WSP_VALIDATOR_NOT_READY')),
+            pill('is-error', 'fa-times-circle', selfEscape(summary.errors || 0) + ' ' + WSP.lang('WSP_VALIDATOR_ERRORS')),
+            pill('is-warning', 'fa-exclamation-triangle', selfEscape(summary.warnings || 0) + ' ' + WSP.lang('WSP_VALIDATOR_WARNINGS')),
+            pill('is-pass', 'fa-check-circle', selfEscape(summary.passed || 0) + '/' + selfEscape(summary.checks || 0) + ' ' + WSP.lang('WSP_VALIDATOR_CHECKS')),
+            pill('', 'fa-file-code-o', selfEscape(summary.files || 0) + ' ' + WSP.lang('WSP_VALIDATOR_FILES')),
+            pill((summary.fixable || 0) > 0 ? 'is-warning' : '', 'fa-magic', selfEscape(summary.fixable || 0) + ' ' + WSP.lang('WSP_VALIDATOR_FIXABLE'))
+        ].join(''));
+
+        var checklist = r.checklist || [];
+        if (!checklist.length) {
+            ui.$validatorChecklist.html('<p class="wsp-muted">' + WSP.lang('WSP_VALIDATOR_NO_CHECKS') + '</p>');
+        } else {
+            var ch = ['<h5>' + WSP.lang('WSP_RELEASE_CHECKLIST') + '</h5>'];
+            for (var i = 0; i < checklist.length; i++) {
+                var it = checklist[i] || {};
+                var st = it.status || 'warning';
+                var icon = st === 'pass' ? 'fa-check' : (st === 'error' ? 'fa-times' : 'fa-exclamation');
+                ch.push('<div class="wsp-validator-row is-' + this._escape(st) + '"><i class="fa ' + icon + '"></i><span class="wsp-severity">' + this._escape(st) + '</span><span>' + this._escape(it.label || '') + '<small>' + this._escape(it.detail || '') + '</small></span></div>');
+            }
+            ui.$validatorChecklist.html(ch.join(''));
+        }
+
+        var issues = r.issues || [];
+        if (!issues.length) {
+            ui.$validatorIssues.html('<p class="wsp-muted">' + WSP.lang('WSP_VALIDATOR_NO_ISSUES') + '</p>');
+        } else {
+            var ih = ['<h5>' + WSP.lang('WSP_VALIDATOR_ISSUES') + '</h5>'];
+            for (var j = 0; j < issues.length; j++) {
+                var issue = issues[j] || {};
+                var lineInfo = issue.line ? ' · ' + WSP.lang('WSP_VALIDATOR_LINE') + ' ' + this._escape(issue.line) : '';
+                var detail = '<small>' + this._escape(issue.category || '') + (issue.file ? ' · ' + this._escape(issue.file) : '') + lineInfo + (issue.rule ? ' · ' + this._escape(issue.rule) : '') + '</small>';
+                var action = issue.action ? '<em class="wsp-validator-action"><strong>' + this._escape(WSP.lang('WSP_VALIDATOR_ACTION')) + ':</strong> ' + this._escape(issue.action) + '</em>' : '';
+                var fixable = issue.fixable ? '<em class="wsp-validator-fixable"><i class="fa fa-magic"></i> ' + this._escape(WSP.lang('WSP_VALIDATOR_SAFE_FIX_AVAILABLE')) + '</em>' : '';
+                var excerpt = issue.excerpt ? '<code class="wsp-validator-excerpt"><strong>' + this._escape(WSP.lang('WSP_VALIDATOR_EXCERPT')) + ':</strong> ' + this._escape(issue.excerpt) + '</code>' : '';
+                var example = issue.example ? '<code class="wsp-validator-example">' + this._escape(issue.example) + '</code>' : '';
+                ih.push('<div class="wsp-validator-row is-' + this._escape(issue.severity || 'warning') + '"><i class="fa fa-dot-circle-o"></i><span class="wsp-severity">' + this._escape(issue.severity || '') + '</span><span>' + this._escape(issue.message || '') + detail + excerpt + action + fixable + example + '</span></div>');
+            }
+            ui.$validatorIssues.html(ih.join(''));
+        }
+
+        if (ui.$applyFixesBtn && ui.$applyFixesBtn.length) {
+            var canFix = !!(summary.fixable && summary.fixable > 0 && window.wspVars && window.wspVars.applyValidationFixesUrl);
+            ui.$applyFixesBtn.prop('disabled', !canFix);
+            ui.$applyFixesBtn.toggleClass('is-active', canFix);
+        }
+
+        function selfEscape(v) { return String(v == null ? '' : v); }
+    },
+
+    runReleaseValidation: function ($) {
+        var self = this;
+        var ui = self._getUI();
+        var projectId = WSP.activeProjectId || (window.wspVars && window.wspVars.activeProjectId) || 0;
+        if (!projectId) return WSP.ui.notify(WSP.lang('WSP_TOOLS_SEARCH_NEED_PROJECT'), 'warning');
+        if (!window.wspVars || !window.wspVars.validateReleaseUrl) return WSP.ui.notify(WSP.lang('WSP_TOOLS_SEARCH_INTERFACE_ERROR'), 'error');
+
+        ui.$validatorModal.fadeIn(200);
+        ui.$validatorSummary.html('<span class="wsp-validator-pill"><i class="fa fa-spinner fa-spin"></i> ' + WSP.lang('WSP_VALIDATOR_RUNNING') + '</span>');
+        ui.$validatorChecklist.empty();
+        ui.$validatorIssues.empty();
+        ui.$runValidatorBtn.prop('disabled', true);
+        if (ui.$applyFixesBtn && ui.$applyFixesBtn.length) ui.$applyFixesBtn.prop('disabled', true);
+
+        var scope = (ui.$validatorScope && ui.$validatorScope.length) ? ui.$validatorScope.val() : 'normal';
+        self._postJson($, window.wspVars.validateReleaseUrl, { project_id: projectId, scope: scope }, function (r) {
+            self.renderReleaseValidation(r);
+            if (r.summary && r.summary.ready) WSP.ui.notify(WSP.lang('WSP_VALIDATOR_READY'), 'success');
+            else WSP.ui.notify(WSP.lang('WSP_VALIDATOR_NOT_READY'), 'warning');
+        }, function (r) {
+            WSP.ui.notify((r && r.error) ? r.error : WSP.lang('WSP_ERROR_CRITICAL'), 'error');
+        }, function () {
+            ui.$runValidatorBtn.prop('disabled', false);
+        });
+    },
+    applyValidationFixes: function ($) {
+        var self = this;
+        var ui = self._getUI();
+        var projectId = WSP.activeProjectId || (window.wspVars && window.wspVars.activeProjectId) || 0;
+        if (!projectId) return WSP.ui.notify(WSP.lang('WSP_TOOLS_SEARCH_NEED_PROJECT'), 'warning');
+        if (!window.wspVars || !window.wspVars.applyValidationFixesUrl) return WSP.ui.notify(WSP.lang('WSP_TOOLS_SEARCH_INTERFACE_ERROR'), 'error');
+        if (!self._canWrite()) return self._notifyLocked();
+        if (!self._confirmLoseChanges()) return;
+
+        WSP.ui.confirm(WSP.lang('WSP_VALIDATOR_APPLY_SAFE_FIXES_CONFIRM'), function () {
+            ui.$applyFixesBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> ' + WSP.lang('WSP_PROCESSING'));
+            var scope = (ui.$validatorScope && ui.$validatorScope.length) ? ui.$validatorScope.val() : 'normal';
+            self._postJson($, window.wspVars.applyValidationFixesUrl, { project_id: projectId, scope: scope }, function (r) {
+                var applied = r.applied || 0;
+                WSP.ui.notify(WSP.lang('WSP_VALIDATOR_FIXES_APPLIED', { '%d': applied }), applied > 0 ? 'success' : 'info');
+                if (r.report) self.renderReleaseValidation(r.report);
+                if (typeof WSP.ui.seamlessRefresh === 'function') WSP.ui.seamlessRefresh();
+                if (WSP.activeFileId) jQuery('.active-file .load-file').trigger('click');
+            }, function (r) {
+                WSP.ui.notify((r && r.error) ? r.error : WSP.lang('WSP_ERROR_CRITICAL'), 'error');
+            }, function () {
+                ui.$applyFixesBtn.html('<i class="fa fa-magic"></i> ' + WSP.lang('WSP_VALIDATOR_APPLY_SAFE_FIXES'));
+            });
         });
     },
 
@@ -261,6 +380,17 @@ WSP.tools = {
             });
         });
 
+        // 3) VALIDADOR phpBB / CHECKLIST
+        $body.on('click.wsp_tools', '#validate-release-project, #run-release-validator', function (e) {
+            e.preventDefault();
+            self.runReleaseValidation($);
+        });
+
+        $body.on('click.wsp_tools', '#apply-release-fixes', function (e) {
+            e.preventDefault();
+            self.applyValidationFixes($);
+        });
+
         // 3) CACHE phpBB
         $body.on('click.wsp_tools', '#refresh-phpbb-cache', function (e) {
             e.preventDefault();
@@ -288,6 +418,7 @@ WSP.tools = {
             if (isEsc) {
                 ui.$searchModal.fadeOut(150);
                 ui.$diffModal.fadeOut(150);
+                ui.$validatorModal.fadeOut(150);
             }
         });
     },
