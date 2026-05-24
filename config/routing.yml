@@ -81,6 +81,14 @@ mundophpbb_workspace_download:
         project_id: '\d+'
     methods: [GET]
 
+# Exportacao colaborativa com relatorios de revisao/equipe/atividade
+mundophpbb_workspace_export_collab:
+    path: /workspace/export_collab/{project_id}
+    defaults: { _controller: mundophpbb.workspace.controller.project:export_collaborative_package }
+    requirements:
+        project_id: '\d+'
+    methods: [GET]
+
 # ----------------------------------------------------------
 # FERRAMENTAS (TOOL CONTROLLER)
 # ----------------------------------------------------------
@@ -114,6 +122,21 @@ mundophpbb_workspace_refresh_cache:
     defaults: { _controller: mundophpbb.workspace.controller.tool:refresh_cache }
     methods: [POST]
 
+
+# ----------------------------------------------------------
+# VALIDADOR phpBB / CHECKLIST DE RELEASE
+# ----------------------------------------------------------
+mundophpbb_workspace_validate_release:
+    path: /workspace/validate_release
+    defaults: { _controller: mundophpbb.workspace.controller.tool:validate_release }
+    methods: [POST]
+
+# Aplica apenas correcoes automaticas consideradas seguras pelo validador
+mundophpbb_workspace_apply_validation_fixes:
+    path: /workspace/validation_fix
+    defaults: { _controller: mundophpbb.workspace.controller.tool:apply_validation_fixes }
+    methods: [POST]
+
 # ----------------------------------------------------------
 # LOCK DO PROJETO (trancar/destrancar)
 # Ativado agora (requer métodos no Project Controller).
@@ -126,4 +149,152 @@ mundophpbb_workspace_lock_project:
 mundophpbb_workspace_unlock_project:
     path: /workspace/unlock_project
     defaults: { _controller: mundophpbb.workspace.controller.project:unlock_project }
+    methods: [POST]
+# ----------------------------------------------------------
+# COLABORACAO (MEMBROS + ATIVIDADE)
+# ----------------------------------------------------------
+mundophpbb_workspace_members:
+    path: /workspace/members
+    defaults: { _controller: mundophpbb.workspace.controller.project:list_members }
+    methods: [POST]
+
+mundophpbb_workspace_add_member:
+    path: /workspace/member/add
+    defaults: { _controller: mundophpbb.workspace.controller.project:add_member }
+    methods: [POST]
+
+mundophpbb_workspace_update_member:
+    path: /workspace/member/update
+    defaults: { _controller: mundophpbb.workspace.controller.project:update_member }
+    methods: [POST]
+
+mundophpbb_workspace_remove_member:
+    path: /workspace/member/remove
+    defaults: { _controller: mundophpbb.workspace.controller.project:remove_member }
+    methods: [POST]
+
+mundophpbb_workspace_activity:
+    path: /workspace/activity
+    defaults: { _controller: mundophpbb.workspace.controller.project:list_activity }
+    methods: [POST]
+
+# Modo de colaboração e solicitação por MP
+mundophpbb_workspace_collaboration_mode:
+    path: /workspace/collaboration_mode
+    defaults: { _controller: mundophpbb.workspace.controller.project:set_collaboration_mode }
+    methods: [POST]
+
+mundophpbb_workspace_request_collaboration:
+    path: /workspace/request_collaboration
+    defaults: { _controller: mundophpbb.workspace.controller.project:request_collaboration }
+    methods: [POST]
+
+# ----------------------------------------------------------
+# REVISAO POR ARQUIVO (COMENTARIOS)
+# ----------------------------------------------------------
+mundophpbb_workspace_comments:
+    path: /workspace/comments
+    defaults: { _controller: mundophpbb.workspace.controller.file:list_comments }
+    methods: [POST]
+
+mundophpbb_workspace_add_comment:
+    path: /workspace/comment/add
+    defaults: { _controller: mundophpbb.workspace.controller.file:add_comment }
+    methods: [POST]
+
+mundophpbb_workspace_resolve_comment:
+    path: /workspace/comment/resolve
+    defaults: { _controller: mundophpbb.workspace.controller.file:resolve_comment }
+    methods: [POST]
+
+mundophpbb_workspace_delete_comment:
+    path: /workspace/comment/delete
+    defaults: { _controller: mundophpbb.workspace.controller.file:delete_comment }
+    methods: [POST]
+
+# ----------------------------------------------------------
+# FLUXO DE REVISAO/APROVACAO POR ARQUIVO
+# ----------------------------------------------------------
+mundophpbb_workspace_file_review:
+    path: /workspace/file_review
+    defaults: { _controller: mundophpbb.workspace.controller.file:get_file_review }
+    methods: [POST]
+
+mundophpbb_workspace_request_file_review:
+    path: /workspace/file_review/request
+    defaults: { _controller: mundophpbb.workspace.controller.file:request_file_review }
+    methods: [POST]
+
+mundophpbb_workspace_set_file_review:
+    path: /workspace/file_review/set
+    defaults: { _controller: mundophpbb.workspace.controller.file:set_file_review }
+    methods: [POST]
+
+
+
+# ----------------------------------------------------------
+# HISTORICO DE VERSOES POR ARQUIVO
+# ----------------------------------------------------------
+mundophpbb_workspace_file_versions:
+    path: /workspace/file_versions
+    defaults: { _controller: mundophpbb.workspace.controller.file:list_file_versions }
+    methods: [POST]
+
+mundophpbb_workspace_file_version_view:
+    path: /workspace/file_version/view
+    defaults: { _controller: mundophpbb.workspace.controller.file:view_file_version }
+    methods: [POST]
+
+mundophpbb_workspace_file_version_restore:
+    path: /workspace/file_version/restore
+    defaults: { _controller: mundophpbb.workspace.controller.file:restore_file_version }
+    methods: [POST]
+
+mundophpbb_workspace_file_lock:
+    path: /workspace/file_lock
+    defaults: { _controller: mundophpbb.workspace.controller.file:get_file_lock }
+
+mundophpbb_workspace_lock_file:
+    path: /workspace/file_lock/set
+    defaults: { _controller: mundophpbb.workspace.controller.file:lock_file }
+
+mundophpbb_workspace_unlock_file:
+    path: /workspace/file_lock/release
+    defaults: { _controller: mundophpbb.workspace.controller.file:unlock_file }
+
+
+# ----------------------------------------------------------
+# NOTIFICACOES COLABORATIVAS
+# ----------------------------------------------------------
+mundophpbb_workspace_notifications:
+    path: /workspace/notifications
+    defaults: { _controller: mundophpbb.workspace.controller.project:list_notifications }
+    methods: [POST]
+
+mundophpbb_workspace_notifications_read:
+    path: /workspace/notifications/read
+    defaults: { _controller: mundophpbb.workspace.controller.project:mark_notifications_read }
+    methods: [POST]
+
+# ----------------------------------------------------------
+# QUADRO DE TAREFAS COLABORATIVAS
+# ----------------------------------------------------------
+mundophpbb_workspace_tasks:
+    path: /workspace/tasks
+    defaults: { _controller: mundophpbb.workspace.controller.project:list_tasks }
+    methods: [POST]
+
+mundophpbb_workspace_task_add:
+    path: /workspace/task/add
+    defaults: { _controller: mundophpbb.workspace.controller.project:add_task }
+    methods: [POST]
+
+mundophpbb_workspace_task_update:
+    path: /workspace/task/update
+    defaults: { _controller: mundophpbb.workspace.controller.project:update_task }
+    methods: [POST]
+
+mundophpbb_workspace_task_delete:
+    path: /workspace/task/delete
+    defaults: { _controller: mundophpbb.workspace.controller.project:delete_task }
     methods: [POST]

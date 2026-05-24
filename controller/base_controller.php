@@ -437,37 +437,30 @@ abstract class base_controller
         }
 
         // =========================
-        // VIEW/DOWNLOAD: agora pode ser “público destrancado” via u_workspace_view
+        // VIEW/DOWNLOAD: projetos novos/importados são privados por padrão.
+        // Não-membro só descobre/abre quando o dono ativar pedidos por MP.
         // =========================
         if ($capability === 'view')
         {
-            // membro/dono sempre pode ver se destrancado (ou admin)
             if ($role !== '')
             {
                 return ['ok' => true, 'error' => ''];
             }
 
-            // não-membro: precisa da ACL u_workspace_view
-            return (bool) $this->auth->acl_get('u_workspace_view')
+            $mode = 'private';
+            if ($this->project_repo && method_exists($this->project_repo, 'get_collaboration_mode'))
+            {
+                $mode = (string) $this->project_repo->get_collaboration_mode($project_id);
+            }
+
+            return ($mode === 'pm_request' && (bool) $this->auth->acl_get('u_workspace_view'))
                 ? ['ok' => true, 'error' => '']
                 : ['ok' => false, 'error' => $this->user->lang('WSP_ERR_PERMISSION')];
         }
 
         if ($capability === 'download')
         {
-            // exige poder ver + ACL download
-            $view_ok = false;
-
-            if ($role !== '')
-            {
-                $view_ok = true;
-            }
-            else
-            {
-                $view_ok = (bool) $this->auth->acl_get('u_workspace_view');
-            }
-
-            if (!$view_ok)
+            if ($role === '' && !$is_admin)
             {
                 return ['ok' => false, 'error' => $this->user->lang('WSP_ERR_PERMISSION')];
             }
@@ -581,4 +574,49 @@ abstract class base_controller
 
         return ['ok' => true, 'error' => '', 'project_id' => $project_id];
     }
+
+    /**
+     * Helper seguro para criar notificacoes sem quebrar instalacoes antigas.
+     */
+    protected function notify_project_members($project_id, $event, $object_type = '', $object_path = '', $message_key = '', array $metadata = [], $include_actor = false)
+    {
+        if (!isset($this->project_repo) || !method_exists($this->project_repo, 'notify_project_members'))
+        {
+            return 0;
+        }
+
+        return $this->project_repo->notify_project_members(
+            (int) $project_id,
+            (int) ($this->user->data['user_id'] ?? 0),
+            (string) $event,
+            (string) $object_type,
+            (string) $object_path,
+            (string) $message_key,
+            $metadata,
+            (bool) $include_actor
+        );
+    }
+
+    /**
+     * Helper seguro para notificar um usuario especifico.
+     */
+    protected function notify_user($project_id, $user_id, $event, $object_type = '', $object_path = '', $message_key = '', array $metadata = [])
+    {
+        if (!isset($this->project_repo) || !method_exists($this->project_repo, 'notify_user'))
+        {
+            return 0;
+        }
+
+        return $this->project_repo->notify_user(
+            (int) $project_id,
+            (int) $user_id,
+            (int) ($this->user->data['user_id'] ?? 0),
+            (string) $event,
+            (string) $object_type,
+            (string) $object_path,
+            (string) $message_key,
+            $metadata
+        );
+    }
+
 }

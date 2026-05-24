@@ -24,6 +24,7 @@ class v100 extends \phpbb\db\migration\migration
                         'project_time'   => ['TIMESTAMP', 0],
                         'user_id'        => ['UINT', 0],
                         'project_locked' => ['BOOL', 0],
+                        'collaboration_mode' => ['VCHAR:32', 'private'],
                         'locked_by'      => ['UINT', 0],
                         'locked_time'    => ['TIMESTAMP', 0],
                     ],

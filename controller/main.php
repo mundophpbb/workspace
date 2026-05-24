@@ -124,7 +124,20 @@ class main extends base_controller
         $this->assign_assets_and_routes($active_p_id, $active_project_lock);
 
         // 7) Lista projetos do usuário (e/ou destrancados, se tiver u_workspace_view)
-        $projects = $this->fetch_user_projects((int) ($this->user->data['user_id'] ?? 0));
+        $current_user_id = (int) ($this->user->data['user_id'] ?? 0);
+        $projects = $this->fetch_user_projects($current_user_id);
+        $can_manage_all_for_listing = isset($this->permission_service) && method_exists($this->permission_service, 'can_manage_all')
+            ? (bool) $this->permission_service->can_manage_all()
+            : (bool) $this->auth->acl_get('u_workspace_manage_all');
+
+        $active_project_summary = [
+            'ACTIVE_PROJECT_NAME'         => '',
+            'ACTIVE_PROJECT_ROLE'         => '',
+            'ACTIVE_PROJECT_MEMBER_COUNT' => 0,
+            'ACTIVE_PROJECT_CAN_MANAGE'    => 0,
+            'ACTIVE_PROJECT_COLLAB_MODE'    => 'private',
+            'ACTIVE_PROJECT_IS_MEMBER'       => 0,
+        ];
 
         foreach ($projects as $row)
         {
@@ -166,6 +179,21 @@ class main extends base_controller
                 $can_download = !empty($tmp['ok']);
             }
 
+            $project_role = $this->resolve_project_role($row, $project_id, $current_user_id, $can_manage_all_for_listing);
+            $member_count = max(1, (int) ($row['member_count'] ?? 1));
+
+            if ($is_active)
+            {
+                $active_project_summary = [
+                    'ACTIVE_PROJECT_NAME'         => (string) $row['project_name'],
+                    'ACTIVE_PROJECT_ROLE'         => (string) $project_role,
+                    'ACTIVE_PROJECT_MEMBER_COUNT' => (int) $member_count,
+                    'ACTIVE_PROJECT_CAN_MANAGE'    => !empty($this->assert_project_access($project_id, 'manage')['ok']) ? 1 : 0,
+                    'ACTIVE_PROJECT_COLLAB_MODE'    => (string) ($row['collaboration_mode'] ?? 'private'),
+                    'ACTIVE_PROJECT_IS_MEMBER'       => (((int) ($row['user_id'] ?? 0) === $current_user_id) || ((isset($this->project_repo) && method_exists($this->project_repo, 'get_user_role')) ? ((string) $this->project_repo->get_user_role($project_id, $current_user_id) !== '') : false) || $can_manage_all_for_listing) ? 1 : 0,
+                ];
+            }
+
             $u_download = $can_download
                 ? $this->normalize_route_url($this->helper->route('mundophpbb_workspace_download', ['project_id' => $project_id]))
                 : '';
@@ -182,6 +210,9 @@ class main extends base_controller
                 // ✅ novos flags
                 'CAN_OPEN'     => $can_open ? 1 : 0,
                 'CAN_DOWNLOAD' => $can_download ? 1 : 0,
+                'ROLE'         => $project_role,
+                'MEMBER_COUNT' => $member_count,
+                'COLLAB_MODE'  => (string) ($row['collaboration_mode'] ?? 'private'),
 
                 'U_DOWNLOAD'  => $u_download,
             ]);
@@ -206,6 +237,65 @@ class main extends base_controller
                         'F_NAME' => basename($f_row['file_name']),
                         'F_PATH' => $f_row['file_name'],
                         'F_TYPE' => strtolower($f_row['file_type']),
+                    ]);
+                }
+            }
+        }
+
+        $this->template->assign_vars($active_project_summary);
+
+        // 7.1) Painel colaborativo do projeto ativo: membros + atividade recente
+        $this->template->destroy_block_vars('project_members');
+        $this->template->destroy_block_vars('project_activity');
+        $this->template->destroy_block_vars('project_tasks');
+
+        if ($active_p_id > 0 && isset($this->project_repo))
+        {
+            if (method_exists($this->project_repo, 'get_project_members'))
+            {
+                foreach ((array) $this->project_repo->get_project_members($active_p_id) as $member)
+                {
+                    $role = (string) ($member['role'] ?? 'viewer');
+                    $this->template->assign_block_vars('project_members', [
+                        'USER_ID'     => (int) ($member['user_id'] ?? 0),
+                        'USERNAME'    => (string) ($member['username'] ?? ''),
+                        'USER_COLOUR' => (string) ($member['user_colour'] ?? ''),
+                        'ROLE'        => $role,
+                        'IS_OWNER'    => !empty($member['is_owner']) ? 1 : 0,
+                    ]);
+                }
+            }
+
+            if (method_exists($this->project_repo, 'get_recent_activity'))
+            {
+                foreach ((array) $this->project_repo->get_recent_activity($active_p_id, 10) as $activity)
+                {
+                    $this->template->assign_block_vars('project_activity', [
+                        'ID'          => (int) ($activity['activity_id'] ?? 0),
+                        'ACTION'      => (string) ($activity['action'] ?? ''),
+                        'OBJECT_TYPE' => (string) ($activity['object_type'] ?? ''),
+                        'OBJECT_PATH' => (string) ($activity['object_path'] ?? ''),
+                        'USERNAME'    => (string) ($activity['username'] ?? ''),
+                        'USER_COLOUR' => (string) ($activity['user_colour'] ?? ''),
+                        'TIME'        => (int) ($activity['created_time'] ?? 0),
+                    ]);
+                }
+            }
+
+            if (method_exists($this->project_repo, 'get_project_tasks'))
+            {
+                foreach ((array) $this->project_repo->get_project_tasks($active_p_id, 30) as $task)
+                {
+                    $this->template->assign_block_vars('project_tasks', [
+                        'TASK_ID' => (int) ($task['task_id'] ?? 0),
+                        'TITLE' => (string) ($task['title'] ?? ''),
+                        'DESCRIPTION' => (string) ($task['description'] ?? ''),
+                        'STATUS' => (string) ($task['status'] ?? 'todo'),
+                        'PRIORITY' => (string) ($task['priority'] ?? 'normal'),
+                        'ASSIGNED_TO' => (int) ($task['assigned_to'] ?? 0),
+                        'ASSIGNED_USERNAME' => (string) ($task['assigned_username'] ?? ''),
+                        'FILE_ID' => (int) ($task['file_id'] ?? 0),
+                        'FILE_NAME' => (string) ($task['file_name'] ?? ''),
                     ]);
                 }
             }
@@ -400,9 +490,39 @@ class main extends base_controller
             'searchUrl'        => $route('mundophpbb_workspace_search', []),
             'replaceUrl'       => $route('mundophpbb_workspace_replace', []),
             'refreshCacheUrl'  => $route('mundophpbb_workspace_refresh_cache', []),
+            'validateReleaseUrl' => $route('mundophpbb_workspace_validate_release', []),
+            'applyValidationFixesUrl' => $route('mundophpbb_workspace_apply_validation_fixes', []),
             'downloadUrl'      => $route('mundophpbb_workspace_download', ['project_id' => 0]),
+            'exportCollabUrl'  => $route('mundophpbb_workspace_export_collab', ['project_id' => 0]),
             'lockProjectUrl'   => $route('mundophpbb_workspace_lock_project', []),
             'unlockProjectUrl' => $route('mundophpbb_workspace_unlock_project', []),
+            'membersUrl'       => $route('mundophpbb_workspace_members', []),
+            'addMemberUrl'     => $route('mundophpbb_workspace_add_member', []),
+            'updateMemberUrl'  => $route('mundophpbb_workspace_update_member', []),
+            'removeMemberUrl'  => $route('mundophpbb_workspace_remove_member', []),
+            'collaborationModeUrl' => $route('mundophpbb_workspace_collaboration_mode', []),
+            'requestCollaborationUrl' => $route('mundophpbb_workspace_request_collaboration', []),
+            'activeCollaborationMode' => 'private',
+            'activityUrl'      => $route('mundophpbb_workspace_activity', []),
+            'commentsUrl'      => $route('mundophpbb_workspace_comments', []),
+            'addCommentUrl'    => $route('mundophpbb_workspace_add_comment', []),
+            'resolveCommentUrl'=> $route('mundophpbb_workspace_resolve_comment', []),
+            'deleteCommentUrl' => $route('mundophpbb_workspace_delete_comment', []),
+            'fileReviewUrl'    => $route('mundophpbb_workspace_file_review', []),
+            'requestReviewUrl' => $route('mundophpbb_workspace_request_file_review', []),
+            'setReviewUrl'     => $route('mundophpbb_workspace_set_file_review', []),
+            'fileVersionsUrl' => $route('mundophpbb_workspace_file_versions', []),
+            'fileVersionViewUrl' => $route('mundophpbb_workspace_file_version_view', []),
+            'fileVersionRestoreUrl' => $route('mundophpbb_workspace_file_version_restore', []),
+            'fileLockUrl' => $route('mundophpbb_workspace_file_lock', []),
+            'lockFileUrl' => $route('mundophpbb_workspace_lock_file', []),
+            'unlockFileUrl' => $route('mundophpbb_workspace_unlock_file', []),
+            'notificationsUrl' => $route('mundophpbb_workspace_notifications', []),
+            'notificationsReadUrl' => $route('mundophpbb_workspace_notifications_read', []),
+            'tasksUrl' => $route('mundophpbb_workspace_tasks', []),
+            'addTaskUrl' => $route('mundophpbb_workspace_task_add', []),
+            'updateTaskUrl' => $route('mundophpbb_workspace_task_update', []),
+            'deleteTaskUrl' => $route('mundophpbb_workspace_task_delete', []),
 
             // Compat legado
             'WSP_CAN_MANAGE_ALL'     => $can_manage_all ? 1 : 0,
@@ -410,6 +530,12 @@ class main extends base_controller
             'WSP_ACTIVE_LOCKED_BY'   => (int) ($active_project_lock['locked_by'] ?? 0),
             'WSP_ACTIVE_LOCKED_TIME' => (int) ($active_project_lock['locked_time'] ?? 0),
         ];
+
+        $wsp_unread_notifications = (isset($this->project_repo) && method_exists($this->project_repo, 'get_unread_notification_count'))
+            ? (int) $this->project_repo->get_unread_notification_count((int) ($this->user->data['user_id'] ?? 0))
+            : 0;
+
+        $wsp_vars['unreadNotifications'] = $wsp_unread_notifications;
 
         // JSON seguro pra embutir no <script>
         $json_flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
@@ -432,6 +558,17 @@ class main extends base_controller
             'WSP_ACTIVE_LOCKED_BY'    => (int) ($active_project_lock['locked_by'] ?? 0),
             'WSP_ACTIVE_LOCKED_TIME'  => (int) ($active_project_lock['locked_time'] ?? 0),
             'WSP_CAN_MANAGE_ALL'      => $can_manage_all ? 1 : 0,
+            'WSP_CAN_PURGE_CACHE'  => (int) $can_purge_cache,
+            'WSP_CAN_LOCK'         => (int) $active_can_lock,
+            'ACTIVE_PROJECT_NAME'     => '',
+            'ACTIVE_PROJECT_ROLE'     => '',
+            'ACTIVE_PROJECT_MEMBER_COUNT' => 0,
+            'ACTIVE_PROJECT_CAN_MANAGE' => 0,
+            'ACTIVE_PROJECT_COLLAB_MODE' => 'private',
+            'ACTIVE_PROJECT_IS_MEMBER' => 0,
+            'ACTIVE_CAN_MANAGE'         => (int) $active_can_manage,
+            'ACTIVE_CAN_EDIT'           => (int) $active_can_edit,
+            'WSP_UNREAD_NOTIFICATIONS'  => (int) $wsp_unread_notifications,
 
             // SSOT único pro frontend
             'WSP_VARS_JSON' => json_encode($wsp_vars, $json_flags),
@@ -456,9 +593,13 @@ class main extends base_controller
 
         if ($can_manage_all)
         {
-            $sql = 'SELECT project_id, project_name, project_locked, locked_by, locked_time
-                    FROM ' . $this->table_prefix . "workspace_projects
-                    ORDER BY project_name ASC";
+            $sql = 'SELECT p.project_id, p.project_name, p.project_locked, p.locked_by, p.locked_time, p.user_id, p.collaboration_mode,
+                           (1 + (SELECT COUNT(*)
+                                 FROM ' . $this->table_prefix . 'workspace_projects_users pu2
+                                 WHERE pu2.project_id = p.project_id
+                                   AND pu2.user_id <> p.user_id)) AS member_count
+                    FROM ' . $this->table_prefix . "workspace_projects p
+                    ORDER BY p.project_name ASC";
         }
         else
         {
@@ -470,20 +611,28 @@ class main extends base_controller
                 // - todos destrancados (p.project_locked = 0)
                 // - OU projetos do usuário (p.user_id)
                 // - OU projetos em que ele é membro (pu.user_id)
-                $sql = 'SELECT DISTINCT p.project_id, p.project_name, p.project_locked, p.locked_by, p.locked_time
+                $sql = 'SELECT DISTINCT p.project_id, p.project_name, p.project_locked, p.locked_by, p.locked_time, p.user_id, p.collaboration_mode,
+                               (1 + (SELECT COUNT(*)
+                                     FROM ' . $this->table_prefix . 'workspace_projects_users pu2
+                                     WHERE pu2.project_id = p.project_id
+                                       AND pu2.user_id <> p.user_id)) AS member_count
                         FROM ' . $this->table_prefix . 'workspace_projects p
                         LEFT JOIN ' . $this->table_prefix . "workspace_projects_users pu
                             ON pu.project_id = p.project_id
                             AND pu.user_id = $user_id
-                        WHERE p.project_locked = 0
-                           OR p.user_id = $user_id
+                        WHERE p.user_id = $user_id
                            OR pu.user_id = $user_id
+                           OR (p.project_locked = 0 AND p.collaboration_mode = 'pm_request')
                         ORDER BY p.project_name ASC";
             }
             else
             {
                 // modo antigo: só dono/membro
-                $sql = 'SELECT DISTINCT p.project_id, p.project_name, p.project_locked, p.locked_by, p.locked_time
+                $sql = 'SELECT DISTINCT p.project_id, p.project_name, p.project_locked, p.locked_by, p.locked_time, p.user_id, p.collaboration_mode,
+                               (1 + (SELECT COUNT(*)
+                                     FROM ' . $this->table_prefix . 'workspace_projects_users pu2
+                                     WHERE pu2.project_id = p.project_id
+                                       AND pu2.user_id <> p.user_id)) AS member_count
                         FROM ' . $this->table_prefix . 'workspace_projects p
                         LEFT JOIN ' . $this->table_prefix . "workspace_projects_users pu
                             ON pu.project_id = p.project_id
@@ -503,6 +652,42 @@ class main extends base_controller
         $this->db->sql_freeresult($result);
 
         return $rows;
+    }
+
+    /**
+     * Resolve a função colaborativa do usuário para apresentação visual.
+     */
+    protected function resolve_project_role(array $row, $project_id, $user_id, $can_manage_all = false)
+    {
+        if ($can_manage_all)
+        {
+            return 'owner';
+        }
+
+        $project_id = (int) $project_id;
+        $user_id = (int) $user_id;
+
+        if ($project_id <= 0 || $user_id <= 0)
+        {
+            return 'viewer';
+        }
+
+        if ((int) ($row['user_id'] ?? 0) === $user_id)
+        {
+            return 'owner';
+        }
+
+        $role = '';
+        if (isset($this->permission_service) && method_exists($this->permission_service, 'get_role'))
+        {
+            $role = (string) $this->permission_service->get_role($project_id, $user_id);
+        }
+        else if (isset($this->project_repo) && method_exists($this->project_repo, 'get_user_role'))
+        {
+            $role = (string) $this->project_repo->get_user_role($project_id, $user_id);
+        }
+
+        return $role !== '' ? $role : 'viewer';
     }
 
     /**

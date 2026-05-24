@@ -54,6 +54,211 @@ class tool_controller extends base_controller
         return str_replace(["\r\n", "\r"], "\n", (string) $content);
     }
 
+
+    /**
+     * Finds TODO/FIXME markers only inside comments.
+     *
+     * This avoids false positives such as string values, slugs, CSS classes or
+     * task statuses like "todo" in normal code.
+     *
+     * @param string $content
+     * @return array<int, array<string, mixed>>
+     */
+    private function validation_first_line_excerpt($content)
+    {
+        $content = (string) $content;
+        $line = preg_split('/\r\n|\r|\n/', $content, 2)[0];
+        $line = str_replace(["\t", "\0"], ['\t', ''], (string) $line);
+        if (trim($line) === '')
+        {
+            return '[espaço/quebra de linha antes de <?php]';
+        }
+        if (function_exists('mb_substr'))
+        {
+            return mb_substr($line, 0, 220, 'UTF-8');
+        }
+        return substr($line, 0, 220);
+    }
+
+    /**
+     * Returns content suitable for PHP opening tag validation.
+     *
+     * Some legacy/imported project rows may store the opening tag HTML-escaped
+     * as &lt;?php while the editor displays it decoded. For validation purposes,
+     * decode entities before checking the PHP opening tag so valid files are not
+     * reported as missing <?php.
+     */
+    private function validation_php_tag_probe_content($content)
+    {
+        $content = (string) $content;
+        $decoded = html_entity_decode($content, ENT_QUOTES, 'UTF-8');
+
+        // Use the decoded form only when it exposes a PHP opening tag. This
+        // avoids altering unrelated files for the validation pass.
+        if (strpos($decoded, '<?php') !== false)
+        {
+            return $decoded;
+        }
+
+        return $content;
+    }
+
+    private function find_todo_fixme_comments($content)
+    {
+        $content = $this->normalize_content((string) $content);
+        $lines = explode("\n", $content);
+        $matches = [];
+        $in_block_comment = false;
+        $in_html_comment = false;
+
+        foreach ($lines as $line_index => $line_text)
+        {
+            $line = (string) $line_text;
+            $length = strlen($line);
+            $i = 0;
+            $comment_segments = [];
+
+            while ($i < $length)
+            {
+                if ($in_block_comment)
+                {
+                    $end = strpos($line, '*/', $i);
+                    if ($end === false)
+                    {
+                        $comment_segments[] = substr($line, $i);
+                        $i = $length;
+                        continue;
+                    }
+
+                    $comment_segments[] = substr($line, $i, $end + 2 - $i);
+                    $i = $end + 2;
+                    $in_block_comment = false;
+                    continue;
+                }
+
+                if ($in_html_comment)
+                {
+                    $end = strpos($line, '-->', $i);
+                    if ($end === false)
+                    {
+                        $comment_segments[] = substr($line, $i);
+                        $i = $length;
+                        continue;
+                    }
+
+                    $comment_segments[] = substr($line, $i, $end + 3 - $i);
+                    $i = $end + 3;
+                    $in_html_comment = false;
+                    continue;
+                }
+
+                $char = $line[$i];
+
+                // Skip quoted strings so values like "todo" are not treated as release TODOs.
+                if ($char === "'" || $char === '"' || $char === '`')
+                {
+                    $quote = $char;
+                    $i++;
+                    while ($i < $length)
+                    {
+                        if ($line[$i] === '\\')
+                        {
+                            $i += 2;
+                            continue;
+                        }
+                        if ($line[$i] === $quote)
+                        {
+                            $i++;
+                            break;
+                        }
+                        $i++;
+                    }
+                    continue;
+                }
+
+                $next2 = ($i + 1 < $length) ? substr($line, $i, 2) : '';
+                $next4 = ($i + 3 < $length) ? substr($line, $i, 4) : '';
+
+                if ($next4 === '<!--')
+                {
+                    $end = strpos($line, '-->', $i + 4);
+                    if ($end === false)
+                    {
+                        $comment_segments[] = substr($line, $i);
+                        $in_html_comment = true;
+                        $i = $length;
+                    }
+                    else
+                    {
+                        $comment_segments[] = substr($line, $i, $end + 3 - $i);
+                        $i = $end + 3;
+                    }
+                    continue;
+                }
+
+                if ($next2 === '/*')
+                {
+                    $end = strpos($line, '*/', $i + 2);
+                    if ($end === false)
+                    {
+                        $comment_segments[] = substr($line, $i);
+                        $in_block_comment = true;
+                        $i = $length;
+                    }
+                    else
+                    {
+                        $comment_segments[] = substr($line, $i, $end + 2 - $i);
+                        $i = $end + 2;
+                    }
+                    continue;
+                }
+
+                if ($next2 === '//')
+                {
+                    $comment_segments[] = substr($line, $i);
+                    $i = $length;
+                    continue;
+                }
+
+                if ($char === '#')
+                {
+                    $comment_segments[] = substr($line, $i);
+                    $i = $length;
+                    continue;
+                }
+
+                $i++;
+            }
+
+            foreach ($comment_segments as $segment)
+            {
+                if (!preg_match('/(?:^|[^A-Za-z0-9_])(@?TODO|FIXME)\b/i', $segment, $todo_match))
+                {
+                    continue;
+                }
+
+                $excerpt = trim($line);
+                if (function_exists('mb_substr'))
+                {
+                    $excerpt = mb_substr($excerpt, 0, 220, 'UTF-8');
+                }
+                else
+                {
+                    $excerpt = substr($excerpt, 0, 220);
+                }
+
+                $token = strtoupper(ltrim((string) $todo_match[1], '@'));
+                $matches[] = [
+                    'line' => (int) $line_index + 1,
+                    'excerpt' => $excerpt,
+                    'token' => $token,
+                ];
+            }
+        }
+
+        return $matches;
+    }
+
     /**
      * Sanitiza nome exibido no BBCode [diff=...]
      */
@@ -502,4 +707,735 @@ class tool_controller extends base_controller
             $this->db->sql_build_array('INSERT', $file_ary)
         );
     }
+
+    /**
+     * Validador phpBB interno + checklist de release do projeto ativo.
+     * Faz checagens estáticas em arquivos armazenados no Workspace, sem executar código do projeto.
+     */
+    public function validate_release()
+    {
+        if ($r = $this->ensure_workspace_access()) { return $r; }
+
+        $project_id = (int) $this->request->variable('project_id', 0);
+        if ($project_id <= 0)
+        {
+            return $this->json_error('WSP_ERR_INVALID_DATA');
+        }
+
+        if ($r = $this->ensure_project_capability($project_id, 'view')) { return $r; }
+
+        $scope = $this->normalize_validation_scope($this->request->variable('scope', 'normal'));
+        $files = $this->get_project_files_for_validation($project_id);
+        $report = $this->build_phpbb_release_validation($files, $scope);
+
+        if (isset($this->project_repo) && method_exists($this->project_repo, 'log_activity'))
+        {
+            $this->project_repo->log_activity($project_id, (int) $this->user->data['user_id'], 'release_validated', 'project', 'phpBB release checklist', [
+                'errors' => (int) $report['summary']['errors'],
+                'warnings' => (int) $report['summary']['warnings'],
+                'passed' => (int) $report['summary']['passed'],
+                'scope' => (string) $report['summary']['scope'],
+            ]);
+        }
+
+        return $this->json_success($report);
+    }
+
+    private function get_project_files_for_validation($project_id)
+    {
+        $sql = 'SELECT file_name, file_content, file_type
+                FROM ' . $this->table_prefix . 'workspace_files
+                WHERE project_id = ' . (int) $project_id . '
+                ORDER BY file_name ASC';
+        $result = $this->db->sql_query($sql);
+        $files = [];
+        while ($row = $this->db->sql_fetchrow($result))
+        {
+            $name = str_replace('\\', '/', (string) $row['file_name']);
+            if ($name === '' || strtolower(basename($name)) === '.placeholder')
+            {
+                continue;
+            }
+            $files[$name] = (string) $row['file_content'];
+        }
+        $this->db->sql_freeresult($result);
+        return $files;
+    }
+
+    private function normalize_validation_scope($scope)
+    {
+        $scope = strtolower((string) $scope);
+        return in_array($scope, ['normal', 'full', 'phpbb_ext_db'], true) ? $scope : 'normal';
+    }
+
+    private function build_phpbb_release_validation(array $files, $scope = 'normal')
+    {
+        $scope = $this->normalize_validation_scope($scope);
+        $is_full_scope = ($scope === 'full');
+        $is_db_scope = ($scope === 'phpbb_ext_db');
+        $issues = [];
+        $checklist = [];
+
+        $add = function ($severity, $category, $message, $file = '', $action = '', $example = '', $rule = '', $line = 0, $excerpt = '') use (&$issues) {
+            $fixable_rules = ['php-closing-tag', 'php-open-tag-leading-whitespace', 'composer-type', 'composer-display-name', 'utf8-bom', 'line-ending-crlf', 'line-ending-cr'];
+            $issues[] = [
+                'severity' => (string) $severity,
+                'category' => (string) $category,
+                'message' => (string) $message,
+                'file' => (string) $file,
+                'action' => (string) $action,
+                'example' => (string) $example,
+                'rule' => (string) $rule,
+                'line' => (int) $line,
+                'excerpt' => (string) $excerpt,
+                'fixable' => in_array((string) $rule, $fixable_rules, true),
+            ];
+        };
+        $check = function ($key, $label, $status, $detail = '') use (&$checklist) {
+            $checklist[] = [
+                'key' => (string) $key,
+                'label' => (string) $label,
+                'status' => (string) $status,
+                'detail' => (string) $detail,
+            ];
+        };
+        $exists = function ($name) use ($files) {
+            return array_key_exists((string) $name, $files);
+        };
+        $contains_file = function ($pattern) use ($files) {
+            foreach ($files as $name => $content)
+            {
+                if (preg_match($pattern, $name)) { return true; }
+            }
+            return false;
+        };
+        $is_validation_vendor_area = function ($name) {
+            $name = strtolower(str_replace('\\', '/', (string) $name));
+            return (bool) preg_match('#^(vendor/|node_modules/|lib/diff(?:/|\.php$)|styles/[^/]+/template/ace/|styles/[^/]+/theme/vendor/|assets/vendor/)#', $name);
+        };
+        $is_scope_ignored_area = function ($name) use ($is_validation_vendor_area, $is_full_scope) {
+            return (!$is_full_scope && $is_validation_vendor_area($name));
+        };
+        $scope_label = ($scope === 'full') ? 'Validação completa' : (($scope === 'phpbb_ext_db') ? 'phpBB Extension DB' : 'Validação normal');
+        $check('validation_scope', 'Escopo da validação', 'pass', $scope_label);
+        $check('validation_languages', 'Linguagens validadas', 'pass', 'PHP, JavaScript, HTML/Twig e CSS. Arquivos de configuração phpBB essenciais continuam com verificações estruturais.');
+        $is_phpbb_include_area = function ($name) {
+            $name = strtolower(str_replace('\\', '/', (string) $name));
+            return (bool) preg_match('#^(language/|config/|adm/style/|styles/|docs?/|tests?/fixtures/)#', $name);
+        };
+        $is_extension_class_area = function ($name) {
+            $name = strtolower(str_replace('\\', '/', (string) $name));
+            return (bool) preg_match('#^(controller/|event/|service/|repository/|migrations/|acp/|cron/|notification/|auth/)#', $name);
+        };
+        $is_binary_asset = function ($name, $content) {
+            $name = strtolower(str_replace('\\', '/', (string) $name));
+            if (preg_match('#\.(png|jpe?g|gif|webp|ico|bmp|zip|tar|gz|bz2|7z|rar|pdf|woff2?|ttf|eot|otf|mp3|mp4|mov|avi|webm|ogg)$#', $name))
+            {
+                return true;
+            }
+            return (strpos((string) $content, "\0") !== false);
+        };
+        $is_supported_validation_source = function ($name) {
+            $name = strtolower(str_replace('\\', '/', (string) $name));
+
+            // Official validator scope: PHP, JavaScript, HTML/Twig templates and CSS.
+            // Other Ace-supported languages remain editable, but are intentionally not validated.
+            return (bool) preg_match('#\.(php|js|css|html|htm|twig)$#', $name);
+        };
+        $is_supported_config_file = function ($name) {
+            $name = strtolower(str_replace('\\', '/', (string) $name));
+
+            // Keep structural phpBB release checks for required configuration files,
+            // without treating every possible editor language as a validation target.
+            return ($name === 'composer.json' || preg_match('#^config/.+\.ya?ml$#', $name));
+        };
+        $should_validate_encoding = function ($name, $content) use ($is_binary_asset, $is_scope_ignored_area, $is_full_scope, $is_db_scope, $is_supported_validation_source, $is_supported_config_file) {
+            if ($is_binary_asset($name, $content) || $is_scope_ignored_area($name))
+            {
+                return false;
+            }
+            if (!$is_supported_validation_source($name) && !$is_supported_config_file($name))
+            {
+                return false;
+            }
+            // UTF-8 and UNIX line ending checks are most important for Extension DB/full audits.
+            return ($is_db_scope || $is_full_scope);
+        };
+
+        $expected_vendor = '';
+        $expected_extension = '';
+        $expected_namespace = '';
+        $composer = $exists('composer.json') ? $files['composer.json'] : '';
+        if ($composer !== '')
+        {
+            $json = json_decode($composer, true);
+            if (is_array($json))
+            {
+                $check('composer_json', 'composer.json válido', 'pass', 'JSON parseado com sucesso.');
+                if (empty($json['name']) || strpos((string) $json['name'], '/') === false)
+                {
+                    $add('error', 'composer.json', 'O campo "name" deve existir no formato vendor/extension.', 'composer.json', 'Defina um nome Composer canônico para a extensão.', '"name": "mundophpbb/workspace"', 'composer-name');
+                }
+                else
+                {
+                    $name_parts = explode('/', strtolower((string) $json['name']), 2);
+                    $expected_vendor = preg_replace('/[^a-z0-9_]/', '_', $name_parts[0]);
+                    $expected_extension = preg_replace('/[^a-z0-9_]/', '_', $name_parts[1]);
+                    $expected_namespace = $expected_vendor . '\\' . $expected_extension;
+                    $check('composer_namespace', 'Namespace base esperado', 'pass', $expected_namespace);
+                }
+                if (empty($json['type']) || (string) $json['type'] !== 'phpbb-extension')
+                {
+                    $add('warning', 'composer.json', 'Recomendado usar "type": "phpbb-extension".', 'composer.json', 'Ajuste o campo type para instalação correta como extensão phpBB.', '"type": "phpbb-extension"', 'composer-type');
+                }
+                if (empty($json['license']))
+                {
+                    $add($is_db_scope ? 'error' : 'warning', 'composer.json', 'Informe uma licença para distribuição.', 'composer.json', 'Inclua uma licença compatível com a distribuição pretendida.', '"license": "GPL-2.0-only"', 'composer-license');
+                }
+                if (empty($json['authors']))
+                {
+                    $add($is_db_scope ? 'error' : 'warning', 'composer.json', 'Informe authors para facilitar publicação/revisão.', 'composer.json', 'Inclua ao menos um autor com nome.', '"authors": [{"name": "Mundo phpBB"}]', 'composer-authors');
+                }
+                if (empty($json['extra']['display-name']))
+                {
+                    $add('warning', 'composer.json', 'Considere definir extra.display-name para exibição clara no ACP.', 'composer.json', 'Adicione um nome amigável em extra.display-name.', '"extra": {"display-name": "Workspace"}', 'composer-display-name');
+                }
+            }
+            else
+            {
+                $check('composer_json', 'composer.json válido', 'error', 'JSON inválido.');
+                $add('error', 'composer.json', 'composer.json não pôde ser interpretado como JSON válido.', 'composer.json', 'Corrija a sintaxe JSON antes de tentar instalar/publicar.', 'Use aspas duplas, vírgulas válidas e remova comentários.', 'composer-json');
+            }
+        }
+        else
+        {
+            $check('composer_json', 'composer.json presente', 'error', 'Arquivo obrigatório ausente.');
+            $add('error', 'Estrutura', 'composer.json não encontrado.', 'composer.json', 'Crie o composer.json na raiz da extensão.', '{
+  "name": "vendor/extension",
+  "type": "phpbb-extension"
+}', 'required-file');
+        }
+
+        if ($exists('ext.php'))
+        {
+            $check('ext_php', 'ext.php presente', 'pass', 'Classe principal da extensão encontrada.');
+            if (strpos($files['ext.php'], 'class ext') === false)
+            {
+                $add('warning', 'ext.php', 'ext.php foi encontrado, mas não contém claramente a classe ext.', 'ext.php', 'Confirme se o arquivo declara a classe principal ext.', 'class ext extends \phpbb\extension\base {}', 'ext-class');
+            }
+            if ($expected_namespace !== '' && strpos($files['ext.php'], 'namespace ' . $expected_namespace . ';') === false)
+            {
+                $add('error', 'Namespace', 'O namespace de ext.php não bate com o name do composer.json.', 'ext.php', 'Ajuste o namespace ou o composer.json para usarem o mesmo vendor/extension.', 'namespace ' . $expected_namespace . ';', 'namespace-match');
+            }
+        }
+        else
+        {
+            $check('ext_php', 'ext.php presente', 'error', 'Arquivo obrigatório ausente.');
+            $add('error', 'Estrutura', 'ext.php não encontrado.', 'ext.php', 'Crie a classe principal da extensão na raiz.', '<?php
+namespace vendor\extension;
+class ext extends \phpbb\extension\base {}', 'required-file');
+        }
+
+        foreach (['config/services.yml', 'config/routing.yml'] as $cfg)
+        {
+            if ($exists($cfg))
+            {
+                $check(str_replace(['/', '.'], '_', $cfg), $cfg . ' presente', 'pass', 'Arquivo encontrado.');
+                if (trim($files[$cfg]) === '')
+                {
+                    $add('warning', 'Configuração', $cfg . ' está vazio.', $cfg, 'Remova o arquivo vazio ou preencha com configuração válida.', '', 'empty-config');
+                }
+            }
+            else
+            {
+                $check(str_replace(['/', '.'], '_', $cfg), $cfg . ' presente', 'warning', 'Ausente; pode ser aceitável em extensões simples.');
+            }
+        }
+
+        $has_lang_en = $contains_file('#^language/en/.+\.php$#');
+        $has_lang_pt = $contains_file('#^language/pt_br/.+\.php$#');
+        $check('language_en', 'Idioma inglês', $has_lang_en ? 'pass' : 'warning', $has_lang_en ? 'Arquivos language/en encontrados.' : 'language/en não encontrado.');
+        $check('language_pt_br', 'Idioma pt_br', $has_lang_pt ? 'pass' : 'warning', $has_lang_pt ? 'Arquivos language/pt_br encontrados.' : 'language/pt_br não encontrado.');
+        if (!$has_lang_en) { $add($is_db_scope ? 'error' : 'warning', 'Idioma', 'Inclua language/en para publicação internacional.', 'language/en', 'Crie ao menos um arquivo de idioma em inglês.', 'language/en/common.php ou language/en/<nome>.php', 'language-en'); }
+        if (!$has_lang_pt) { $add('warning', 'Idioma', 'Inclua language/pt_br para a base local.', 'language/pt_br', 'Crie ao menos um arquivo de idioma em pt_br.', 'language/pt_br/common.php ou language/pt_br/<nome>.php', 'language-pt-br'); }
+
+        $has_migration = $contains_file('#^migrations/.+\.php$#');
+        $check('migrations', 'Migrations', $has_migration ? 'pass' : 'warning', $has_migration ? 'Migrations encontradas.' : 'Nenhuma migration encontrada.');
+        foreach ($files as $name => $content)
+        {
+            if (preg_match('#^migrations/.+\.php$#', $name))
+            {
+                if (strpos($content, 'extends') === false || strpos($content, 'migration') === false)
+                {
+                    $add('warning', 'Migration', 'Migration não parece extender a classe base de migration do phpBB.', $name, 'Confirme se a classe herda de \phpbb\db\migration\migration.', 'class v100 extends \phpbb\db\migration\migration', 'migration-base');
+                }
+            }
+            $is_vendor_area = $is_validation_vendor_area($name);
+            $is_ignored_by_scope = $is_scope_ignored_area($name);
+            $is_include_area = $is_phpbb_include_area($name);
+            $is_extension_area = $is_extension_class_area($name);
+
+            if ($should_validate_encoding($name, $content))
+            {
+                $encoding_severity = $is_db_scope ? 'error' : 'warning';
+                if (substr($content, 0, 3) === "\xEF\xBB\xBF")
+                {
+                    $add($encoding_severity, 'Codificação', 'Arquivo com BOM UTF-8; phpBB Extension DB exige UTF-8 sem BOM.', $name, 'Remova o BOM do início do arquivo e mantenha o conteúdo em UTF-8.', 'UTF-8 sem BOM', 'utf8-bom');
+                }
+                if (@preg_match('//u', $content) !== 1)
+                {
+                    $add($encoding_severity, 'Codificação', 'Arquivo não parece estar em UTF-8 válido.', $name, 'Converta o arquivo para UTF-8 sem BOM antes de publicar.', 'UTF-8 sem BOM', 'utf8-invalid');
+                }
+                if (strpos($content, "\r\n") !== false)
+                {
+                    $add($encoding_severity, 'Quebra de linha', 'Arquivo usa quebra de linha Windows/CRLF; phpBB Extension DB exige LF/UNIX.', $name, 'Converta as quebras de linha para LF/UNIX.', 'LF/UNIX (\n)', 'line-ending-crlf');
+                }
+                else if (preg_match('/\r(?!\n)/', $content))
+                {
+                    $add($encoding_severity, 'Quebra de linha', 'Arquivo usa quebra de linha CR; phpBB Extension DB exige LF/UNIX.', $name, 'Converta as quebras de linha para LF/UNIX.', 'LF/UNIX (\n)', 'line-ending-cr');
+                }
+            }
+
+            if (!$is_ignored_by_scope && preg_match('#\.php$#', $name))
+            {
+                $php_open_content = $this->validation_php_tag_probe_content($content);
+                if (substr($php_open_content, 0, 3) === "\xEF\xBB\xBF")
+                {
+                    $php_open_content = substr($php_open_content, 3);
+                }
+
+                if (strpos($php_open_content, '<?php') !== 0)
+                {
+                    $open_pos = strpos($php_open_content, '<?php');
+                    if ($open_pos === false)
+                    {
+                        $add(
+                            'error',
+                            'PHP',
+                            'Arquivo PHP não contém a abertura <?php.',
+                            $name,
+                            'Adicione <?php no início do arquivo PHP ou confirme se a extensão do arquivo está correta.',
+                            '<?php',
+                            'php-open-tag-missing',
+                            1,
+                            $this->validation_first_line_excerpt($php_open_content)
+                        );
+                    }
+                    else
+                    {
+                        $prefix = substr($php_open_content, 0, $open_pos);
+                        if ($prefix !== '' && preg_match('/^\s+$/', $prefix))
+                        {
+                            $add(
+                                'error',
+                                'PHP',
+                                'Arquivo PHP possui espaço ou quebra de linha antes de <?php.',
+                                $name,
+                                'Remova qualquer espaço, tabulação ou quebra de linha antes de <?php. Arquivos PHP da extensão devem iniciar diretamente com <?php.',
+                                '<?php',
+                                'php-open-tag-leading-whitespace',
+                                1,
+                                $this->validation_first_line_excerpt($php_open_content)
+                            );
+                        }
+                        else
+                        {
+                            $add(
+                                'error',
+                                'PHP',
+                                'Arquivo PHP possui texto antes de <?php.',
+                                $name,
+                                'Remova qualquer texto antes de <?php. Isso pode gerar saída antes dos headers, quebrar AJAX/JSON e causar falhas no phpBB.',
+                                '<?php',
+                                'php-open-tag-before-text',
+                                1,
+                                $this->validation_first_line_excerpt($php_open_content)
+                            );
+                        }
+                    }
+                }
+            }
+
+            if (!$is_ignored_by_scope && preg_match('#\.php$#', $name) && preg_match('/\?>\s*$/', $content))
+            {
+                $add('warning', 'PHP', 'Evite fechar arquivos PHP puros com ?> para reduzir risco de saída acidental.', $name, 'Remova o fechamento final ?> do arquivo PHP puro.', 'Remova apenas o ?> final, mantendo o conteúdo PHP.', 'php-closing-tag');
+            }
+            if (!$is_ignored_by_scope && ($is_full_scope || !$is_include_area) && preg_match('#\.php$#', $name) && strpos($content, 'namespace ') === false && basename($name) !== 'ext.php')
+            {
+                $class_like_content = preg_match('/\b(class|interface|trait)\s+[A-Za-z_][A-Za-z0-9_]*/', $content);
+
+                if ($is_extension_area || $class_like_content)
+                {
+                    $add('warning', 'PHP', 'Classe PHP própria sem namespace explícito; confirme se é intencional.', $name, 'Adicione namespace em classes da extensão. Arquivos de idioma/configuração e bibliotecas de terceiros empacotadas não precisam seguir o namespace da extensão.', $expected_namespace !== '' ? 'namespace ' . $expected_namespace . '\\...;' : 'namespace vendor\extension\...;', 'php-namespace');
+                }
+            }
+            if (!$is_ignored_by_scope && $is_supported_validation_source($name))
+            {
+                foreach ($this->find_todo_fixme_comments($content) as $todo_match)
+                {
+                    $line_number = (int) $todo_match['line'];
+                    $excerpt = (string) $todo_match['excerpt'];
+                    $token = (string) $todo_match['token'];
+
+                    $add(
+                        'warning',
+                        'Qualidade',
+                        'Encontrado ' . $token . ' em comentário antes do release.',
+                        $name,
+                        'Revise o comentário indicado. Se a pendência ainda existir, resolva antes do release ou transforme em tarefa do Workspace; se for apenas nota técnica, remova o marcador ' . $token . '.',
+                        'Linha ' . $line_number . ': ' . $excerpt,
+                        'todo-fixme',
+                        $line_number,
+                        $excerpt
+                    );
+                }
+            }
+        }
+
+        if ($exists('config/permissions.yml'))
+        {
+            $check('permissions_yml', 'permissions.yml', 'pass', 'Arquivo de permissões encontrado.');
+        }
+        else
+        {
+            $check('permissions_yml', 'permissions.yml', 'warning', 'Ausente; aceitável se a extensão não define ACLs.');
+        }
+
+        $has_controller = $contains_file('#^controller/.+\.php$#');
+        $has_event = $contains_file('#^event/.+\.php$#');
+        $check('entry_points', 'Controllers/listeners', ($has_controller || $has_event) ? 'pass' : 'warning', ($has_controller || $has_event) ? 'Pontos de entrada encontrados.' : 'Nenhum controller/listener encontrado.');
+
+        $has_template = $contains_file('#^styles/.+/template/.+\.(html|twig)$#');
+        $has_css = $contains_file('#^styles/.+/theme/.+\.(css|scss|less)$#');
+        $check('style_assets', 'Templates/estilos', ($has_template || $has_css) ? 'pass' : 'warning', ($has_template || $has_css) ? 'Assets de estilo encontrados.' : 'Nenhum asset visual encontrado.');
+
+        // Verificações cruzadas para tornar o checklist acionável.
+        if ($expected_namespace !== '')
+        {
+            foreach ($files as $name => $content)
+            {
+                if (preg_match('#^(controller|event|service|repository|migrations)/.+\.php$#', $name) && strpos($content, 'namespace ' . $expected_namespace . '\\') === false)
+                {
+                    $add('warning', 'Namespace', 'Arquivo PHP fora do namespace base esperado pelo composer.json.', $name, 'Padronize o namespace da classe para evitar falha de autoload.', 'namespace ' . $expected_namespace . '\\' . dirname($name) . ';', 'namespace-file');
+                }
+            }
+        }
+
+        if ($exists('config/services.yml'))
+        {
+            preg_match_all('/class:\s*([^\r\n]+)/', $files['config/services.yml'], $class_matches);
+            foreach ($class_matches[1] as $declared_class)
+            {
+                $declared_class = trim(str_replace(['\"', "'"], '', $declared_class));
+                if ($declared_class === '' || strpos($declared_class, '%') !== false) { continue; }
+                $class_path = str_replace('\\', '/', $declared_class) . '.php';
+                if ($expected_namespace !== '' && strpos($declared_class, $expected_namespace . '\\') === 0)
+                {
+                    $relative = substr($class_path, strlen(str_replace('\\', '/', $expected_namespace)) + 1);
+                    if ($relative !== '' && !array_key_exists($relative, $files))
+                    {
+                        $add('error', 'services.yml', 'Serviço declara classe que não foi encontrada no projeto.', 'config/services.yml', 'Corrija o caminho da classe no services.yml ou crie o arquivo correspondente.', $declared_class . ' => ' . $relative, 'service-class-file');
+                    }
+                }
+            }
+        }
+
+        if ($exists('config/routing.yml'))
+        {
+            preg_match_all('/_controller:\s*([^\r\n]+)/', $files['config/routing.yml'], $route_matches);
+            foreach ($route_matches[1] as $controller_ref)
+            {
+                $controller_ref = trim(str_replace(['\"', "'"], '', $controller_ref));
+                if ($controller_ref !== '' && strpos($controller_ref, '::') === false && strpos($controller_ref, ':') === false)
+                {
+                    $add('warning', 'routing.yml', 'Referência de controller em formato incomum.', 'config/routing.yml', 'Use service_id:method ou Classe::metodo conforme o padrão usado no projeto.', '_controller: mundophpbb.workspace.controller.main:handle', 'route-controller-format');
+                }
+            }
+        }
+
+        foreach ($files as $name => $content)
+        {
+            if (preg_match('#^language/.+\.php$#', $name) && strpos($content, '$lang') === false)
+            {
+                $add('warning', 'Idioma', 'Arquivo de idioma não contém $lang.', $name, 'Confirme se o arquivo segue o padrão de idioma do phpBB.', '$lang = array_merge($lang, [...]);', 'language-lang-array');
+            }
+        }
+
+        $errors = 0; $warnings = 0;
+        foreach ($issues as $issue)
+        {
+            if ($issue['severity'] === 'error') { $errors++; }
+            else if ($issue['severity'] === 'warning') { $warnings++; }
+        }
+        $fixable = 0;
+        foreach ($issues as $issue)
+        {
+            if (!empty($issue['fixable'])) { $fixable++; }
+        }
+
+        $passed = 0;
+        foreach ($checklist as $item)
+        {
+            if ($item['status'] === 'pass') { $passed++; }
+        }
+
+        return [
+            'summary' => [
+                'errors' => $errors,
+                'warnings' => $warnings,
+                'passed' => $passed,
+                'checks' => count($checklist),
+                'files' => count($files),
+                'scope' => $scope,
+                'scope_label' => $scope_label,
+                'ready' => ($errors === 0),
+                'actionable' => count($issues),
+                'fixable' => $fixable,
+            ],
+            'checklist' => $checklist,
+            'issues' => $issues,
+        ];
+    }
+
+
+    /**
+     * Aplica apenas correcoes automaticas seguras apontadas pelo validador.
+     * Regras seguras nesta versao:
+     * - php-closing-tag: remove o ?> final de arquivos PHP puros.
+     * - composer-type: define type=phpbb-extension em composer.json valido.
+     * - composer-display-name: cria extra.display-name quando ausente.
+     */
+    public function apply_validation_fixes()
+    {
+        if ($r = $this->ensure_workspace_access()) { return $r; }
+
+        $project_id = (int) $this->request->variable('project_id', 0);
+        if ($project_id <= 0)
+        {
+            return $this->json_error('WSP_ERR_INVALID_DATA');
+        }
+
+        if ($r = $this->ensure_project_capability($project_id, 'edit')) { return $r; }
+
+        $scope = $this->normalize_validation_scope($this->request->variable('scope', 'normal'));
+        $rows = $this->get_project_file_rows_for_validation($project_id);
+        $files = [];
+        foreach ($rows as $row)
+        {
+            $files[(string) $row['file_name']] = (string) $row['file_content'];
+        }
+
+        $before_report = $this->build_phpbb_release_validation($files, $scope);
+        $targets = [];
+        foreach ((array) $before_report['issues'] as $issue)
+        {
+            if (empty($issue['fixable']))
+            {
+                continue;
+            }
+            $rule = (string) ($issue['rule'] ?? '');
+            $file = (string) ($issue['file'] ?? '');
+            if ($rule !== '' && $file !== '')
+            {
+                $targets[$file][$rule] = true;
+            }
+        }
+
+        if (empty($targets))
+        {
+            return $this->json_success([
+                'applied' => 0,
+                'files' => [],
+                'report' => $before_report,
+            ]);
+        }
+
+        $changed_files = [];
+        $applied = 0;
+        $this->db->sql_transaction('begin');
+
+        try
+        {
+            foreach ($rows as $row)
+            {
+                $file_name = (string) $row['file_name'];
+                if (empty($targets[$file_name]))
+                {
+                    continue;
+                }
+
+                $old_content = (string) $row['file_content'];
+                $new_content = $old_content;
+                $rules_applied = [];
+
+                if (!empty($targets[$file_name]['utf8-bom']) && substr($new_content, 0, 3) === "\xEF\xBB\xBF")
+                {
+                    $new_content = substr($new_content, 3);
+                    $rules_applied[] = 'utf8-bom';
+                }
+
+                if (!empty($targets[$file_name]['line-ending-crlf']) && strpos($new_content, "\r\n") !== false)
+                {
+                    $new_content = str_replace("\r\n", "\n", $new_content);
+                    $rules_applied[] = 'line-ending-crlf';
+                }
+
+                if (!empty($targets[$file_name]['line-ending-cr']) && preg_match('/\r(?!\n)/', $new_content))
+                {
+                    $new_content = preg_replace('/\r(?!\n)/', "\n", $new_content);
+                    $rules_applied[] = 'line-ending-cr';
+                }
+
+                if (!empty($targets[$file_name]['php-open-tag-leading-whitespace']) && preg_match('#\.php$#', $file_name))
+                {
+                    $bom = '';
+                    $candidate = $new_content;
+                    if (substr($candidate, 0, 3) === "\xEF\xBB\xBF")
+                    {
+                        $bom = "\xEF\xBB\xBF";
+                        $candidate = substr($candidate, 3);
+                    }
+                    $open_pos = strpos($candidate, '<?php');
+                    if ($open_pos !== false)
+                    {
+                        $prefix = substr($candidate, 0, $open_pos);
+                        if ($prefix !== '' && preg_match('/^\s+$/', $prefix))
+                        {
+                            $new_content = $bom . substr($candidate, $open_pos);
+                            $rules_applied[] = 'php-open-tag-leading-whitespace';
+                        }
+                    }
+                }
+
+                if (!empty($targets[$file_name]['php-closing-tag']) && preg_match('#\.php$#', $file_name))
+                {
+                    $fixed = preg_replace('/\?>\s*$/', '', $new_content);
+                    if ($fixed !== $new_content)
+                    {
+                        $new_content = rtrim($fixed) . "\n";
+                        $rules_applied[] = 'php-closing-tag';
+                    }
+                }
+
+                if ($file_name === 'composer.json')
+                {
+                    $json = json_decode($new_content, true);
+                    if (is_array($json))
+                    {
+                        if (!empty($targets[$file_name]['composer-type']) && (empty($json['type']) || (string) $json['type'] !== 'phpbb-extension'))
+                        {
+                            $json['type'] = 'phpbb-extension';
+                            $rules_applied[] = 'composer-type';
+                        }
+
+                        if (!empty($targets[$file_name]['composer-display-name']) && empty($json['extra']['display-name']))
+                        {
+                            if (empty($json['extra']) || !is_array($json['extra']))
+                            {
+                                $json['extra'] = [];
+                            }
+                            $display = 'phpBB Extension';
+                            if (!empty($json['name']) && strpos((string) $json['name'], '/') !== false)
+                            {
+                                $parts = explode('/', (string) $json['name'], 2);
+                                $display = ucwords(str_replace(['-', '_'], ' ', $parts[1]));
+                            }
+                            $json['extra']['display-name'] = $display;
+                            $rules_applied[] = 'composer-display-name';
+                        }
+
+                        if (!empty($rules_applied))
+                        {
+                            $new_content = json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
+                        }
+                    }
+                }
+
+                if ($new_content === $old_content || empty($rules_applied))
+                {
+                    continue;
+                }
+
+                if (isset($this->project_repo) && method_exists($this->project_repo, 'create_file_version'))
+                {
+                    $this->project_repo->create_file_version(
+                        $project_id,
+                        (int) $row['file_id'],
+                        (int) $this->user->data['user_id'],
+                        $file_name,
+                        $old_content,
+                        'manual',
+                        'Snapshot antes de autocorrecao segura do validador phpBB.'
+                    );
+                }
+
+                $sql_ary = [
+                    'file_content' => $new_content,
+                    'file_time' => time(),
+                ];
+                $this->db->sql_query(
+                    'UPDATE ' . $this->table_prefix . 'workspace_files
+                     SET ' . $this->db->sql_build_array('UPDATE', $sql_ary) . '
+                     WHERE file_id = ' . (int) $row['file_id'] . '
+                       AND project_id = ' . (int) $project_id
+                );
+
+                $applied += count($rules_applied);
+                $changed_files[] = [
+                    'file_id' => (int) $row['file_id'],
+                    'file' => $file_name,
+                    'rules' => $rules_applied,
+                ];
+
+                $this->log_to_changelog_internal($project_id, 'Validador phpBB: correcoes seguras aplicadas em ' . $file_name . ' (' . implode(', ', $rules_applied) . ').');
+            }
+
+            if (isset($this->project_repo) && method_exists($this->project_repo, 'log_activity'))
+            {
+                $this->project_repo->log_activity($project_id, (int) $this->user->data['user_id'], 'release_fixes_applied', 'project', 'phpBB release autofix', [
+                    'applied' => $applied,
+                    'files' => count($changed_files),
+                ]);
+            }
+
+            $this->db->sql_transaction('commit');
+        }
+        catch (\Exception $e)
+        {
+            $this->db->sql_transaction('rollback');
+            return $this->json_error('WSP_ERR_UPDATE_FAILED');
+        }
+
+        $after_files = $this->get_project_files_for_validation($project_id);
+        $after_report = $this->build_phpbb_release_validation($after_files, $scope);
+
+        return $this->json_success([
+            'applied' => $applied,
+            'files' => $changed_files,
+            'report' => $after_report,
+        ]);
+    }
+
+    private function get_project_file_rows_for_validation($project_id)
+    {
+        $sql = 'SELECT file_id, file_name, file_content, file_type
+                FROM ' . $this->table_prefix . 'workspace_files
+                WHERE project_id = ' . (int) $project_id . '
+                ORDER BY file_name ASC';
+        $result = $this->db->sql_query($sql);
+        $rows = [];
+        while ($row = $this->db->sql_fetchrow($result))
+        {
+            $name = str_replace('\\', '/', (string) $row['file_name']);
+            if ($name === '' || strtolower(basename($name)) === '.placeholder')
+            {
+                continue;
+            }
+            $row['file_name'] = $name;
+            $rows[] = $row;
+        }
+        $this->db->sql_freeresult($result);
+        return $rows;
+    }
+
 }

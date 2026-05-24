@@ -176,8 +176,13 @@ class permission_service
             return true;
         }
 
-        // Caso não seja membro: precisa da permissão explícita de "abrir/visualizar"
-        return $this->acl('u_workspace_view');
+        // Sem vínculo, só projetos configurados para pedidos por MP podem ser descobertos/abertos.
+        // Projetos novos/importados ficam private por padrão.
+        $mode = method_exists($this->project_repo, 'get_collaboration_mode')
+            ? (string) $this->project_repo->get_collaboration_mode($project_id)
+            : 'private';
+
+        return ($mode === 'pm_request' && $this->acl('u_workspace_view'));
     }
 
     /**
@@ -380,6 +385,12 @@ class permission_service
 
         // precisa poder abrir/ver (inclui regra do lock + u_workspace_view quando não for membro)
         if (!$this->can_view_project($project_id, $uid))
+        {
+            return false;
+        }
+
+        // Precisa ser dono/membro para baixar; pedido por MP permite descoberta/leitura, não exportação.
+        if ($this->get_role($project_id, $uid) === '')
         {
             return false;
         }
