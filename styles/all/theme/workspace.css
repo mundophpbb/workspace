@@ -852,3 +852,1868 @@ select.wsp-input-dark option {
 .project-switcher-box .switcher-item.disabled .switcher-info small {
   opacity: 0.95;
 }
+/* ==========================================================
+   COLLABORATIVE WORKSPACE LAYER
+   - Expõe função, equipe e estado do projeto sem alterar fluxo JS
+   ========================================================== */
+.project-title-simple {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.wsp-project-title-row,
+.wsp-project-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+}
+
+.wsp-project-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wsp-role-pill,
+.wsp-team-pill,
+.wsp-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.07);
+    color: var(--wsp-muted);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 5px 8px;
+    white-space: nowrap;
+}
+
+.wsp-role-owner { color: #ffd98a; background: rgba(243,156,18,.13); border-color: rgba(243,156,18,.28); }
+.wsp-role-collab { color: #a6eec2; background: rgba(46,204,113,.13); border-color: rgba(46,204,113,.28); }
+.wsp-role-viewer { color: #bfe1ff; background: rgba(var(--wsp-accent-rgb), .13); border-color: rgba(var(--wsp-accent-rgb), .28); }
+
+.wsp-collab-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    border-bottom: 1px solid rgba(0,0,0,.30);
+    background: linear-gradient(90deg, rgba(var(--wsp-accent-rgb), .13), rgba(255,255,255,.035));
+}
+
+.wsp-collab-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 3px;
+}
+
+.wsp-collab-main strong {
+    color: var(--wsp-text-bright);
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wsp-collab-kicker {
+    color: var(--wsp-muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.wsp-collab-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.wsp-status-chip {
+    color: var(--wsp-text);
+    background: rgba(0,0,0,.18);
+}
+
+.wsp-status-chip.is-open {
+    color: #a6eec2;
+    border-color: rgba(46,204,113,.30);
+    background: rgba(46,204,113,.12);
+}
+
+.wsp-status-chip.is-locked {
+    color: #ffd98a;
+    border-color: rgba(243,156,18,.30);
+    background: rgba(243,156,18,.12);
+}
+
+@media (max-width: 900px) {
+    .wsp-collab-strip {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .wsp-collab-status {
+        justify-content: flex-start;
+    }
+}
+
+/* ==========================================================
+   Workspace collaboration panel
+   ========================================================== */
+.wsp-team-panel {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr);
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(20, 24, 32, .72);
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.wsp-team-card {
+    border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .035);
+    padding: 10px;
+    min-width: 0;
+}
+
+.wsp-team-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.wsp-team-card-header strong {
+    display: block;
+    color: #f3f6fb;
+    font-size: 13px;
+}
+
+.wsp-team-card-header span,
+.wsp-muted {
+    display: block;
+    color: rgba(243, 246, 251, .62);
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.wsp-add-member-form {
+    display: grid;
+    grid-template-columns: 1fr 130px auto;
+    gap: 6px;
+    margin: 8px 0 10px;
+}
+
+.wsp-add-member-form input,
+.wsp-add-member-form select,
+.wsp-member-role {
+    background: rgba(0, 0, 0, .22);
+    border: 1px solid rgba(255, 255, 255, .12);
+    color: #f3f6fb;
+    border-radius: 6px;
+    min-height: 28px;
+    padding: 4px 8px;
+}
+
+.wsp-member-list,
+.wsp-activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 135px;
+    overflow: auto;
+}
+
+.wsp-member-item,
+.wsp-activity-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 7px 8px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, .16);
+}
+
+.wsp-member-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, .09);
+    color: #dce8ff;
+    flex: 0 0 auto;
+}
+
+.wsp-member-main {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.wsp-member-main strong,
+.wsp-member-main small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wsp-member-main strong {
+    color: #fff;
+    font-size: 12px;
+}
+
+.wsp-member-main small {
+    color: rgba(255, 255, 255, .58);
+    font-size: 11px;
+}
+
+.wsp-member-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 auto;
+}
+
+.wsp-remove-member {
+    border: 0;
+    background: rgba(160, 35, 35, .22);
+    color: #ffd3d3;
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+}
+
+.wsp-activity-item {
+    align-items: flex-start;
+    font-size: 12px;
+    color: rgba(255, 255, 255, .78);
+}
+
+.wsp-activity-item > i {
+    color: rgba(123, 174, 255, .85);
+    font-size: 7px;
+    margin-top: 6px;
+}
+
+.wsp-activity-item strong {
+    color: #fff;
+}
+
+.wsp-activity-item em {
+    color: rgba(255, 255, 255, .55);
+    font-style: normal;
+}
+
+@media (max-width: 900px) {
+    .wsp-team-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .wsp-add-member-form {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================
+   Revisao colaborativa por arquivo
+   ========================================================== */
+.wsp-review-panel {
+    margin: 10px 12px 8px;
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(20, 24, 33, 0.92);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.22);
+}
+
+.wsp-review-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.wsp-review-header strong {
+    display: block;
+    font-size: 13px;
+    letter-spacing: .02em;
+}
+
+.wsp-review-header span {
+    display: block;
+    margin-top: 3px;
+    opacity: .72;
+    font-size: 12px;
+}
+
+.wsp-review-form {
+    display: grid;
+    grid-template-columns: 130px minmax(240px, 1fr) auto;
+    gap: 8px;
+    margin-top: 10px;
+    align-items: stretch;
+}
+
+.wsp-review-form input,
+.wsp-review-form textarea {
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.22);
+    color: #f2f5f8;
+    border-radius: 8px;
+    padding: 8px 10px;
+    box-sizing: border-box;
+}
+
+.wsp-comments-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.wsp-comment-item {
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.075);
+}
+
+.wsp-comment-item.is-resolved {
+    opacity: .66;
+}
+
+.wsp-comment-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    margin-bottom: 6px;
+}
+
+.wsp-comment-line,
+.wsp-comment-status {
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+}
+
+.wsp-comment-message {
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: normal;
+}
+
+.wsp-comment-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.wsp-comment-actions button {
+    border: 0;
+    border-radius: 7px;
+    padding: 5px 8px;
+    cursor: pointer;
+    background: rgba(255,255,255,0.08);
+    color: #f2f5f8;
+}
+
+.wsp-comment-actions button:hover {
+    background: rgba(255,255,255,0.14);
+}
+
+@media (max-width: 900px) {
+    .wsp-review-form {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+.wsp-review-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    margin: 10px 0;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .04);
+}
+
+.wsp-review-status-label {
+    font-weight: 600;
+}
+
+.wsp-review-status.is-pending {
+    border-color: rgba(255, 193, 7, .45);
+}
+
+.wsp-review-status.is-approved {
+    border-color: rgba(40, 167, 69, .45);
+}
+
+.wsp-review-status.is-changes-requested {
+    border-color: rgba(220, 53, 69, .45);
+}
+
+.wsp-review-status-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.wsp-review-action {
+    border: 0;
+    border-radius: 999px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.wsp-review-action:hover {
+    filter: brightness(1.08);
+}
+
+
+.wsp-version-panel {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.07);
+}
+
+.wsp-version-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.wsp-version-refresh,
+.wsp-version-actions button {
+    border: 0;
+    border-radius: 999px;
+    padding: 5px 9px;
+    cursor: pointer;
+    color: #f2f5f8;
+    background: rgba(255,255,255,0.08);
+}
+
+.wsp-version-refresh:hover,
+.wsp-version-actions button:hover {
+    background: rgba(255,255,255,0.14);
+}
+
+.wsp-versions-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 8px;
+}
+
+.wsp-version-item {
+    padding: 9px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.16);
+    border: 1px solid rgba(255,255,255,0.07);
+}
+
+.wsp-version-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+}
+
+.wsp-version-meta span {
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+}
+
+.wsp-version-note {
+    margin-top: 6px;
+    font-size: 12px;
+    opacity: .82;
+}
+
+.wsp-version-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+
+/* File-level collaboration lock */
+.wsp-file-lock-status {
+    margin: 8px 0 12px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(127,127,127,.25);
+    font-size: 12px;
+}
+.wsp-file-lock-status.is-open { background: rgba(46, 204, 113, .08); }
+.wsp-file-lock-status.is-mine { background: rgba(52, 152, 219, .10); }
+.wsp-file-lock-status.is-locked { background: rgba(231, 76, 60, .10); }
+.wsp-file-lock-label i { margin-right: 5px; }
+
+
+/* =========================================================
+   Workspace notifications center
+   ========================================================= */
+.wsp-notifications-toggle {
+    position: relative;
+}
+
+.wsp-notifications-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #e74c3c;
+    color: #fff;
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.wsp-notifications-panel {
+    position: absolute;
+    top: 54px;
+    right: 16px;
+    z-index: 980;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    background: rgba(25, 30, 38, .98);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px;
+    box-shadow: 0 14px 40px rgba(0,0,0,.35);
+    overflow: hidden;
+}
+
+.wsp-notifications-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+}
+
+.wsp-notifications-list {
+    max-height: 420px;
+    overflow: auto;
+    padding: 8px;
+}
+
+.wsp-notification-item {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    color: rgba(255,255,255,.86);
+}
+
+.wsp-notification-item:hover {
+    background: rgba(255,255,255,.06);
+}
+
+.wsp-notification-item.is-unread {
+    background: rgba(52, 152, 219, .12);
+}
+
+.wsp-notification-dot {
+    width: 8px;
+    height: 8px;
+    margin-top: 7px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.26);
+    flex: 0 0 auto;
+}
+
+.wsp-notification-item.is-unread .wsp-notification-dot {
+    background: #3498db;
+}
+
+.wsp-notification-body {
+    min-width: 0;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.wsp-notification-body em {
+    color: #8bd3ff;
+    font-style: normal;
+    word-break: break-all;
+}
+
+.wsp-notification-body small {
+    display: block;
+    margin-top: 3px;
+    color: rgba(255,255,255,.48);
+}
+
+/* v9 - Quadro de tarefas colaborativas */
+.wsp-task-card { min-width: 280px; }
+.wsp-add-task-form { margin: 10px 0 12px; padding: 10px; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; background: rgba(0,0,0,.18); }
+.wsp-add-task-form input,
+.wsp-add-task-form textarea,
+.wsp-add-task-form select { width: 100%; box-sizing: border-box; margin-bottom: 8px; }
+.wsp-task-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.wsp-task-board { display: flex; flex-direction: column; gap: 8px; }
+.wsp-task-item { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.035); }
+.wsp-task-item.wsp-task-doing { border-left: 3px solid #d6a23a; }
+.wsp-task-item.wsp-task-done { opacity: .75; border-left: 3px solid #59a86d; }
+.wsp-task-main { min-width: 0; }
+.wsp-task-main strong { display: block; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wsp-task-main span { display: block; font-size: 11px; opacity: .78; }
+.wsp-task-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.wsp-task-actions select { max-width: 92px; }
+.wsp-task-priority { display: inline-flex; align-items: center; min-height: 22px; padding: 0 7px; border-radius: 999px; font-size: 10px; text-transform: uppercase; background: rgba(255,255,255,.08); }
+.wsp-task-priority-high { font-weight: 700; }
+.wsp-delete-task { border: 0; background: transparent; cursor: pointer; opacity: .75; }
+.wsp-delete-task:hover { opacity: 1; }
+
+
+/* Release validator / phpBB checklist */
+.wsp-validator-modal-box{max-width:920px;width:92%;}
+.wsp-validator-summary{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px 0;}
+.wsp-validator-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-weight:600;}
+.wsp-validator-pill.is-error{background:rgba(170,40,40,.22);}
+.wsp-validator-pill.is-warning{background:rgba(190,130,30,.22);}
+.wsp-validator-pill.is-pass{background:rgba(50,140,70,.22);}
+.wsp-validator-checklist,.wsp-validator-issues{max-height:260px;overflow:auto;margin-top:12px;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px;}
+.wsp-validator-row{display:grid;grid-template-columns:26px 120px 1fr;gap:8px;align-items:start;padding:8px;border-bottom:1px solid rgba(255,255,255,.08);}
+.wsp-validator-row:last-child{border-bottom:0;}
+.wsp-validator-row .wsp-severity{font-weight:700;text-transform:uppercase;font-size:11px;}
+.wsp-validator-row.is-error .wsp-severity{color:#ff8b8b;}
+.wsp-validator-row.is-warning .wsp-severity{color:#ffd27a;}
+.wsp-validator-row.is-pass .wsp-severity{color:#91e6a2;}
+.wsp-validator-row small{display:block;opacity:.75;margin-top:3px;}
+
+/* v11 - release validator actionable guidance */
+.wsp-validator-action{display:block;margin-top:6px;font-style:normal;opacity:.92;line-height:1.35;}
+.wsp-validator-example{display:block;margin-top:6px;padding:7px 9px;border-radius:8px;background:rgba(0,0,0,.22);white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.35;}
+.wsp-validator-row span:last-child{min-width:0;}
+
+
+/* v12 - safe release validator fixes */
+.wsp-validator-fix-btn[disabled] {
+    opacity: .55;
+    cursor: not-allowed;
+}
+.wsp-validator-fix-btn.is-active {
+    font-weight: 600;
+}
+.wsp-validator-fixable {
+    display: block;
+    margin-top: 6px;
+    color: #d6a83f;
+    font-style: normal;
+}
+/* ==========================================================
+   FIX v12.1: editor sempre acessível
+   Os painéis colaborativos ficam em uma doca inferior rolável,
+   impedindo que equipe/tarefas/atividade/revisão escondam o Ace.
+   ========================================================== */
+.wsp-collab-panels {
+    flex: 0 0 auto;
+    max-height: 32vh;
+    overflow: auto;
+    border-top: 1px solid rgba(255,255,255,.08);
+    background: rgba(15,18,24,.96);
+}
+
+.wsp-collab-panels .wsp-team-panel {
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.workspace-editor-area > #editor {
+    flex: 1 1 auto;
+    min-height: 420px;
+}
+
+.wsp-collab-panels .wsp-review-panel {
+    margin: 10px 12px;
+}
+
+.wsp-collab-panels .wsp-member-list,
+.wsp-collab-panels .wsp-activity-list,
+.wsp-collab-panels .wsp-task-board,
+.wsp-collab-panels .wsp-comments-list,
+.wsp-collab-panels .wsp-versions-list {
+    max-height: 180px;
+    overflow: auto;
+}
+
+@media (max-height: 760px) {
+    .workspace-editor-area > #editor {
+        min-height: 320px;
+    }
+
+    .wsp-collab-panels {
+        max-height: 28vh;
+    }
+}
+
+@media (max-width: 900px) {
+    .workspace-editor-area > #editor {
+        min-height: 360px;
+    }
+
+    .wsp-collab-panels {
+        max-height: 40vh;
+    }
+}
+
+
+
+/* v12.1 - release validator scope selector */
+.wsp-validator-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.04);
+}
+.wsp-validator-toolbar label {
+    font-weight: 600;
+    white-space: nowrap;
+}
+.wsp-validator-toolbar select {
+    max-width: 260px;
+}
+
+/* ==========================================================
+   v12.2 - IDE layout: editor-first, collapsible collaboration dock
+   ========================================================== */
+.editor-toolbar-rich {
+    flex-wrap: wrap;
+    row-gap: 6px;
+}
+
+.editor-toolbar-rich .btn-validate-release.btn-with-label,
+.editor-toolbar-rich #wsp-toggle-collab.btn-with-label {
+    font-size: 12px;
+    gap: 6px !important;
+    min-width: auto;
+    padding: 0 10px !important;
+}
+
+.editor-toolbar-rich .btn-validate-release.btn-with-label .btn-label,
+.editor-toolbar-rich #wsp-toggle-collab.btn-with-label .btn-label {
+    display: inline !important;
+    font-weight: 600;
+}
+
+.btn-validate-release {
+    border-color: rgba(52,152,219,.35) !important;
+    background: rgba(52,152,219,.18) !important;
+    color: #d8efff !important;
+}
+
+#wsp-toggle-collab.is-active,
+#wsp-editor-focus-mode.is-active {
+    border-color: rgba(46,204,113,.42) !important;
+    background: rgba(46,204,113,.18) !important;
+    color: #d9ffe8 !important;
+}
+
+.wsp-collab-panels {
+    flex: 0 0 auto;
+    max-height: 38vh;
+    overflow: hidden;
+    border-top: 1px solid rgba(255,255,255,.08);
+    background: rgba(15,18,24,.98);
+}
+
+.wsp-collab-panels.is-collapsed {
+    max-height: 38px;
+}
+
+.wsp-collab-panels.is-collapsed .wsp-collab-dock-body {
+    display: none;
+}
+
+.wsp-collab-dock-header {
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 5px 8px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    background: rgba(0,0,0,.20);
+}
+
+.wsp-collab-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    min-width: 0;
+}
+
+.wsp-collab-tab {
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.05);
+    color: var(--wsp-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 10px;
+    white-space: nowrap;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.wsp-collab-tab:hover,
+.wsp-collab-tab.is-active {
+    color: #fff;
+    border-color: rgba(52,152,219,.36);
+    background: rgba(52,152,219,.18);
+}
+
+.wsp-collab-dock-body {
+    max-height: calc(38vh - 39px);
+    overflow: auto;
+}
+
+.wsp-collab-dock-body .wsp-team-panel {
+    display: block;
+    padding: 10px 12px;
+    background: transparent;
+    border-bottom: 0;
+}
+
+.wsp-collab-dock-body .wsp-team-card,
+.wsp-collab-dock-body .wsp-review-panel {
+    max-width: none;
+    margin: 0;
+}
+
+.workspace-editor-area > #editor {
+    flex: 1 1 auto;
+    min-height: 520px;
+}
+
+.workspace-container.editor-focus-mode .workspace-sidebar,
+.workspace-container.editor-focus-mode #wsp-splitter,
+.workspace-container.editor-focus-mode .wsp-collab-strip,
+.workspace-container.editor-focus-mode .wsp-collab-panels {
+    display: none !important;
+}
+
+.workspace-container.editor-focus-mode .workspace-editor-area {
+    width: 100%;
+}
+
+.workspace-container.editor-focus-mode .workspace-editor-area > #editor {
+    min-height: 0;
+}
+
+@media (max-height: 820px) {
+    .workspace-editor-area > #editor {
+        min-height: 430px;
+    }
+    .wsp-collab-panels {
+        max-height: 34vh;
+    }
+    .wsp-collab-dock-body {
+        max-height: calc(34vh - 39px);
+    }
+}
+
+@media (max-width: 1100px) {
+    .editor-toolbar-rich .btn-validate-release.btn-with-label .btn-label,
+    .editor-toolbar-rich #wsp-toggle-collab.btn-with-label .btn-label {
+        display: none !important;
+    }
+    .editor-toolbar-rich .btn-validate-release.btn-with-label,
+    .editor-toolbar-rich #wsp-toggle-collab.btn-with-label {
+        min-width: 32px;
+        padding: 0 10px !important;
+    }
+}
+
+/* ==========================================================
+   v12.3 - Collaboration drawer fix
+   O painel de colaboracao agora flutua dentro da area do Workspace.
+   Ele nao empurra o rodape do phpBB nem depende da altura natural da pagina.
+   ========================================================== */
+.workspace-editor-area {
+    position: relative;
+    min-height: 0;
+}
+
+.workspace-editor-area > #editor {
+    min-height: 0 !important;
+    height: auto !important;
+}
+
+.wsp-collab-panels {
+    position: absolute !important;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 60;
+    flex: none !important;
+    max-height: min(46vh, 430px) !important;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 10px;
+    box-shadow: 0 18px 45px rgba(0,0,0,.45);
+    overflow: hidden !important;
+}
+
+.wsp-collab-panels.is-collapsed {
+    display: none !important;
+    max-height: 0 !important;
+}
+
+.wsp-collab-panels.is-collapsed .wsp-collab-dock-body {
+    display: none !important;
+}
+
+.wsp-collab-dock-header {
+    cursor: default;
+}
+
+.wsp-collab-dock-body {
+    max-height: calc(min(46vh, 430px) - 39px) !important;
+    overflow: auto !important;
+}
+
+.workspace-container.editor-focus-mode .wsp-collab-panels {
+    display: none !important;
+}
+
+@media (max-height: 760px) {
+    .wsp-collab-panels {
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        max-height: min(52vh, 360px) !important;
+    }
+    .wsp-collab-dock-body {
+        max-height: calc(min(52vh, 360px) - 39px) !important;
+    }
+}
+
+@media (max-width: 700px) {
+    .wsp-collab-panels {
+        left: 6px;
+        right: 6px;
+        bottom: 6px;
+        max-height: 58vh !important;
+    }
+    .wsp-collab-dock-body {
+        max-height: calc(58vh - 39px) !important;
+    }
+}
+
+/* ==========================================================
+   v12.4 - Refinamento visual: contraste, tooltips e drawers
+   ========================================================== */
+:root {
+    --wsp-surface-0: #111820;
+    --wsp-surface-1: #17202a;
+    --wsp-surface-2: #202b36;
+    --wsp-surface-3: #2b3947;
+    --wsp-line-strong: rgba(255,255,255,.22);
+    --wsp-focus-ring: rgba(93, 173, 226, .42);
+    --wsp-danger-strong: #ff6b5e;
+    --wsp-warning-strong: #ffc35a;
+    --wsp-success-strong: #4ade80;
+    --wsp-info-strong: #67c1ff;
+}
+
+.workspace-container {
+    background: var(--wsp-surface-0);
+}
+
+.workspace-header,
+.editor-toolbar-rich {
+    border-color: rgba(255,255,255,.16) !important;
+}
+
+.editor-toolbar-rich {
+    background: linear-gradient(180deg, #18212b 0%, #141b23 100%) !important;
+    padding: 9px 10px !important;
+    gap: 8px !important;
+}
+
+.toolbar-section {
+    gap: 6px !important;
+}
+
+.v-divider {
+    background: rgba(255,255,255,.22) !important;
+    opacity: .95;
+}
+
+.btn-tool,
+.btn-icon,
+.btn-main,
+.btn-copy,
+.btn-copy-alt,
+.btn-save-icon,
+.btn-save,
+.wsp-collab-tab,
+.wsp-member-actions select,
+.wsp-task-actions select,
+.wsp-add-member-form select,
+.wsp-add-task-form select,
+.wsp-validator-toolbar select {
+    color: #f4f8fb !important;
+    border-color: rgba(255,255,255,.20) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 1px 2px rgba(0,0,0,.28);
+}
+
+.btn-tool,
+.btn-icon,
+.btn-main,
+.btn-copy,
+.btn-copy-alt {
+    background: #243140 !important;
+}
+
+.btn-tool:hover,
+.btn-icon:hover,
+.btn-main:hover,
+.btn-copy:hover,
+.btn-copy-alt:hover,
+.wsp-collab-tab:hover {
+    background: #314258 !important;
+    border-color: rgba(103,193,255,.55) !important;
+    color: #ffffff !important;
+}
+
+.btn-tool:focus-visible,
+.btn-icon:focus-visible,
+.btn-main:focus-visible,
+.btn-copy:focus-visible,
+.btn-copy-alt:focus-visible,
+.btn-save-icon:focus-visible,
+.btn-save:focus-visible,
+.wsp-collab-tab:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 2px solid #67c1ff !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--wsp-focus-ring) !important;
+}
+
+.btn-validate-release {
+    background: #155d8b !important;
+    border-color: #5dade2 !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+
+.btn-validate-release:hover {
+    background: #1d77b2 !important;
+    border-color: #86d1ff !important;
+}
+
+#wsp-toggle-collab {
+    background: #23476a !important;
+    border-color: rgba(103,193,255,.45) !important;
+}
+
+#wsp-toggle-collab.is-active,
+#wsp-editor-focus-mode.is-active {
+    background: #116144 !important;
+    border-color: #4ade80 !important;
+    color: #ffffff !important;
+}
+
+.btn-save-icon,
+.btn-save {
+    background: #198754 !important;
+    border-color: #4ade80 !important;
+    color: #fff !important;
+    font-weight: 800 !important;
+}
+
+.btn-save-icon:hover,
+.btn-save:hover {
+    background: #21a366 !important;
+    border-color: #75f0a1 !important;
+}
+
+.btn-danger-icon,
+.delete-project,
+.clear-project-changelog,
+.wsp-remove-member,
+.wsp-delete-task {
+    border-color: rgba(255,107,94,.38) !important;
+}
+
+.btn-danger-icon:hover,
+.delete-project:hover,
+.clear-project-changelog:hover,
+.wsp-remove-member:hover,
+.wsp-delete-task:hover {
+    background: #7f1d1d !important;
+    border-color: #ff6b5e !important;
+    color: #fff !important;
+}
+
+button[disabled],
+button.is-disabled,
+.actions-active.is-disabled button {
+    opacity: .48 !important;
+    filter: grayscale(.25);
+    cursor: not-allowed !important;
+}
+
+/* Inputs, textareas e selects com contraste consistente */
+.workspace-container input,
+.workspace-container textarea,
+.workspace-container select,
+.wsp-modal-box input,
+.wsp-modal-box textarea,
+.wsp-modal-box select,
+#wsp-modal-card input,
+#wsp-modal-card textarea,
+#wsp-modal-card select {
+    background: #0f1720 !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255,255,255,.24) !important;
+    border-radius: 6px !important;
+}
+
+.workspace-container input::placeholder,
+.workspace-container textarea::placeholder,
+#wsp-modal-card input::placeholder,
+#wsp-modal-card textarea::placeholder {
+    color: rgba(255,255,255,.62) !important;
+}
+
+.workspace-container select option,
+.wsp-modal-box select option,
+#wsp-modal-card select option {
+    background: #0f1720 !important;
+    color: #ffffff !important;
+}
+
+/* Modais/dialogos mais legiveis */
+.wsp-modal-box,
+#wsp-modal-card,
+.wsp-validator-modal-box {
+    background: #18212b !important;
+    color: #eef5fb !important;
+    border: 1px solid rgba(255,255,255,.24) !important;
+    box-shadow: 0 24px 80px rgba(0,0,0,.65) !important;
+}
+
+#wsp-modal-title,
+.wsp-modal-box h3,
+.wsp-modal-box h4,
+.wsp-validator-modal-box h3,
+.wsp-validator-modal-box h4 {
+    color: #ffffff !important;
+}
+
+#wsp-custom-modal,
+.wsp-modal-overlay {
+    background: rgba(2, 8, 14, .82) !important;
+}
+
+.modal-buttons .button,
+.wsp-modal-footer .button {
+    min-height: 34px;
+    border-radius: 6px !important;
+    border: 1px solid rgba(255,255,255,.24) !important;
+    background: #253545 !important;
+    color: #ffffff !important;
+}
+
+.modal-buttons .button:hover,
+.wsp-modal-footer .button:hover {
+    background: #33485d !important;
+}
+
+.wsp-modal-footer .button.secondary,
+.modal-buttons .button.secondary,
+#wsp-modal-ok {
+    background: #155d8b !important;
+    border-color: #5dade2 !important;
+}
+
+/* Drawer colaborativo com separacao clara do editor */
+.wsp-collab-panels {
+    background: #111820 !important;
+    border: 1px solid rgba(103,193,255,.38) !important;
+    box-shadow: 0 20px 70px rgba(0,0,0,.70), 0 0 0 1px rgba(255,255,255,.06) !important;
+}
+
+.wsp-collab-dock-header {
+    background: #162231 !important;
+    border-bottom: 1px solid rgba(255,255,255,.18) !important;
+}
+
+.wsp-collab-tab {
+    background: #243140 !important;
+    color: #d9e6ef !important;
+}
+
+.wsp-collab-tab.is-active {
+    background: #155d8b !important;
+    border-color: #67c1ff !important;
+    color: #ffffff !important;
+}
+
+.wsp-team-card,
+.wsp-review-panel,
+.wsp-task-card,
+.wsp-activity-card,
+.wsp-comment-item,
+.wsp-version-item,
+.wsp-task-item,
+.wsp-member-item {
+    background: #17202a !important;
+    border-color: rgba(255,255,255,.14) !important;
+    color: #eef5fb !important;
+}
+
+.wsp-muted,
+.wsp-team-card-header span,
+.wsp-task-main span,
+.wsp-member-main small {
+    color: rgba(238,245,251,.72) !important;
+    opacity: 1 !important;
+}
+
+.wsp-status-chip,
+.wsp-role-pill,
+.wsp-team-pill,
+.wsp-validator-pill,
+.wsp-task-priority {
+    border: 1px solid rgba(255,255,255,.16) !important;
+    color: #ffffff !important;
+}
+
+.wsp-status-chip.is-open {
+    background: rgba(25,135,84,.22) !important;
+    border-color: rgba(74,222,128,.45) !important;
+}
+
+.wsp-status-chip.is-locked {
+    background: rgba(220,53,69,.22) !important;
+    border-color: rgba(255,107,94,.45) !important;
+}
+
+/* Relatorio do validador: severidades mais fortes */
+.wsp-validator-row {
+    background: rgba(255,255,255,.025);
+    border-bottom-color: rgba(255,255,255,.12) !important;
+}
+
+.wsp-validator-row.is-error {
+    background: rgba(127,29,29,.22) !important;
+    border-left: 4px solid #ff6b5e;
+}
+
+.wsp-validator-row.is-warning {
+    background: rgba(146,92,12,.20) !important;
+    border-left: 4px solid #ffc35a;
+}
+
+.wsp-validator-row.is-pass {
+    background: rgba(20,83,45,.18) !important;
+    border-left: 4px solid #4ade80;
+}
+
+.wsp-validator-example {
+    background: #08111a !important;
+    border: 1px solid rgba(255,255,255,.16);
+    color: #f8fbff !important;
+}
+
+/* Tooltips nativos ao sistema visual do Workspace */
+.__wsp_unused_selector { display: none; }
+.workspace-container [data-tooltip] {
+    position: relative;
+}
+
+.workspace-container [data-tooltip]:hover::after,
+.workspace-container [data-tooltip]:focus-visible::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 8px);
+    transform: translateX(-50%);
+    z-index: 100020;
+    max-width: 260px;
+    width: max-content;
+    padding: 7px 9px;
+    border-radius: 6px;
+    background: #050a10;
+    color: #ffffff;
+    border: 1px solid rgba(103,193,255,.45);
+    box-shadow: 0 10px 28px rgba(0,0,0,.55);
+    font-size: 12px;
+    line-height: 1.25;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.workspace-container [data-tooltip]:hover::before,
+.workspace-container [data-tooltip]:focus-visible::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 3px);
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-bottom-color: rgba(103,193,255,.45);
+    z-index: 100021;
+    pointer-events: none;
+}
+
+/* Evita que tooltips de botoes do canto direito saiam da tela */
+.align-right [data-tooltip]:hover::after,
+.header-actions [data-tooltip]:hover::after,
+.align-right [data-tooltip]:focus-visible::after,
+.header-actions [data-tooltip]:focus-visible::after {
+    left: auto;
+    right: 0;
+    transform: none;
+}
+
+.align-right [data-tooltip]:hover::before,
+.header-actions [data-tooltip]:hover::before,
+.align-right [data-tooltip]:focus-visible::before,
+.header-actions [data-tooltip]:focus-visible::before {
+    left: auto;
+    right: 10px;
+    transform: none;
+}
+
+@media (max-width: 900px) {
+    .editor-toolbar-rich {
+        overflow-x: auto;
+        flex-wrap: nowrap !important;
+    }
+    .toolbar-section {
+        flex-shrink: 0;
+    }
+    .workspace-container [data-tooltip]:hover::after,
+    .workspace-container [data-tooltip]:focus-visible::after {
+        display: none;
+    }
+}
+
+/* ==========================================================
+   TOOLBAR AGRUPADA POR FUNCAO (compacta + dropdown flutuante)
+   ========================================================== */
+.editor-toolbar-rich.wsp-toolbar-menu-mode {
+    position: relative;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    overflow-x: auto;
+    overflow-y: hidden !important;
+    scrollbar-width: thin;
+    min-height: 56px;
+    padding: 10px 12px !important;
+}
+
+.editor-toolbar-rich.wsp-toolbar-compact .toolbar-section {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.editor-toolbar-rich.wsp-toolbar-compact .toolbar-menu-actions,
+.editor-toolbar-rich.wsp-toolbar-compact .toolbar-release-actions,
+.editor-toolbar-rich.wsp-toolbar-compact .toolbar-output-actions,
+.editor-toolbar-rich.wsp-toolbar-compact .toolbar-primary-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px !important;
+}
+
+.editor-toolbar-rich.wsp-toolbar-compact .v-divider {
+    flex: 0 0 auto;
+    height: 28px;
+    margin: 0 2px;
+}
+
+.wsp-toolbar-menu {
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.wsp-toolbar-menu-toggle,
+.editor-toolbar-rich.wsp-toolbar-compact .btn-with-label {
+    white-space: nowrap;
+    max-width: 170px;
+}
+
+.editor-toolbar-rich.wsp-toolbar-compact .btn-label {
+    max-width: 98px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wsp-menu-caret {
+    font-size: 10px;
+    opacity: .82;
+    margin-left: 2px;
+}
+
+.wsp-toolbar-menu.is-open > .wsp-toolbar-menu-toggle {
+    background: #314258 !important;
+    border-color: rgba(103,193,255,.75) !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 2px rgba(103,193,255,.18), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+.wsp-toolbar-menu-strong.is-open > .btn-validate-release,
+.wsp-toolbar-menu-strong > .btn-validate-release:hover {
+    background: #1b76ad !important;
+    border-color: #8bd2ff !important;
+}
+
+.wsp-toolbar-dropdown {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    z-index: 100000;
+    min-width: 240px;
+    max-width: min(340px, calc(100vw - 24px));
+    max-height: min(70vh, 480px);
+    overflow-y: auto;
+    padding: 7px;
+    display: none;
+    background: #111923;
+    border: 1px solid rgba(255,255,255,.24);
+    border-radius: 10px;
+    box-shadow: 0 18px 45px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.06);
+    transform: none !important;
+}
+
+.wsp-toolbar-dropdown-right {
+    left: 0;
+    right: auto;
+}
+
+.wsp-toolbar-menu.is-open > .wsp-toolbar-dropdown {
+    display: block;
+}
+
+.wsp-toolbar-dropdown[data-placement="top"] {
+    box-shadow: 0 -18px 45px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.wsp-menu-item {
+    width: 100%;
+    min-height: 36px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: #f4f8fb !important;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 9px;
+    padding: 8px 9px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1.25;
+}
+
+.wsp-menu-item i {
+    width: 17px;
+    text-align: center;
+    color: #9bd4ff;
+    flex: 0 0 17px;
+}
+
+.wsp-menu-item span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wsp-menu-item:hover,
+.wsp-menu-item:focus-visible {
+    background: #223145;
+    border-color: rgba(103,193,255,.42);
+    color: #ffffff !important;
+    outline: none;
+}
+
+.wsp-menu-danger:hover,
+.wsp-menu-danger:focus-visible {
+    background: rgba(231,76,60,.18) !important;
+    border-color: rgba(255,118,106,.55) !important;
+}
+
+.wsp-menu-danger:hover i,
+.wsp-menu-danger:focus-visible i {
+    color: #ff8d82;
+}
+
+.wsp-menu-separator {
+    height: 1px;
+    margin: 6px 3px;
+    background: rgba(255,255,255,.14);
+}
+
+.wsp-menu-hint,
+.wsp-menu-hint:disabled {
+    cursor: default !important;
+    opacity: .78 !important;
+    color: #cbd6df !important;
+    background: rgba(255,255,255,.035) !important;
+    border-color: rgba(255,255,255,.08) !important;
+}
+
+.wsp-menu-hint i {
+    color: #d6b15f;
+}
+
+.editor-toolbar-rich .btn-save-icon.btn-with-label {
+    min-width: auto;
+    padding: 0 12px !important;
+    font-weight: 800;
+}
+
+.editor-toolbar-rich .btn-save-icon.btn-with-label .btn-label {
+    display: inline !important;
+    font-weight: 800;
+}
+
+.editor-toolbar-rich .btn-validate-release.btn-with-label .btn-label,
+.editor-toolbar-rich #wsp-toggle-collab.btn-with-label .btn-label,
+.editor-toolbar-rich .wsp-toolbar-menu-toggle.btn-with-label .btn-label,
+.editor-toolbar-rich .btn-main.btn-with-label .btn-label {
+    display: inline !important;
+}
+
+@media (max-width: 1200px) {
+    .editor-toolbar-rich.wsp-toolbar-compact .btn-label {
+        max-width: 72px;
+    }
+}
+
+@media (max-width: 900px) {
+    .editor-toolbar-rich.wsp-toolbar-menu-mode {
+        padding-bottom: 10px !important;
+    }
+    .wsp-toolbar-dropdown {
+        min-width: 224px;
+    }
+    .editor-toolbar-rich .wsp-toolbar-menu-toggle.btn-with-label .btn-label,
+    .editor-toolbar-rich .btn-save-icon.btn-with-label .btn-label,
+    .editor-toolbar-rich #wsp-toggle-collab.btn-with-label .btn-label,
+    .editor-toolbar-rich .btn-main.btn-with-label .btn-label {
+        display: none !important;
+    }
+}
+
+/* ==========================================================
+   v12.6 - Toolbar global acima do explorador
+   A toolbar passa a ocupar a largura total do Workspace. O explorador,
+   a busca e a arvore ficam abaixo dela, alinhados com o editor.
+   ========================================================== */
+.workspace-header,
+.workspace-container > .editor-toolbar-rich {
+    flex: 0 0 auto;
+}
+
+.workspace-container > .editor-toolbar-rich {
+    width: 100%;
+    border-top: 1px solid rgba(255,255,255,.08);
+    border-bottom: 1px solid rgba(255,255,255,.18) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 1px 0 rgba(0,0,0,.28);
+}
+
+.workspace-main-body {
+    min-height: 0;
+}
+
+.workspace-sidebar,
+.workspace-editor-area {
+    min-height: 0;
+}
+
+/* Como a toolbar agora esta fora da coluna do editor, o painel principal
+   comeca direto pelo status colaborativo e pelo editor. */
+.workspace-editor-area > .wsp-collab-strip {
+    flex: 0 0 auto;
+}
+
+/* Em telas menores a toolbar continua usando rolagem horizontal, mas agora
+   com toda a largura disponivel do Workspace. */
+@media (max-width: 900px) {
+    .workspace-container > .editor-toolbar-rich {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+}
+
+/* ==========================================================
+   v12.7 - Toolbar anti-overflow
+   A toolbar global nao deve depender de rolagem horizontal nem deixar
+   acoes como Exportar/Foco para fora da area visivel.
+   ========================================================== */
+.workspace-container,
+.workspace-container *,
+.workspace-container *::before,
+.workspace-container *::after {
+    box-sizing: border-box;
+}
+
+.workspace-container > .editor-toolbar-rich.wsp-toolbar-menu-mode {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    flex-wrap: wrap !important;
+    align-content: center;
+    row-gap: 7px !important;
+}
+
+.editor-toolbar-rich.wsp-toolbar-compact .toolbar-section {
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.editor-toolbar-rich.wsp-toolbar-compact .toolbar-menu-actions {
+    flex: 1 1 auto;
+    min-width: 220px;
+    flex-wrap: wrap;
+}
+
+.editor-toolbar-rich.wsp-toolbar-compact .toolbar-primary-actions {
+    flex: 0 1 auto;
+    flex-wrap: nowrap;
+}
+
+.editor-toolbar-rich.wsp-toolbar-compact .toolbar-output-actions {
+    flex: 0 1 auto;
+    margin-left: auto;
+    flex-wrap: nowrap;
+}
+
+.editor-toolbar-rich.wsp-toolbar-compact .wsp-toolbar-menu-toggle,
+.editor-toolbar-rich.wsp-toolbar-compact .btn-with-label,
+.editor-toolbar-rich.wsp-toolbar-compact .btn-icon,
+.editor-toolbar-rich.wsp-toolbar-compact .btn-main,
+.editor-toolbar-rich.wsp-toolbar-compact .btn-save-icon {
+    max-width: 100%;
+}
+
+@media (max-width: 1250px) {
+    .editor-toolbar-rich.wsp-toolbar-compact .toolbar-menu-actions > .wsp-toolbar-menu:not(.wsp-toolbar-menu-strong) .btn-label,
+    .editor-toolbar-rich.wsp-toolbar-compact .toolbar-output-actions .wsp-toolbar-menu-toggle .btn-label {
+        display: none !important;
+    }
+
+    .editor-toolbar-rich.wsp-toolbar-compact .toolbar-menu-actions > .wsp-toolbar-menu:not(.wsp-toolbar-menu-strong) .wsp-toolbar-menu-toggle,
+    .editor-toolbar-rich.wsp-toolbar-compact .toolbar-output-actions .wsp-toolbar-menu-toggle {
+        width: 38px;
+        min-width: 38px;
+        padding-left: 8px !important;
+        padding-right: 6px !important;
+    }
+
+    .editor-toolbar-rich.wsp-toolbar-compact .toolbar-menu-actions {
+        gap: 5px !important;
+    }
+}
+
+@media (max-width: 980px) {
+    .editor-toolbar-rich.wsp-toolbar-compact .toolbar-menu-actions .btn-label,
+    .editor-toolbar-rich.wsp-toolbar-compact .toolbar-output-actions .btn-label,
+    .editor-toolbar-rich.wsp-toolbar-compact .toolbar-primary-actions .btn-main .btn-label {
+        display: none !important;
+    }
+
+    .editor-toolbar-rich.wsp-toolbar-compact .toolbar-output-actions {
+        margin-left: 0;
+    }
+
+    .editor-toolbar-rich.wsp-toolbar-compact .v-divider {
+        display: none;
+    }
+}
+
+/* ==========================================================
+   TOOLTIP FLUTUANTE DA TOOLBAR (portal no body)
+   - Fica acima do Ace Editor e dos drawers.
+   - Substitui o tooltip via pseudo-elemento, que podia ser cortado por overflow.
+   ========================================================== */
+.workspace-container [data-tooltip]:hover::after,
+.workspace-container [data-tooltip]:focus-visible::after,
+.workspace-container [data-tooltip]:hover::before,
+.workspace-container [data-tooltip]:focus-visible::before {
+    display: none !important;
+    content: none !important;
+}
+
+#wsp-floating-tooltip {
+    position: fixed;
+    z-index: 2147483000;
+    display: none;
+    max-width: 280px;
+    width: max-content;
+    padding: 7px 10px;
+    border-radius: 7px;
+    background: #050a10;
+    color: #ffffff;
+    border: 1px solid rgba(103,193,255,.55);
+    box-shadow: 0 12px 32px rgba(0,0,0,.62);
+    font-size: 12px;
+    line-height: 1.25;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+#wsp-floating-tooltip.is-visible {
+    display: block;
+}
+
+@media (max-width: 900px) {
+    #wsp-floating-tooltip {
+        display: none !important;
+    }
+}
+
+/* v12.8 - Collaboration privacy/PM request controls */
+.wsp-menu-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 10px;
+    min-width: 230px;
+}
+
+.wsp-menu-field label {
+    color: #cbd5e1;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.wsp-menu-field select,
+.wsp-request-collab-form select,
+.wsp-request-collab-form textarea {
+    width: 100%;
+    border: 1px solid rgba(148, 163, 184, .45);
+    background: #0f172a;
+    color: #f8fafc;
+    border-radius: 8px;
+    padding: 7px 9px;
+}
+
+.wsp-menu-field select:focus,
+.wsp-request-collab-form select:focus,
+.wsp-request-collab-form textarea:focus {
+    outline: 2px solid rgba(96, 165, 250, .7);
+    border-color: #60a5fa;
+}
+
+.wsp-status-chip.is-collab-mode {
+    background: rgba(59, 130, 246, .16);
+    border-color: rgba(96, 165, 250, .45);
+    color: #dbeafe;
+}
+
+.wsp-request-collaboration {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(96, 165, 250, .55);
+    background: linear-gradient(180deg, rgba(37, 99, 235, .95), rgba(29, 78, 216, .95));
+    color: #ffffff;
+    border-radius: 999px;
+    font-weight: 700;
+    padding: 6px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.wsp-request-collaboration:hover,
+.wsp-request-collaboration:focus-visible {
+    background: linear-gradient(180deg, rgba(59, 130, 246, 1), rgba(37, 99, 235, 1));
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, .25);
+}
+
+.wsp-request-collab-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 0;
+    color: #e5e7eb;
+}
+
+.wsp-request-collab-form label {
+    font-weight: 700;
+    color: #cbd5e1;
+}
+
+.wsp-request-collab-form textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+/* v12.1 - validator TODO/FIXME context */
+.wsp-validator-excerpt {
+    display: block;
+    margin-top: 6px;
+    padding: 7px 9px;
+    border-radius: 8px;
+    background: rgba(255, 210, 122, .09);
+    border: 1px solid rgba(255, 210, 122, .22);
+    color: #f7e4b2;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+    line-height: 1.35;
+}
+.wsp-validator-excerpt strong {
+    color: #ffd27a;
+}
