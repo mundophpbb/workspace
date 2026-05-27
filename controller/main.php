@@ -360,6 +360,27 @@ class main extends base_controller
             ? (bool) $this->permission_service->can_manage_all()
             : (bool) $this->auth->acl_get('u_workspace_manage_all');
 
+        // Grupo global de acesso ao Workspace (configurado pelo administrador)
+        $wsp_access_group_id = 0;
+        $wsp_access_group_name = '';
+        $sql = 'SELECT config_name, config_value
+                FROM ' . $this->table_prefix . "config
+                WHERE config_name IN ('mundophpbb_workspace_access_group_id', 'mundophpbb_workspace_access_group_name')";
+        $result = $this->db->sql_query($sql);
+        while ($row = $this->db->sql_fetchrow($result))
+        {
+            if ($row['config_name'] === 'mundophpbb_workspace_access_group_id')
+            {
+                $wsp_access_group_id = (int) $row['config_value'];
+            }
+            else if ($row['config_name'] === 'mundophpbb_workspace_access_group_name')
+            {
+                $wsp_access_group_name = (string) $row['config_value'];
+            }
+        }
+        $this->db->sql_freeresult($result);
+        $wsp_access_group_configured = ($wsp_access_group_id > 0);
+
         // ==========================
         // ✅ Permissões do PROJETO ATIVO
         // ==========================
@@ -469,6 +490,8 @@ class main extends base_controller
 
             // global
             'canPurgeCache'        => (int) $can_purge_cache,
+            'accessGroupConfigured' => $wsp_access_group_configured ? 1 : 0,
+            'accessGroupName'       => $wsp_access_group_name,
 
             // URLs
             'mainUrl'          => $route('mundophpbb_workspace_main'),
@@ -502,6 +525,7 @@ class main extends base_controller
             'removeMemberUrl'  => $route('mundophpbb_workspace_remove_member', []),
             'collaborationModeUrl' => $route('mundophpbb_workspace_collaboration_mode', []),
             'requestCollaborationUrl' => $route('mundophpbb_workspace_request_collaboration', []),
+            'accessGroupConfigUrl' => $route('mundophpbb_workspace_access_group_config', []),
             'activeCollaborationMode' => 'private',
             'activityUrl'      => $route('mundophpbb_workspace_activity', []),
             'commentsUrl'      => $route('mundophpbb_workspace_comments', []),
@@ -559,6 +583,8 @@ class main extends base_controller
             'WSP_ACTIVE_LOCKED_TIME'  => (int) ($active_project_lock['locked_time'] ?? 0),
             'WSP_CAN_MANAGE_ALL'      => $can_manage_all ? 1 : 0,
             'WSP_CAN_PURGE_CACHE'  => (int) $can_purge_cache,
+            'WSP_ACCESS_GROUP_CONFIGURED' => $wsp_access_group_configured ? 1 : 0,
+            'WSP_ACCESS_GROUP_NAME' => $wsp_access_group_name,
             'WSP_CAN_LOCK'         => (int) $active_can_lock,
             'ACTIVE_PROJECT_NAME'     => '',
             'ACTIVE_PROJECT_ROLE'     => '',

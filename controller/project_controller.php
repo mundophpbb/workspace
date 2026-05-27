@@ -697,9 +697,15 @@ class project_controller extends base_controller
             }
         }
 
+        $access_group_result = $this->add_user_to_workspace_access_group($target_id);
+
         if (method_exists($this->project_repo, 'log_activity'))
         {
             $this->project_repo->log_activity($project_id, (int) $this->user->data['user_id'], 'member_added', 'member', (string) $target['username'], ['role' => $role]);
+            if (!empty($access_group_result['configured']) && !empty($access_group_result['added']))
+            {
+                $this->project_repo->log_activity($project_id, (int) $this->user->data['user_id'], 'access_group_added', 'member', (string) $target['username'], ['group' => (string) $access_group_result['group_name']]);
+            }
         }
 
         $this->append_changelog_entry((int) $project_id, $this->user->lang('WSP_LOG_MEMBER_ADDED', (string) $target['username'], $role));
@@ -711,6 +717,10 @@ class project_controller extends base_controller
             'user_id' => $target_id,
             'username' => (string) $target['username'],
             'role' => $role,
+            'access_group_configured' => !empty($access_group_result['configured']) ? 1 : 0,
+            'access_group_added' => !empty($access_group_result['added']) ? 1 : 0,
+            'access_group_name' => (string) ($access_group_result['group_name'] ?? ''),
+            'warning' => empty($access_group_result['configured']) ? $this->user->lang('WSP_ACCESS_GROUP_NOT_CONFIGURED_AFTER_ADD') : '',
         ]);
     }
 
@@ -748,15 +758,27 @@ class project_controller extends base_controller
             return $this->json_error('WSP_ERR_UPDATE_FAILED');
         }
 
+        $access_group_result = $this->add_user_to_workspace_access_group($target_id);
+
         if (method_exists($this->project_repo, 'log_activity'))
         {
             $this->project_repo->log_activity($project_id, (int) $this->user->data['user_id'], 'member_role_changed', 'member', (string) $target_id, ['role' => $role]);
+            if (!empty($access_group_result['configured']) && !empty($access_group_result['added']))
+            {
+                $this->project_repo->log_activity($project_id, (int) $this->user->data['user_id'], 'access_group_added', 'member', (string) $target_id, ['group' => (string) $access_group_result['group_name']]);
+            }
         }
 
         $this->notify_user($project_id, $target_id, 'member_role_changed', 'project', (string) $target_id, 'WSP_NOTIFY_ROLE_CHANGED', ['role' => $role]);
         $this->notify_project_members($project_id, 'team_changed', 'member', (string) $target_id, 'WSP_NOTIFY_TEAM_CHANGED', ['role' => $role]);
 
-        return $this->json_success(['role' => $role]);
+        return $this->json_success([
+            'role' => $role,
+            'access_group_configured' => !empty($access_group_result['configured']) ? 1 : 0,
+            'access_group_added' => !empty($access_group_result['added']) ? 1 : 0,
+            'access_group_name' => (string) ($access_group_result['group_name'] ?? ''),
+            'warning' => empty($access_group_result['configured']) ? $this->user->lang('WSP_ACCESS_GROUP_NOT_CONFIGURED_AFTER_ADD') : '',
+        ]);
     }
 
     /**
@@ -923,6 +945,210 @@ class project_controller extends base_controller
             'pm_sent' => $pm_sent ? 1 : 0,
             'message' => $pm_sent ? $this->user->lang('WSP_COLLAB_REQUEST_SENT') : $this->user->lang('WSP_COLLAB_REQUEST_SAVED_NO_PM'),
         ]);
+    }
+
+
+    /**
+     * Configura o grupo global de acesso ao Workspace.
+     * O grupo concede apenas a base global definida no ACP; os papéis por projeto continuam internos.
+     */
+    public function configure_access_group()
+    {
+        if ($r = $this->ensure_workspace_access()) { return $r; }
+
+        $can_manage_all = (isset($this->permission_service) && method_exists($this->permission_service, 'can_manage_all'))
+            ? (bool) $this->permission_service->can_manage_all()
+            : (bool) $this->auth->acl_get('u_workspace_manage_all');
+
+        if (!$can_manage_all)
+        {
+            return $this->json_error('WSP_ERR_PERMISSION');
+        }
+
+        $group_name = trim($this->request->variable('group_name', '', true));
+        if ($group_name === '')
+        {
+            $group_name = $this->user->lang('WSP_ACCESS_GROUP_DEFAULT_NAME');
+        }
+
+        $group_name = trim(preg_replace('#\s+#u', ' ', $group_name));
+        if ($group_name === '' || utf8_strlen($group_name) > 60)
+        {
+            return $this->json_error('WSP_ERR_INVALID_DATA');
+        }
+
+        $group_id = $this->find_group_id_by_name($group_name);
+        $created = false;
+
+        if ($group_id <= 0)
+        {
+            $group_id = $this->create_workspace_group($group_name);
+            $created = ($group_id > 0);
+        }
+
+        if ($group_id <= 0)
+        {
+            return $this->json_error('WSP_ERR_ACCESS_GROUP_CREATE_FAILED');
+        }
+
+        $this->set_workspace_config('mundophpbb_workspace_access_group_id', (string) $group_id);
+        $this->set_workspace_config('mundophpbb_workspace_access_group_name', $group_name);
+
+        return $this->json_success([
+            'group_id' => $group_id,
+            'group_name' => $group_name,
+            'created' => $created ? 1 : 0,
+            'message' => $created ? $this->user->lang('WSP_ACCESS_GROUP_CREATED') : $this->user->lang('WSP_ACCESS_GROUP_FOUND'),
+            'notice' => $this->user->lang('WSP_ACCESS_GROUP_PERMISSIONS_NOTICE'),
+        ]);
+    }
+
+    /** Retorna config simples da tabela phpBB config. */
+    private function get_workspace_config($name, $default = '')
+    {
+        $sql = 'SELECT config_value
+                FROM ' . $this->table_prefix . "config
+                WHERE config_name = '" . $this->db->sql_escape((string) $name) . "'";
+        $result = $this->db->sql_query($sql);
+        $value = $this->db->sql_fetchfield('config_value');
+        $this->db->sql_freeresult($result);
+
+        return ($value === false || $value === null) ? $default : (string) $value;
+    }
+
+    /** Salva config simples na tabela phpBB config. */
+    private function set_workspace_config($name, $value)
+    {
+        $name = (string) $name;
+        $value = (string) $value;
+
+        $sql = 'SELECT config_name
+                FROM ' . $this->table_prefix . "config
+                WHERE config_name = '" . $this->db->sql_escape($name) . "'";
+        $result = $this->db->sql_query($sql);
+        $exists = (bool) $this->db->sql_fetchfield('config_name');
+        $this->db->sql_freeresult($result);
+
+        if ($exists)
+        {
+            $sql = 'UPDATE ' . $this->table_prefix . 'config
+                    SET ' . $this->db->sql_build_array('UPDATE', ['config_value' => $value, 'is_dynamic' => 0]) . "
+                    WHERE config_name = '" . $this->db->sql_escape($name) . "'";
+            $this->db->sql_query($sql);
+        }
+        else
+        {
+            $sql = 'INSERT INTO ' . $this->table_prefix . 'config ' . $this->db->sql_build_array('INSERT', [
+                'config_name' => $name,
+                'config_value' => $value,
+                'is_dynamic' => 0,
+            ]);
+            $this->db->sql_query($sql);
+        }
+    }
+
+    /** Localiza grupo pelo nome, respeitando comparação case-insensitive. */
+    private function find_group_id_by_name($group_name)
+    {
+        $group_name = trim((string) $group_name);
+        if ($group_name === '')
+        {
+            return 0;
+        }
+
+        $sql = 'SELECT group_id
+                FROM ' . $this->table_prefix . "groups
+                WHERE LOWER(group_name) = LOWER('" . $this->db->sql_escape($group_name) . "')";
+        $result = $this->db->sql_query_limit($sql, 1);
+        $group_id = (int) $this->db->sql_fetchfield('group_id');
+        $this->db->sql_freeresult($result);
+
+        return $group_id;
+    }
+
+    /** Cria o grupo usando a API padrão do phpBB quando disponível. */
+    private function create_workspace_group($group_name)
+    {
+        global $phpEx;
+
+        $group_name = trim((string) $group_name);
+        if ($group_name === '')
+        {
+            return 0;
+        }
+
+        $phpEx = $phpEx ?: 'php';
+        $user_file = $this->phpbb_root_path . 'includes/functions_user.' . $phpEx;
+        if (!function_exists('group_create') && file_exists($user_file))
+        {
+            include_once $user_file;
+        }
+
+        if (function_exists('group_create'))
+        {
+            $group_id = 0;
+            $type = defined('GROUP_CLOSED') ? GROUP_CLOSED : 1;
+            $attrs = [
+                'group_founder_manage' => 0,
+                'group_display' => 0,
+                'group_receive_pm' => 0,
+                'group_message_limit' => 0,
+                'group_max_recipients' => 0,
+            ];
+
+            group_create($group_id, $type, $group_name, $this->user->lang('WSP_ACCESS_GROUP_DESCRIPTION'), $attrs);
+            return (int) $group_id;
+        }
+
+        return 0;
+    }
+
+    /** Adiciona usuário ao grupo global configurado, se houver. */
+    private function add_user_to_workspace_access_group($user_id)
+    {
+        global $phpEx;
+
+        $user_id = (int) $user_id;
+        if ($user_id <= 1)
+        {
+            return ['configured' => false, 'added' => false, 'group_name' => ''];
+        }
+
+        $group_id = (int) $this->get_workspace_config('mundophpbb_workspace_access_group_id', '0');
+        $group_name = (string) $this->get_workspace_config('mundophpbb_workspace_access_group_name', '');
+        if ($group_id <= 0)
+        {
+            return ['configured' => false, 'added' => false, 'group_name' => ''];
+        }
+
+        $sql = 'SELECT user_id
+                FROM ' . $this->table_prefix . 'user_group
+                WHERE group_id = ' . (int) $group_id . '
+                    AND user_id = ' . (int) $user_id . '
+                    AND user_pending = 0';
+        $result = $this->db->sql_query_limit($sql, 1);
+        $exists = (bool) $this->db->sql_fetchfield('user_id');
+        $this->db->sql_freeresult($result);
+
+        if ($exists)
+        {
+            return ['configured' => true, 'added' => false, 'group_name' => $group_name];
+        }
+
+        $phpEx = $phpEx ?: 'php';
+        $user_file = $this->phpbb_root_path . 'includes/functions_user.' . $phpEx;
+        if (!function_exists('group_user_add') && file_exists($user_file))
+        {
+            include_once $user_file;
+        }
+
+        if (function_exists('group_user_add'))
+        {
+            group_user_add($group_id, [$user_id], false, false, false, 0, 0);
+            return ['configured' => true, 'added' => true, 'group_name' => $group_name];
+        }
+
+        return ['configured' => true, 'added' => false, 'group_name' => $group_name];
     }
 
     /**

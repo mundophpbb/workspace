@@ -1241,6 +1241,39 @@ class ext extends \phpbb\extension\base {}', 'required-file');
             }
         }
 
+        // Defensive pass: line ending fixes must not depend only on the JSON
+        // report payload. If the scope is Extension DB/full, scan the raw stored
+        // content again and add CRLF/CR targets for supported phpBB text files.
+        // This prevents cases where another safe fix is applied but Windows line
+        // endings remain because the issue was filtered out or not grouped.
+        if ($scope === 'phpbb_ext_db' || $scope === 'full')
+        {
+            foreach ($rows as $row)
+            {
+                $scan_name = str_replace('\\', '/', (string) $row['file_name']);
+                $scan_lname = strtolower($scan_name);
+                $scan_content = (string) $row['file_content'];
+
+                $is_vendor_scan = (bool) preg_match('#^(vendor/|node_modules/|lib/diff(?:/|\.php$)|styles/[^/]+/template/ace/|styles/[^/]+/theme/vendor/|assets/vendor/)#', $scan_lname);
+                $is_supported_scan = (bool) preg_match('#\.(php|js|css|html|htm|twig)$#', $scan_lname) || $scan_lname === 'composer.json' || (bool) preg_match('#^config/.+\.ya?ml$#', $scan_lname);
+                $is_binary_scan = (strpos($scan_content, "\0") !== false) || (bool) preg_match('#\.(png|jpe?g|gif|webp|ico|bmp|zip|tar|gz|bz2|7z|rar|pdf|woff2?|ttf|eot|otf|mp3|mp4|mov|avi|webm|ogg)$#', $scan_lname);
+
+                if ($is_vendor_scan || !$is_supported_scan || $is_binary_scan)
+                {
+                    continue;
+                }
+
+                if (strpos($scan_content, "\r\n") !== false)
+                {
+                    $targets[$scan_name]['line-ending-crlf'] = true;
+                }
+                if (preg_match('/\r(?!\n)/', $scan_content))
+                {
+                    $targets[$scan_name]['line-ending-cr'] = true;
+                }
+            }
+        }
+
         if (empty($targets))
         {
             return $this->json_success([
@@ -1274,16 +1307,22 @@ class ext extends \phpbb\extension\base {}', 'required-file');
                     $rules_applied[] = 'utf8-bom';
                 }
 
-                if (!empty($targets[$file_name]['line-ending-crlf']) && strpos($new_content, "\r\n") !== false)
+                if (
+                    (!empty($targets[$file_name]['line-ending-crlf']) && strpos($new_content, "\r\n") !== false) ||
+                    (!empty($targets[$file_name]['line-ending-cr']) && preg_match('/\r(?!\n)/', $new_content))
+                )
                 {
-                    $new_content = str_replace("\r\n", "\n", $new_content);
-                    $rules_applied[] = 'line-ending-crlf';
-                }
-
-                if (!empty($targets[$file_name]['line-ending-cr']) && preg_match('/\r(?!\n)/', $new_content))
-                {
-                    $new_content = preg_replace('/\r(?!\n)/', "\n", $new_content);
-                    $rules_applied[] = 'line-ending-cr';
+                    $had_crlf = (strpos($new_content, "\r\n") !== false);
+                    $had_cr = (bool) preg_match('/\r(?!\n)/', $new_content);
+                    $new_content = str_replace(["\r\n", "\r"], "\n", $new_content);
+                    if ($had_crlf)
+                    {
+                        $rules_applied[] = 'line-ending-crlf';
+                    }
+                    if ($had_cr)
+                    {
+                        $rules_applied[] = 'line-ending-cr';
+                    }
                 }
 
                 if (!empty($targets[$file_name]['php-open-tag-leading-whitespace']) && preg_match('#\.php$#', $file_name))

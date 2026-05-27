@@ -1104,7 +1104,7 @@ class file_controller extends base_controller
         {
             return $this->json_error_msg($access['error']);
         }
-        $file_info = $this->get_file_info($file_id);
+        $file_info = (isset($this->project_repo) && method_exists($this->project_repo, 'get_file_info')) ? $this->project_repo->get_file_info($file_id) : false;
         if (!$file_info || !isset($this->project_repo) || !method_exists($this->project_repo, 'set_file_lock'))
         {
             return $this->json_error('WSP_ERR_FILE_NOT_FOUND');
@@ -1132,7 +1132,7 @@ class file_controller extends base_controller
         {
             return $this->json_error_msg($access['error']);
         }
-        $file_info = $this->get_file_info($file_id);
+        $file_info = (isset($this->project_repo) && method_exists($this->project_repo, 'get_file_info')) ? $this->project_repo->get_file_info($file_id) : false;
         if (!$file_info || !isset($this->project_repo) || !method_exists($this->project_repo, 'release_file_lock'))
         {
             return $this->json_error('WSP_ERR_FILE_NOT_FOUND');
