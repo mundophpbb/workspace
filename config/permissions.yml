@@ -1,0 +1,57 @@
+categories:
+  workspace:
+    lang: ACL_CAT_WORKSPACE
+
+permissions:
+  u_workspace_access:
+    lang: ACL_U_WORKSPACE_ACCESS
+    cat: workspace
+
+  # ✅ NOVO: “Pode abrir/visualizar projetos”
+  u_workspace_view:
+    lang: ACL_U_WORKSPACE_VIEW
+    cat: workspace
+
+  u_workspace_create:
+    lang: ACL_U_WORKSPACE_CREATE
+    cat: workspace
+
+  u_workspace_download:
+    lang: ACL_U_WORKSPACE_DOWNLOAD
+    cat: workspace
+
+  u_workspace_edit:
+    lang: ACL_U_WORKSPACE_EDIT
+    cat: workspace
+
+  u_workspace_upload:
+    lang: ACL_U_WORKSPACE_UPLOAD
+    cat: workspace
+
+  u_workspace_rename_move:
+    lang: ACL_U_WORKSPACE_RENAME_MOVE
+    cat: workspace
+
+  u_workspace_delete:
+    lang: ACL_U_WORKSPACE_DELETE
+    cat: workspace
+
+  u_workspace_replace:
+    lang: ACL_U_WORKSPACE_REPLACE
+    cat: workspace
+
+  u_workspace_purge_cache:
+    lang: ACL_U_WORKSPACE_PURGE_CACHE
+    cat: workspace
+
+  u_workspace_manage_own:
+    lang: ACL_U_WORKSPACE_MANAGE_OWN
+    cat: workspace
+
+  u_workspace_manage_all:
+    lang: ACL_U_WORKSPACE_MANAGE_ALL
+    cat: workspace
+
+  u_workspace_lock:
+    lang: ACL_U_WORKSPACE_LOCK
+    cat: workspace
