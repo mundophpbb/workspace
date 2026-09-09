@@ -1,0 +1,1004 @@
+{% INCLUDE 'overall_header.html' %}
+{% INCLUDECSS '@mundophpbb_workspace/workspace.css' %}
+{% INCLUDECSS '@mundophpbb_workspace/workspace_github.css' %}
+
+{# Native phpBB CSRF fields used by Workspace AJAX POST requests. #}
+<div id="wsp-csrf-fields" hidden aria-hidden="true">{{ S_FORM_TOKEN }}</div>
+
+<div class="workspace-container"
+     id="wsp-main-container"
+     data-active-project="{{ ACTIVE_PROJECT_ID }}"
+     data-active-folder="">
+
+    {# BARRA SUPERIOR GLOBAL #}
+    <div class="workspace-header">
+        <div class="header-left">
+            <span class="wsp-github-brand" title="{L_WSP_TITLE}">
+                <i class="icon fa-github fa-fw" aria-hidden="true"></i>
+                <span class="app-name">{L_WSP_TITLE}</span>
+            </span>
+            <span class="path-divider">/</span>
+            <span class="wsp-repository-name">
+                <i class="icon fa-book fa-fw" aria-hidden="true"></i>
+                <strong>{% if ACTIVE_PROJECT_NAME %}{{ ACTIVE_PROJECT_NAME }}{% else %}{L_WSP_NO_ACTIVE_PROJECT}{% endif %}</strong>
+            </span>
+            <span class="path-divider wsp-file-divider">/</span>
+            <span class="wsp-current-file-wrap">
+                <i class="icon fa-file-code-o fa-fw" aria-hidden="true"></i>
+                <span id="current-file">{L_WSP_SELECT_FILE}</span>
+            </span>
+            <span id="wsp-active-folder-indicator"
+                  class="wsp-active-folder-indicator"
+                  title="{L_WSP_ACTIVE_FOLDER_TITLE}">
+                <i class="icon fa-folder-open-o fa-fw"></i>
+                <span class="label">{L_WSP_ACTIVE_FOLDER}:</span>
+                <strong id="wsp-active-folder-text">{L_WSP_ROOT}</strong>
+            </span>
+        </div>
+
+        <div class="header-actions">
+            {# Cache purge é GLOBAL: mostrar só para admin + ACL purge_cache #}
+            {% if WSP_CAN_PURGE_CACHE %}
+            <button id="refresh-phpbb-cache" class="btn-tool" title="{L_WSP_REFRESH_CACHE}">
+                <i class="icon fa-refresh fa-fw"></i>
+            </button>
+            {% endif %}
+
+            <button id="wsp-notifications-toggle" class="btn-tool wsp-notifications-toggle" title="{L_WSP_NOTIFICATIONS}">
+                <i class="icon fa-bell-o fa-fw"></i>
+                <span id="wsp-notifications-badge" class="wsp-notifications-badge"{% if WSP_UNREAD_NOTIFICATIONS <= 0 %} style="display:none"{% endif %}>{{ WSP_UNREAD_NOTIFICATIONS }}</span>
+            </button>
+
+            <button id="toggle-fullscreen" class="btn-tool" title="{L_WSP_TOGGLE_FULLSCREEN}">
+                <i class="icon fa-expand fa-fw"></i>
+            </button>
+        </div>
+    </div>
+
+    <div id="wsp-notifications-panel" class="wsp-notifications-panel" style="display:none">
+        <div class="wsp-notifications-header">
+            <strong><i class="fa fa-bell-o"></i> {L_WSP_NOTIFICATIONS}</strong>
+            <button type="button" id="wsp-notifications-mark-read" class="btn-icon" title="{L_WSP_MARK_ALL_READ}"><i class="fa fa-check"></i></button>
+        </div>
+        <div id="wsp-notifications-list" class="wsp-notifications-list">
+            <p class="wsp-muted">{L_WSP_LOADING_NOTIFICATIONS}</p>
+        </div>
+    </div>
+
+    {# TOOLBAR GLOBAL: ocupa toda a largura acima do explorador e do editor #}
+    <div class="editor-toolbar-rich wsp-toolbar-menu-mode wsp-toolbar-compact" data-wsp-toolbar="grouped">
+
+                <div class="toolbar-section toolbar-primary-actions">
+                    <div class="wsp-toolbar-menu">
+                        <button type="button" class="btn-main btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_NEW}" aria-label="{L_WSP_MENU_NEW}">
+                            <i class="icon fa-plus fa-fw"></i>
+                            <span class="btn-label">{L_WSP_MENU_NEW}</span>
+                            <i class="fa fa-caret-down wsp-menu-caret"></i>
+                        </button>
+                        <div class="wsp-toolbar-dropdown" role="menu">
+                            <button id="add-project" class="wsp-menu-item" role="menuitem" title="{L_WSP_NEW_PROJECT}" aria-label="{L_WSP_NEW_PROJECT}">
+                                <i class="fa fa-plus-square"></i><span>{L_WSP_NEW_PROJECT}</span>
+                            </button>
+                            <button class="wsp-menu-item add-file-to-project" role="menuitem" title="{L_WSP_ADD_FILE}">
+                                <i class="fa fa-file-text"></i><span>{L_WSP_ADD_FILE}</span>
+                            </button>
+                            <button class="wsp-menu-item add-folder-to-project" role="menuitem" title="{L_WSP_NEW_ROOT_FOLDER_TITLE}">
+                                <i class="fa fa-folder"></i><span>{L_WSP_NEW_ROOT_FOLDER_TITLE}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button id="open-project" class="btn-icon" title="{L_WSP_OPEN_PROJECT}" aria-label="{L_WSP_OPEN_PROJECT}">
+                        <i class="icon fa-folder-open-o fa-fw"></i>
+                    </button>
+
+                    <button class="trigger-upload btn-icon" title="{L_WSP_UPLOAD_FILES}" aria-label="{L_WSP_UPLOAD_FILES}">
+                        <i class="fa fa-cloud-upload"></i>
+                    </button>
+
+                    <button id="save-file" class="btn-save-icon btn-with-label"
+                            title="{L_WSP_SAVE_CHANGES}"
+                            aria-label="{L_WSP_SAVE_CHANGES}">
+                        <i class="fa fa-save fa-fw"></i>
+                        <span class="btn-label">{L_WSP_SAVE}</span>
+                    </button>
+                </div>
+
+                <div class="v-divider"></div>
+
+                <div class="toolbar-section actions-active toolbar-menu-actions">
+                    <div class="wsp-toolbar-menu">
+                        <button type="button" class="btn-icon btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_FILE}">
+                            <i class="fa fa-file-text-o"></i>
+                            <span class="btn-label">{L_WSP_MENU_FILE}</span>
+                            <i class="fa fa-caret-down wsp-menu-caret"></i>
+                        </button>
+                        <div class="wsp-toolbar-dropdown" role="menu">
+                            <button class="wsp-menu-item trigger-upload" role="menuitem" title="{L_WSP_UPLOAD_FILES}">
+                                <i class="fa fa-cloud-upload"></i><span>{L_WSP_UPLOAD_FILES}</span>
+                            </button>
+                            <div class="wsp-menu-separator"></div>
+                            <button class="wsp-menu-item wsp-menu-hint" type="button" disabled>
+                                <i class="fa fa-info-circle"></i><span>{L_WSP_TREE_ACTIONS_HINT}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="wsp-toolbar-menu">
+                        <button type="button" class="btn-icon btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_PROJECT}">
+                            <i class="fa fa-folder-open-o"></i>
+                            <span class="btn-label">{L_WSP_MENU_PROJECT}</span>
+                            <i class="fa fa-caret-down wsp-menu-caret"></i>
+                        </button>
+                        <div class="wsp-toolbar-dropdown" role="menu">
+                            <button class="wsp-menu-item rename-active-project" role="menuitem" title="{L_WSP_RENAME_PROJECT}">
+                                <i class="fa fa-pencil-square-o"></i><span>{L_WSP_RENAME_PROJECT}</span>
+                            </button>
+                            <button class="wsp-menu-item delete-project wsp-menu-danger" role="menuitem" title="{L_DELETE}">
+                                <i class="fa fa-trash"></i><span>{L_DELETE}</span>
+                            </button>
+                            <div class="wsp-menu-separator"></div>
+                            {% if ACTIVE_PROJECT_CAN_MANAGE %}
+                            <div class="wsp-menu-field">
+                                <label for="wsp-collaboration-mode"><i class="fa fa-user-plus"></i> {L_WSP_COLLAB_MODE}</label>
+                                <select id="wsp-collaboration-mode" data-current-mode="{{ ACTIVE_PROJECT_COLLAB_MODE }}">
+                                    <option value="private"{% if ACTIVE_PROJECT_COLLAB_MODE == 'private' %} selected{% endif %}>{L_WSP_COLLAB_MODE_PRIVATE}</option>
+                                    <option value="pm_request"{% if ACTIVE_PROJECT_COLLAB_MODE == 'pm_request' %} selected{% endif %}>{L_WSP_COLLAB_MODE_PM_REQUEST}</option>
+                                </select>
+                            </div>
+                            <div class="wsp-menu-separator"></div>
+                            {% endif %}
+                            {% if WSP_CAN_LOCK %}
+                                <button id="lock-project" class="wsp-menu-item lock-project" role="menuitem" title="{L_WSP_PROJECT_LOCK}" aria-label="{L_WSP_PROJECT_LOCK}" data-wsp-i18n-title="WSP_PROJECT_LOCK">
+                                    <i class="fa fa-lock"></i><span>{L_WSP_PROJECT_LOCK}</span>
+                                </button>
+                                <button id="unlock-project" class="wsp-menu-item unlock-project" role="menuitem" title="{L_WSP_PROJECT_UNLOCK}" aria-label="{L_WSP_PROJECT_UNLOCK}" data-wsp-i18n-title="WSP_PROJECT_UNLOCK">
+                                    <i class="fa fa-unlock"></i><span>{L_WSP_PROJECT_UNLOCK}</span>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="wsp-toolbar-menu">
+                        <button type="button" class="btn-icon btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_EDITOR}">
+                            <i class="fa fa-code"></i>
+                            <span class="btn-label">{L_WSP_MENU_EDITOR}</span>
+                            <i class="fa fa-caret-down wsp-menu-caret"></i>
+                        </button>
+                        <div class="wsp-toolbar-dropdown" role="menu">
+                            <button class="wsp-menu-item open-search-replace" role="menuitem" title="{L_WSP_SEARCH_REPLACE}">
+                                <i class="fa fa-search"></i><span>{L_WSP_SEARCH_REPLACE}</span>
+                            </button>
+                            <button id="open-diff-tool" class="wsp-menu-item" role="menuitem" title="{L_WSP_DIFF_TITLE}">
+                                <i class="fa fa-columns"></i><span>{L_WSP_DIFF_TITLE}</span>
+                            </button>
+                            <button class="wsp-menu-item generate-project-changelog" role="menuitem" title="{L_WSP_GENERATE_CHANGELOG}" aria-label="{L_WSP_GENERATE_CHANGELOG}" data-wsp-i18n-title="WSP_GENERATE_CHANGELOG">
+                                <i class="fa fa-code-fork"></i><span>{L_WSP_GENERATE_CHANGELOG}</span>
+                            </button>
+                            <button class="wsp-menu-item clear-project-changelog wsp-menu-danger" role="menuitem" title="{L_WSP_CLEAR_CHANGELOG}" aria-label="{L_WSP_CLEAR_CHANGELOG}" data-wsp-i18n-title="WSP_CLEAR_CHANGELOG">
+                                <i class="fa fa-eraser"></i><span>{L_WSP_CLEAR_CHANGELOG}</span>
+                            </button>
+                            <div class="wsp-menu-separator"></div>
+                            <button id="copy-bbcode" class="wsp-menu-item" role="menuitem" title="{L_WSP_COPY_BBCODE}">
+                                <i class="fa fa-copy"></i><span>{L_WSP_COPY_BBCODE}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="wsp-toolbar-menu">
+                        <button type="button" class="btn-icon btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_LOCKS}">
+                            <i class="fa fa-lock"></i>
+                            <span class="btn-label">{L_WSP_MENU_LOCKS}</span>
+                            <i class="fa fa-caret-down wsp-menu-caret"></i>
+                        </button>
+                        <div class="wsp-toolbar-dropdown" role="menu">
+                            <button id="lock-file" class="wsp-menu-item" role="menuitem" title="{L_WSP_LOCK_FILE}" aria-label="{L_WSP_LOCK_FILE}" style="display:none">
+                                <i class="fa fa-lock"></i><span>{L_WSP_LOCK_FILE}</span>
+                            </button>
+                            <button id="unlock-file" class="wsp-menu-item" role="menuitem" title="{L_WSP_UNLOCK_FILE}" aria-label="{L_WSP_UNLOCK_FILE}" style="display:none">
+                                <i class="fa fa-unlock"></i><span>{L_WSP_UNLOCK_FILE}</span>
+                            </button>
+                            <button class="wsp-menu-item wsp-menu-hint" type="button" disabled>
+                                <i class="fa fa-info-circle"></i><span>{L_WSP_LOCKS_HINT}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="v-divider"></div>
+
+                <div class="toolbar-section toolbar-release-actions">
+                    <div class="wsp-toolbar-menu wsp-toolbar-menu-strong">
+                        <button type="button" class="btn-icon btn-with-label btn-validate-release wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_VALIDATE_RELEASE}" aria-label="{L_WSP_VALIDATE_RELEASE}">
+                            <i class="fa fa-check-square-o"></i>
+                            <span class="btn-label">{L_WSP_VALIDATE_RELEASE_SHORT}</span>
+                            <i class="fa fa-caret-down wsp-menu-caret"></i>
+                        </button>
+                        <div class="wsp-toolbar-dropdown" role="menu">
+                            <button id="validate-release-project" class="wsp-menu-item wsp-run-validator-menu" role="menuitem" title="{L_WSP_VALIDATE_RELEASE}">
+                                <i class="fa fa-check-square-o"></i><span>{L_WSP_VALIDATE_RELEASE}</span>
+                            </button>
+                            <button class="wsp-menu-item wsp-open-validator-normal" role="menuitem" data-wsp-scope="normal">
+                                <i class="fa fa-sliders"></i><span>{L_WSP_VALIDATOR_SCOPE_NORMAL}</span>
+                            </button>
+                            <button class="wsp-menu-item wsp-open-validator-extdb" role="menuitem" data-wsp-scope="phpbb_ext_db">
+                                <i class="fa fa-database"></i><span>{L_WSP_VALIDATOR_SCOPE_PHPBB_EXT_DB}</span>
+                            </button>
+                            <button class="wsp-menu-item wsp-open-validator-full" role="menuitem" data-wsp-scope="full">
+                                <i class="fa fa-search-plus"></i><span>{L_WSP_VALIDATOR_SCOPE_FULL}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button id="wsp-toggle-collab" class="btn-icon btn-with-label" title="{L_WSP_TOGGLE_COLLAB_PANEL}" aria-label="{L_WSP_TOGGLE_COLLAB_PANEL}" aria-expanded="false">
+                        <i class="fa fa-comments-o"></i>
+                        <span class="btn-label">{L_WSP_COLLAB_SHORT}</span>
+                    </button>
+                </div>
+
+                <div class="toolbar-section align-right toolbar-output-actions">
+                    {% if ACTIVE_PROJECT_ID > 0 %}
+                    <div class="wsp-toolbar-menu">
+                        <button type="button" class="btn-icon btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_EXPORT}">
+                            <i class="fa fa-download"></i>
+                            <span class="btn-label">{L_WSP_MENU_EXPORT}</span>
+                            <i class="fa fa-caret-down wsp-menu-caret"></i>
+                        </button>
+                        <div class="wsp-toolbar-dropdown wsp-toolbar-dropdown-right" role="menu">
+                            <button id="download-project" class="wsp-menu-item" role="menuitem" title="{L_WSP_DOWNLOAD_PROJECT}" style="display:none">
+                                <i class="fa fa-download"></i><span>{L_WSP_DOWNLOAD_PROJECT}</span>
+                            </button>
+                            <button id="export-collab-project" class="wsp-menu-item" role="menuitem" title="{L_WSP_EXPORT_COLLAB_PACKAGE}" style="display:none">
+                                <i class="fa fa-archive"></i><span>{L_WSP_EXPORT_COLLAB_PACKAGE}</span>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <button id="wsp-editor-focus-mode" class="btn-icon" title="{L_WSP_EDITOR_FOCUS_MODE}" aria-label="{L_WSP_EDITOR_FOCUS_MODE}" aria-pressed="false">
+                        <i class="fa fa-arrows-alt"></i>
+                    </button>
+                </div>
+
+            </div>
+
+    {# MAIN BODY #}
+    <div class="workspace-main-body">
+
+        {# SIDEBAR - EXPLORER #}
+        <div class="workspace-sidebar" id="sidebar-dropzone">
+
+            <div class="sidebar-label"><i class="fa fa-code-fork" aria-hidden="true"></i><span>{L_WSP_EXPLORER}</span></div>
+
+            <div class="sidebar-search-container">
+                <i class="fa fa-search"></i>
+                <input type="text" id="wsp-sidebar-filter" placeholder="{L_SEARCH}...">
+            </div>
+
+            <ul id="project-list">
+                {% for project in loops.projects %}
+                    {# ? IMPORTANTE: data-can-open/data-locked/data-can-download alimentam o modal “Abrir Projeto” (wsp_projects.js) #}
+                    <li class="project-group {% if project.IS_ACTIVE %}active-focus{% endif %} {% if project.CAN_OPEN is defined and not project.CAN_OPEN %}is-disabled{% endif %}"
+                        data-project-id="{{ project.ID }}"
+                        data-project-name="{{ project.NAME|e('html_attr') }}"
+                        data-can-open="{% if project.CAN_OPEN is defined %}{{ project.CAN_OPEN }}{% else %}1{% endif %}"
+                        data-can-download="{% if project.CAN_DOWNLOAD is defined %}{{ project.CAN_DOWNLOAD }}{% else %}0{% endif %}"
+                        data-locked="{% if project.IS_LOCKED %}1{% else %}0{% endif %}">
+
+                        <div class="project-title-simple">
+                            <div class="wsp-project-title-row">
+                                <span class="wsp-project-name">
+                                    <i class="icon {% if project.IS_ACTIVE %}fa-folder-open{% else %}fa-folder{% endif %} fa-fw"></i>
+                                    {{ project.NAME }}
+                                </span>
+
+                                {# Badge simples de lock #}
+                                {% if project.IS_LOCKED %}
+                                    <span class="wsp-lock-badge"
+                                          title="{L_WSP_ERR_PROJECT_LOCKED}"
+                                          data-wsp-i18n-title="WSP_ERR_PROJECT_LOCKED">
+                                        <i class="fa fa-lock"></i>
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="wsp-project-meta-row">
+                                <span class="wsp-role-pill wsp-role-{{ project.ROLE|default('viewer') }}">
+                                    <i class="fa fa-user-circle-o"></i>
+                                    {% if project.ROLE == 'owner' %}{L_WSP_ROLE_OWNER}{% elseif project.ROLE == 'collab' %}{L_WSP_ROLE_COLLAB}{% else %}{L_WSP_ROLE_VIEWER}{% endif %}
+                                </span>
+                                <span class="wsp-team-pill" title="{L_WSP_TEAM_SIZE}">
+                                    <i class="fa fa-users"></i> {{ project.MEMBER_COUNT|default(1) }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <ul class="file-list">
+                            {% if project.IS_ACTIVE or ACTIVE_PROJECT_ID == 0 %}
+                                {% for file in project.files %}
+                                    <li class="file-item">
+                                        <i class="icon fa-file-code-o fa-fw"></i>
+                                        <a href="javascript:void(0);" class="load-file"
+                                           data-id="{{ file.F_ID }}"
+                                           data-path="{{ file.F_PATH }}">
+                                             {{ file.F_NAME }}
+                                        </a>
+                                        <span class="file-context-actions">
+                                            <i class="fa fa-arrows ctx-move-file" title="{L_WSP_TREE_MOVE}" data-id="{{ file.F_ID }}"></i>
+                                            <i class="fa fa-pencil ctx-rename-file" data-id="{{ file.F_ID }}" data-name="{{ file.F_NAME }}" title="{L_WSP_TREE_RENAME}"></i>
+                                            <i class="fa fa-trash-o ctx-delete-file" data-id="{{ file.F_ID }}" title="{L_WSP_TREE_DELETE}"></i>
+                                        </span>
+                                    </li>
+                                {% else %}
+                                    {% if project.IS_ACTIVE %}
+                                        <li class="empty-project-info">
+                                            <i class="fa fa-cloud-upload"></i>
+                                            <p>{L_WSP_EMPTY_PROJECT_DESC}</p>
+                                            <small>{L_WSP_DRAG_UPLOAD_HINT}</small>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </li>
+                {% else %}
+                    <div class="no-project-selected">
+                        <div class="no-project-icon" aria-hidden="true">
+                            <i class="fa fa-folder-open-o"></i>
+                        </div>
+                        <p class="no-project-text">{L_WSP_SELECT_TO_BEGIN}</p>
+                    </div>
+                {% endfor %}
+            </ul>
+        </div>
+
+        {# BARRA DIVISORIA (Splitter) #}
+        <div id="wsp-splitter"></div>
+
+        {# EDITOR AREA #}
+        <div class="workspace-editor-area" id="main-panel">
+
+
+            <div class="wsp-collab-strip">
+                <div class="wsp-collab-main">
+                    <span class="wsp-collab-kicker"><i class="fa fa-users"></i> {L_WSP_COLLAB_WORKSPACE}</span>
+                    <strong>{% if ACTIVE_PROJECT_NAME %}{{ ACTIVE_PROJECT_NAME }}{% else %}{L_WSP_NO_ACTIVE_PROJECT}{% endif %}</strong>
+                </div>
+                <div class="wsp-collab-status">
+                    <span class="wsp-status-chip">
+                        <i class="fa fa-id-badge"></i>
+                        {% if ACTIVE_PROJECT_ROLE == 'owner' %}{L_WSP_ROLE_OWNER}{% elseif ACTIVE_PROJECT_ROLE == 'collab' %}{L_WSP_ROLE_COLLAB}{% else %}{L_WSP_ROLE_VIEWER}{% endif %}
+                    </span>
+                    <span class="wsp-status-chip">
+                        <i class="fa fa-users"></i> {{ ACTIVE_PROJECT_MEMBER_COUNT|default(0) }} {L_WSP_MEMBERS}
+                    </span>
+                    {% if WSP_ACTIVE_LOCKED %}
+                    <span class="wsp-status-chip is-locked"><i class="fa fa-lock"></i> {L_WSP_STATUS_LOCKED}</span>
+                    {% else %}
+                    <span class="wsp-status-chip is-open"><i class="fa fa-unlock"></i> {L_WSP_STATUS_OPEN}</span>
+                    {% endif %}
+                    <span class="wsp-status-chip is-collab-mode"><i class="fa fa-shield"></i> {% if ACTIVE_PROJECT_COLLAB_MODE == 'pm_request' %}{L_WSP_COLLAB_MODE_PM_REQUEST}{% else %}{L_WSP_COLLAB_MODE_PRIVATE}{% endif %}</span>
+                    {% if ACTIVE_PROJECT_ID > 0 and ACTIVE_PROJECT_COLLAB_MODE == 'pm_request' and not ACTIVE_PROJECT_IS_MEMBER and not ACTIVE_PROJECT_CAN_MANAGE %}
+                    <button type="button" id="wsp-request-collaboration" class="wsp-request-collaboration" title="{L_WSP_REQUEST_COLLABORATION}"><i class="fa fa-paper-plane-o"></i> {L_WSP_REQUEST_COLLABORATION}</button>
+                    {% endif %}
+                </div>
+            </div>
+
+
+
+            <div id="editor"></div>
+
+            {# Painéis colaborativos ficam em doca inferior recolhível, com abas. #}
+            <div class="wsp-collab-panels is-collapsed" id="wsp-collab-panels">
+                <div class="wsp-collab-dock-header">
+                    <div class="wsp-collab-tabs" role="tablist" aria-label="{L_WSP_COLLAB_WORKSPACE}">
+                        <button type="button" class="wsp-collab-tab is-active" data-wsp-collab-tab="team" role="tab" aria-selected="true"><i class="fa fa-users"></i> {L_WSP_COLLAB_TAB_TEAM}</button>
+                        <button type="button" class="wsp-collab-tab" data-wsp-collab-tab="tasks" role="tab" aria-selected="false"><i class="fa fa-check-square-o"></i> {L_WSP_COLLAB_TAB_TASKS}</button>
+                        <button type="button" class="wsp-collab-tab" data-wsp-collab-tab="review" role="tab" aria-selected="false"><i class="fa fa-comments-o"></i> {L_WSP_COLLAB_TAB_REVIEW}</button>
+                        <button type="button" class="wsp-collab-tab" data-wsp-collab-tab="activity" role="tab" aria-selected="false"><i class="fa fa-history"></i> {L_WSP_COLLAB_TAB_ACTIVITY}</button>
+                    </div>
+                    <button type="button" id="wsp-collapse-collab" class="btn-icon" title="{L_WSP_HIDE_COLLAB_PANEL}" aria-label="{L_WSP_HIDE_COLLAB_PANEL}"><i class="fa fa-chevron-down"></i></button>
+                </div>
+                <div class="wsp-collab-dock-body">
+            {% if ACTIVE_PROJECT_ID > 0 %}
+            <div class="wsp-team-panel" id="wsp-team-panel" data-can-manage="{{ ACTIVE_PROJECT_CAN_MANAGE|default(0) }}">
+                <div class="wsp-team-card wsp-collab-tab-panel wsp-collab-panel-team" data-wsp-collab-panel="team">
+                    <div class="wsp-team-card-header">
+                        <div>
+                            <strong><i class="fa fa-users"></i> {L_WSP_TEAM_PANEL}</strong>
+                            <span>{L_WSP_TEAM_PANEL_DESC}</span>
+                        </div>
+                        {% if ACTIVE_PROJECT_CAN_MANAGE %}
+                        <button type="button" class="btn-icon wsp-open-member-form" title="{L_WSP_ADD_MEMBER}">
+                            <i class="fa fa-user-plus"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    {% if ACTIVE_PROJECT_CAN_MANAGE %}
+                    <form id="wsp-add-member-form" class="wsp-add-member-form" style="display:none">
+                        <input type="text" name="username" placeholder="{L_WSP_MEMBER_USERNAME}" autocomplete="off">
+                        <select name="role">
+                            <option value="collab">{L_WSP_ROLE_COLLAB}</option>
+                            <option value="viewer">{L_WSP_ROLE_VIEWER}</option>
+                        </select>
+                        <button type="submit" class="btn-save">{L_WSP_INVITE}</button>
+                    </form>
+                    {% endif %}
+
+                    <div class="wsp-member-list" id="wsp-member-list">
+                        {% for member in loops.project_members %}
+                        <div class="wsp-member-item" data-user-id="{{ member.USER_ID }}">
+                            <span class="wsp-member-avatar"><i class="fa fa-user"></i></span>
+                            <span class="wsp-member-main">
+                                <strong{% if member.USER_COLOUR %} style="color:#{{ member.USER_COLOUR }}"{% endif %}>{{ member.USERNAME }}</strong>
+                                <small>{% if member.ROLE == 'owner' %}{L_WSP_ROLE_OWNER}{% elseif member.ROLE == 'collab' %}{L_WSP_ROLE_COLLAB}{% else %}{L_WSP_ROLE_VIEWER}{% endif %}</small>
+                            </span>
+                            {% if ACTIVE_PROJECT_CAN_MANAGE and not member.IS_OWNER %}
+                            <span class="wsp-member-actions">
+                                <select class="wsp-member-role">
+                                    <option value="collab"{% if member.ROLE == 'collab' %} selected{% endif %}>{L_WSP_ROLE_COLLAB}</option>
+                                    <option value="viewer"{% if member.ROLE == 'viewer' %} selected{% endif %}>{L_WSP_ROLE_VIEWER}</option>
+                                </select>
+                                <button type="button" class="wsp-remove-member" title="{L_WSP_REMOVE_MEMBER}"><i class="fa fa-times"></i></button>
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <p class="wsp-muted">{L_WSP_NO_MEMBERS}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="wsp-team-card wsp-task-card wsp-collab-tab-panel wsp-collab-panel-tasks" id="wsp-task-card" data-wsp-collab-panel="tasks" style="display:none">
+                    <div class="wsp-team-card-header">
+                        <div>
+                            <strong><i class="fa fa-check-square-o"></i> {L_WSP_TASK_BOARD}</strong>
+                            <span>{L_WSP_TASK_BOARD_DESC}</span>
+                        </div>
+                        {% if ACTIVE_CAN_EDIT or ACTIVE_CAN_MANAGE or ACTIVE_PROJECT_CAN_MANAGE %}
+                        <button type="button" class="btn-icon wsp-open-task-form" title="{L_WSP_ADD_TASK}">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    {% if ACTIVE_CAN_EDIT or ACTIVE_CAN_MANAGE or ACTIVE_PROJECT_CAN_MANAGE %}
+                    <form id="wsp-add-task-form" class="wsp-add-task-form" style="display:none">
+                        <input type="text" name="title" placeholder="{L_WSP_TASK_TITLE}" maxlength="180" autocomplete="off">
+                        <textarea name="description" rows="2" placeholder="{L_WSP_TASK_DESCRIPTION}"></textarea>
+                        <div class="wsp-task-form-row">
+                            <select name="priority">
+                                <option value="normal">{L_WSP_TASK_PRIORITY_NORMAL}</option>
+                                <option value="high">{L_WSP_TASK_PRIORITY_HIGH}</option>
+                                <option value="low">{L_WSP_TASK_PRIORITY_LOW}</option>
+                            </select>
+                            <select name="assigned_to">
+                                <option value="0">{L_WSP_TASK_UNASSIGNED}</option>
+                                {% for member in loops.project_members %}
+                                <option value="{{ member.USER_ID }}">{{ member.USERNAME }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-save">{L_WSP_ADD_TASK}</button>
+                    </form>
+                    {% endif %}
+
+                    <div class="wsp-task-board" id="wsp-task-board-list">
+                        {% for task in loops.project_tasks %}
+                        <div class="wsp-task-item wsp-task-{{ task.STATUS }}" data-task-id="{{ task.TASK_ID }}">
+                            <div class="wsp-task-main">
+                                <strong>{{ task.TITLE }}</strong>
+                                <span>
+                                    {% if task.ASSIGNED_USERNAME %}<i class="fa fa-user"></i> {{ task.ASSIGNED_USERNAME }}{% else %}<i class="fa fa-user-o"></i> {L_WSP_TASK_UNASSIGNED}{% endif %}
+                                    {% if task.FILE_NAME %} · <i class="fa fa-file-code-o"></i> {{ task.FILE_NAME }}{% endif %}
+                                </span>
+                            </div>
+                            <div class="wsp-task-actions">
+                                <select class="wsp-task-status">
+                                    <option value="todo"{% if task.STATUS == 'todo' %} selected{% endif %}>{L_WSP_TASK_STATUS_TODO}</option>
+                                    <option value="doing"{% if task.STATUS == 'doing' %} selected{% endif %}>{L_WSP_TASK_STATUS_DOING}</option>
+                                    <option value="done"{% if task.STATUS == 'done' %} selected{% endif %}>{L_WSP_TASK_STATUS_DONE}</option>
+                                </select>
+                                <span class="wsp-task-priority wsp-task-priority-{{ task.PRIORITY }}">{{ lang('WSP_TASK_PRIORITY_' ~ task.PRIORITY|upper)|default(task.PRIORITY) }}</span>
+                                {% if ACTIVE_CAN_EDIT or ACTIVE_CAN_MANAGE or ACTIVE_PROJECT_CAN_MANAGE %}
+                                <button type="button" class="wsp-delete-task" title="{L_WSP_DELETE_TASK}"><i class="fa fa-trash-o"></i></button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="wsp-muted">{L_WSP_NO_TASKS}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="wsp-team-card wsp-collab-tab-panel wsp-collab-panel-activity" data-wsp-collab-panel="activity" style="display:none">
+                    <div class="wsp-team-card-header">
+                        <div>
+                            <strong><i class="fa fa-history"></i> {L_WSP_ACTIVITY_TITLE}</strong>
+                            <span>{L_WSP_ACTIVITY_DESC}</span>
+                        </div>
+                    </div>
+                    <div class="wsp-activity-list" id="wsp-activity-list">
+                        {% for activity in loops.project_activity %}
+                        <div class="wsp-activity-item">
+                            <i class="fa fa-circle"></i>
+                            <span>
+                                <strong{% if activity.USER_COLOUR %} style="color:#{{ activity.USER_COLOUR }}"{% endif %}>{% if activity.USERNAME %}{{ activity.USERNAME }}{% else %}{L_WSP_SYSTEM_USER}{% endif %}</strong>
+                                {{ lang('WSP_ACTIVITY_' ~ activity.ACTION|upper)|default(activity.ACTION) }}
+                                {% if activity.OBJECT_PATH %}
+                                    <em>
+                                        {% if activity.OBJECT_PATH == 'pm_request' %}
+                                            {L_WSP_COLLAB_MODE_PM_REQUEST}
+                                        {% elseif activity.OBJECT_PATH == 'private' %}
+                                            {L_WSP_COLLAB_MODE_PRIVATE}
+                                        {% else %}
+                                            {{ activity.OBJECT_PATH }}
+                                        {% endif %}
+                                    </em>
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% else %}
+                        <p class="wsp-muted">{L_WSP_NO_ACTIVITY}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+
+            {% if ACTIVE_PROJECT_ID > 0 %}
+            <div class="wsp-review-panel wsp-collab-tab-panel wsp-collab-panel-review" id="wsp-review-panel" data-wsp-collab-panel="review" style="display:none">
+                <div class="wsp-review-header">
+                    <div>
+                        <strong><i class="fa fa-comments-o"></i> {L_WSP_REVIEW_PANEL}</strong>
+                        <span id="wsp-review-current-file">{L_WSP_SELECT_FILE_REVIEW}</span>
+                    </div>
+                    <button type="button" class="btn-icon" id="wsp-toggle-review-form" title="{L_WSP_ADD_COMMENT}">
+                        <i class="fa fa-commenting-o"></i>
+                    </button>
+                </div>
+
+                <div class="wsp-review-status" id="wsp-review-status">
+                    <span class="wsp-review-status-label">{L_WSP_REVIEW_STATUS_NONE}</span>
+                    <div class="wsp-review-status-actions">
+                        <button type="button" class="wsp-review-action" data-status="pending"><i class="fa fa-clock-o"></i> {L_WSP_REQUEST_REVIEW}</button>
+                        {% if ACTIVE_CAN_MANAGE %}
+                        <button type="button" class="wsp-review-action" data-status="approved"><i class="fa fa-check"></i> {L_WSP_APPROVE_FILE}</button>
+                        <button type="button" class="wsp-review-action" data-status="changes_requested"><i class="fa fa-exclamation-circle"></i> {L_WSP_REQUEST_CHANGES}</button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="wsp-file-lock-status" id="wsp-file-lock-status" style="display:none">
+                    <span class="wsp-file-lock-label"><i class="fa fa-unlock"></i> {L_WSP_FILE_UNLOCKED}</span>
+                </div>
+
+                <form id="wsp-review-form" class="wsp-review-form" style="display:none">
+                    <input type="number" min="0" step="1" name="line_number" placeholder="{L_WSP_COMMENT_LINE_PLACEHOLDER}">
+                    <textarea name="message" rows="2" placeholder="{L_WSP_COMMENT_PLACEHOLDER}"></textarea>
+                    <button type="submit" class="btn-save">{L_WSP_ADD_COMMENT}</button>
+                </form>
+
+                <div class="wsp-version-panel" id="wsp-version-panel">
+                    <div class="wsp-version-header">
+                        <strong><i class="fa fa-code-fork"></i> {L_WSP_VERSION_HISTORY}</strong>
+                        <button type="button" class="wsp-version-refresh" title="{L_WSP_REFRESH_VERSIONS}"><i class="fa fa-refresh"></i></button>
+                    </div>
+                    <div id="wsp-versions-list" class="wsp-versions-list">
+                        <p class="wsp-muted">{L_WSP_SELECT_FILE_REVIEW}</p>
+                    </div>
+                </div>
+
+                <div id="wsp-comments-list" class="wsp-comments-list">
+                    <p class="wsp-muted">{L_WSP_SELECT_FILE_REVIEW}</p>
+                </div>
+            </div>
+            {% endif %}
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{# MODAIS TECNICOS #}
+<div id="search-replace-modal" class="wsp-modal-overlay">
+    <div class="wsp-modal-box">
+        <h4><i class="fa fa-search"></i> {L_WSP_SEARCH_REPLACE}</h4>
+        <input type="hidden" id="search-project-id" value="">
+        <div class="modal-form-group">
+            <label>{L_WSP_SEARCH_TERM}:</label>
+            <input type="text" id="wsp-search-term" class="wsp-input-dark" placeholder="{L_WSP_SEARCH_PLACEHOLDER}">
+        </div>
+        <div class="modal-form-group">
+            <label>{L_WSP_REPLACE_TERM}:</label>
+            <input type="text" id="wsp-replace-term" class="wsp-input-dark" placeholder="{L_WSP_REPLACE_PLACEHOLDER}">
+        </div>
+        <div class="modal-buttons">
+            <button class="btn-main close-modal" onclick="jQuery('#search-replace-modal').fadeOut(200)">{L_WSP_CANCEL}</button>
+            <button id="exec-replace-btn" class="btn-save">{L_WSP_REPLACE_ALL}</button>
+        </div>
+    </div>
+</div>
+
+<div id="diff-modal" class="wsp-modal-overlay">
+    <div class="wsp-modal-box">
+        <h4><i class="fa fa-columns"></i> {L_WSP_DIFF_TITLE}</h4>
+        <div class="modal-form-group">
+            <label>{L_WSP_DIFF_SELECT_ORIG}:</label>
+            <select id="diff-original" class="wsp-input-dark"></select>
+        </div>
+        <div class="modal-form-group">
+            <label>{L_WSP_DIFF_SELECT_MOD}:</label>
+            <select id="diff-modified" class="wsp-input-dark"></select>
+        </div>
+        <div class="modal-buttons">
+            <button class="btn-main close-modal" onclick="jQuery('#diff-modal').fadeOut(200)">{L_WSP_CANCEL}</button>
+            <button id="generate-diff-btn" class="btn-save">{L_WSP_DIFF_GENERATE}</button>
+        </div>
+    </div>
+</div>
+
+
+<div id="release-validator-modal" class="wsp-modal-overlay">
+    <div class="wsp-modal-box wsp-validator-modal-box">
+        <div class="wsp-validator-modal-header">
+            <h4><i class="fa fa-check-square-o"></i> {L_WSP_VALIDATE_RELEASE}</h4>
+        </div>
+        <div class="wsp-validator-modal-scroll">
+            <div class="wsp-validator-toolbar">
+                <label for="wsp-validator-scope">{L_WSP_VALIDATOR_SCOPE_LABEL}</label>
+                <select id="wsp-validator-scope" class="inputbox">
+                    <option value="normal" selected>{L_WSP_VALIDATOR_SCOPE_NORMAL}</option>
+                    <option value="phpbb_ext_db">{L_WSP_VALIDATOR_SCOPE_PHPBB_EXT_DB}</option>
+                    <option value="full">{L_WSP_VALIDATOR_SCOPE_FULL}</option>
+                </select>
+            </div>
+            <div id="wsp-validator-summary" class="wsp-validator-summary">{L_WSP_VALIDATOR_WAITING}</div>
+            <div id="wsp-official-epv" class="wsp-validator-checklist" hidden></div>
+            <div id="wsp-validator-checklist" class="wsp-validator-checklist"></div>
+            <div id="wsp-validator-issues" class="wsp-validator-issues"></div>
+        </div>
+        <div class="modal-buttons wsp-validator-modal-actions">
+            <button class="btn-main close-modal" onclick="jQuery('#release-validator-modal').fadeOut(200)">{L_WSP_CLOSE}</button>
+            <button id="export-validation-report" class="btn-main" disabled><i class="fa fa-download"></i> {L_WSP_EXPORT_VALIDATION_REPORT}</button>
+            <button id="apply-release-fixes" class="btn-main wsp-validator-fix-btn" disabled><i class="fa fa-magic"></i> {L_WSP_VALIDATOR_APPLY_SAFE_FIXES}</button>
+            <button id="download-submission-package" class="btn-main" disabled><i class="fa fa-file-archive-o"></i> {L_WSP_DOWNLOAD_SUBMISSION_PACKAGE}</button>
+            <button id="run-release-validator" class="btn-save"><i class="fa fa-refresh"></i> {L_WSP_VALIDATE_RUN_AGAIN}</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * ? SSOT GLOBAL:
+ * O PHP (main controller) entrega tudo em WSP_VARS_JSON (um único objeto).
+ * Aqui apenas expomos window.wspVars + var wspVars (compat).
+ */
+(function () {
+    try {
+        window.wspVars = {{ WSP_VARS_JSON|default('{}')|raw }};
+    } catch (e) {
+        window.wspVars = null;
+    }
+
+    window.wspVars = window.wspVars || { basePath: '', allowedExt: '', activeProjectId: 0, lang: {} };
+    window.wspVars.lang = window.wspVars.lang || {};
+
+    // Compat legado
+    window.wspVars.WSP_CAN_MANAGE_ALL = window.wspVars.WSP_CAN_MANAGE_ALL || window.wspVars.canManageAll || 0;
+    window.wspVars.WSP_ACTIVE_LOCKED = window.wspVars.WSP_ACTIVE_LOCKED || window.wspVars.activeLocked || 0;
+    window.wspVars.WSP_ACTIVE_LOCKED_BY = window.wspVars.WSP_ACTIVE_LOCKED_BY || window.wspVars.activeLockedBy || 0;
+    window.wspVars.WSP_ACTIVE_LOCKED_TIME = window.wspVars.WSP_ACTIVE_LOCKED_TIME || window.wspVars.activeLockedTime || 0;
+
+    // eslint-disable-next-line no-var
+    var wspVars = window.wspVars;
+
+    function fixTitlesByAttr() {
+        var nodes = document.querySelectorAll('[data-wsp-i18n-title]');
+        if (!nodes || !nodes.length) return;
+
+        for (var i = 0; i < nodes.length; i++) {
+            var el = nodes[i];
+            var key = (el.getAttribute('data-wsp-i18n-title') || '').trim();
+            if (!key) continue;
+
+            var val = (wspVars && wspVars.lang && wspVars.lang[key]) ? wspVars.lang[key] : '';
+            if (!val) continue;
+
+            var t = (el.getAttribute('title') || '').trim();
+            if (!t || t === key || t.indexOf('WSP_') === 0) {
+                el.setAttribute('title', val);
+                el.setAttribute('aria-label', val);
+            }
+        }
+    }
+
+    function toggleLockButtons() {
+        var lockBtn = document.getElementById('lock-project');
+        var unlockBtn = document.getElementById('unlock-project');
+        if (!lockBtn || !unlockBtn) return;
+
+        var locked = (String(wspVars.activeLocked || wspVars.WSP_ACTIVE_LOCKED || 0) === '1');
+        lockBtn.style.display = locked ? 'none' : '';
+        unlockBtn.style.display = locked ? '' : 'none';
+    }
+
+    // expõe para o módulo projects chamar após lock/unlock
+    window.WSP_toggleLockButtons = toggleLockButtons;
+
+    // ? controla o botão de download por permissão real (activeCanDownload)
+    function toggleDownloadButton() {
+        var btn = document.getElementById('download-project');
+        var exportBtn = document.getElementById('export-collab-project');
+
+        var pid = parseInt(String(wspVars.activeProjectId || 0), 10) || 0;
+        var canDownload = (typeof wspVars.activeCanDownload !== 'undefined') ? wspVars.activeCanDownload : 0;
+        var ok = (pid > 0) && (String(canDownload || 0) === '1');
+
+        if (btn) btn.style.display = ok ? '' : 'none';
+        if (exportBtn) exportBtn.style.display = ok ? '' : 'none';
+    }
+
+    function buildProjectUrl(templateUrl, pid) {
+        var u = String(templateUrl || '').trim();
+        if (!u) return '';
+        if (u.indexOf('project_id=0') !== -1) {
+            return u.replace('project_id=0', 'project_id=' + pid);
+        }
+        return u.replace(/\/0(\b|\/)?/, '/' + pid);
+    }
+
+    function bindDownload() {
+        var btn = document.getElementById('download-project');
+        var exportBtn = document.getElementById('export-collab-project');
+
+        function bindButton(target, urlKey) {
+            if (!target) return;
+            target.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                var pid = parseInt(String(wspVars.activeProjectId || 0), 10) || 0;
+                if (pid <= 0) return;
+
+                var canDownload = (String(wspVars.activeCanDownload || 0) === '1');
+                if (!canDownload) return;
+
+                var u = buildProjectUrl(wspVars[urlKey], pid);
+                if (!u) return;
+                window.location.href = u;
+            });
+        }
+
+        bindButton(btn, 'downloadUrl');
+        bindButton(exportBtn, 'exportCollabUrl');
+    }
+
+
+
+    function bindCollaborationPanel() {
+        if (!window.jQuery || !window.wspVars) return;
+        var $ = window.jQuery;
+        var panel = $('#wsp-team-panel');
+        if (!panel.length) return;
+
+        $('.wsp-open-member-form').on('click', function (e) {
+            e.preventDefault();
+            $('#wsp-add-member-form').slideToggle(120);
+        });
+
+        function post(url, data, ok) {
+            url = String(url || '');
+            if (!url) return;
+            data = data || {};
+            data.project_id = parseInt(String(window.wspVars.activeProjectId || 0), 10) || 0;
+            data._nocache = Date.now();
+
+            $.post(url, WSP.withCsrf(data), function (r) {
+                if (r && r.success) {
+                    if (ok) ok(r);
+                    return;
+                }
+                var msg = (r && r.error) ? r.error : (window.wspVars.lang.WSP_ERROR_CRITICAL || 'Erro.');
+                if (window.WSP && WSP.ui && WSP.ui.notify) WSP.ui.notify(msg, 'error');
+                else alert(msg);
+            }, 'json').fail(function () {
+                var msg = window.wspVars.lang.WSP_ERROR_CRITICAL || 'Erro.';
+                if (window.WSP && WSP.ui && WSP.ui.notify) WSP.ui.notify(msg, 'error');
+                else alert(msg);
+            });
+        }
+
+        $('#wsp-add-member-form').on('submit', function (e) {
+            e.preventDefault();
+            var username = $.trim($(this).find('[name="username"]').val() || '');
+            var role = $(this).find('[name="role"]').val() || 'viewer';
+            if (!username) return;
+            post(window.wspVars.addMemberUrl, { username: username, role: role }, function () {
+                window.location.reload();
+            });
+        });
+
+        $('.wsp-member-role').on('change', function () {
+            var row = $(this).closest('.wsp-member-item');
+            post(window.wspVars.updateMemberUrl, { user_id: row.data('user-id'), role: $(this).val() }, function () {
+                if (window.WSP && WSP.ui && WSP.ui.notify) WSP.ui.notify(window.wspVars.lang.WSP_MEMBER_UPDATED || 'Membro atualizado.', 'success');
+            });
+        });
+
+        $('.wsp-remove-member').on('click', function (e) {
+            e.preventDefault();
+            if (!confirm(window.wspVars.lang.WSP_CONFIRM_REMOVE_MEMBER || 'Remover membro?')) return;
+            var row = $(this).closest('.wsp-member-item');
+            post(window.wspVars.removeMemberUrl, { user_id: row.data('user-id') }, function () {
+                row.fadeOut(120, function () { row.remove(); });
+            });
+        });
+
+        $('.wsp-open-task-form').on('click', function (e) {
+            e.preventDefault();
+            $('#wsp-add-task-form').slideToggle(120);
+        });
+
+        $('#wsp-add-task-form').on('submit', function (e) {
+            e.preventDefault();
+            var form = $(this);
+            var title = $.trim(form.find('[name="title"]').val() || '');
+            if (!title) return;
+
+            post(window.wspVars.addTaskUrl, {
+                title: title,
+                description: form.find('[name="description"]').val() || '',
+                priority: form.find('[name="priority"]').val() || 'normal',
+                assigned_to: form.find('[name="assigned_to"]').val() || 0,
+                file_id: (window.WSP && WSP.state && WSP.state.currentFileId) ? WSP.state.currentFileId : 0
+            }, function () {
+                window.location.reload();
+            });
+        });
+
+        $('.wsp-task-status').on('change', function () {
+            var row = $(this).closest('.wsp-task-item');
+            post(window.wspVars.updateTaskUrl, {
+                task_id: row.data('task-id'),
+                mode: 'status',
+                status: $(this).val()
+            }, function () {
+                if (window.WSP && WSP.ui && WSP.ui.notify) WSP.ui.notify(window.wspVars.lang.WSP_TASK_UPDATED || 'Tarefa atualizada.', 'success');
+            });
+        });
+
+        $('.wsp-delete-task').on('click', function (e) {
+            e.preventDefault();
+            if (!confirm(window.wspVars.lang.WSP_CONFIRM_DELETE_TASK || 'Excluir tarefa?')) return;
+            var row = $(this).closest('.wsp-task-item');
+            post(window.wspVars.deleteTaskUrl, { task_id: row.data('task-id') }, function () {
+                row.fadeOut(120, function () { row.remove(); });
+            });
+        });
+    }
+
+    function bindCollaborationDock() {
+        var dock = document.getElementById('wsp-collab-panels');
+        var toggle = document.getElementById('wsp-toggle-collab');
+        var closeBtn = document.getElementById('wsp-collapse-collab');
+        var focusBtn = document.getElementById('wsp-editor-focus-mode');
+        var container = document.getElementById('wsp-main-container');
+        if (!dock) return;
+
+        function refreshEditor() {
+            window.setTimeout(function () {
+                try {
+                    if (window.WSP && WSP.editor && WSP.editor.editor && WSP.editor.editor.resize) {
+                        WSP.editor.editor.resize(true);
+                    } else if (window.ace) {
+                        var ed = window.ace.edit('editor');
+                        if (ed && ed.resize) ed.resize(true);
+                    }
+                } catch (e) {}
+            }, 80);
+        }
+
+        function setOpen(open) {
+            dock.classList.toggle('is-collapsed', !open);
+            var editorArea = dock.closest ? dock.closest('.workspace-editor-area') : null;
+            if (editorArea) {
+                editorArea.classList.toggle('collab-open', open);
+            }
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                toggle.classList.toggle('is-active', open);
+                toggle.title = open ? (wspVars.lang.WSP_HIDE_COLLAB_PANEL || 'Ocultar colaboração') : (wspVars.lang.WSP_SHOW_COLLAB_PANEL || 'Mostrar colaboração');
+            }
+            refreshEditor();
+        }
+
+        function setTab(tab) {
+            tab = tab || 'team';
+            var tabs = dock.querySelectorAll('[data-wsp-collab-tab]');
+            var panels = dock.querySelectorAll('[data-wsp-collab-panel]');
+            for (var i = 0; i < tabs.length; i++) {
+                var active = tabs[i].getAttribute('data-wsp-collab-tab') === tab;
+                tabs[i].classList.toggle('is-active', active);
+                tabs[i].setAttribute('aria-selected', active ? 'true' : 'false');
+            }
+            for (var j = 0; j < panels.length; j++) {
+                panels[j].style.display = (panels[j].getAttribute('data-wsp-collab-panel') === tab) ? '' : 'none';
+            }
+            setOpen(true);
+        }
+
+        if (toggle) {
+            toggle.addEventListener('click', function (e) {
+                e.preventDefault();
+                setOpen(dock.classList.contains('is-collapsed'));
+            });
+        }
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                setOpen(false);
+            });
+        }
+        dock.addEventListener('click', function (e) {
+            var tabBtn = e.target.closest ? e.target.closest('[data-wsp-collab-tab]') : null;
+            if (!tabBtn) return;
+            e.preventDefault();
+            setTab(tabBtn.getAttribute('data-wsp-collab-tab') || 'team');
+        });
+        if (focusBtn && container) {
+            focusBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                var active = !container.classList.contains('editor-focus-mode');
+                container.classList.toggle('editor-focus-mode', active);
+                focusBtn.classList.toggle('is-active', active);
+                focusBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+                var icon = focusBtn.querySelector('i');
+                if (icon) icon.className = active ? 'fa fa-compress' : 'fa fa-arrows-alt';
+                refreshEditor();
+            });
+        }
+
+        setOpen(false);
+        setTab('team');
+        setOpen(false);
+        window.WSP_openCollabTab = setTab;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        fixTitlesByAttr();
+        toggleLockButtons();
+        toggleDownloadButton();
+        bindDownload();
+        bindCollaborationPanel();
+        bindCollaborationDock();
+    });
+
+    if (window.jQuery) {
+        jQuery(document).on('wsp:lockChanged', function () {
+            toggleLockButtons();
+            toggleDownloadButton();
+        });
+    }
+})();
+</script>
+
+{# CARREGAMENTO DE SCRIPTS #}
+{% INCLUDEJS '@mundophpbb_workspace/ace/ace.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/ace/ext-language_tools.js' %}
+
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_core.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_ui.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_tree.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_files.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_projects.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_upload.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_tools.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_notifications.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_toolbar.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_init.js' %}
+
+{% INCLUDE 'overall_footer.html' %}
