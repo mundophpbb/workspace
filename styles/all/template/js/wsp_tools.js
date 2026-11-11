@@ -80,7 +80,7 @@ WSP.tools = {
 		if (window.WSP && typeof WSP.notifyLocked === 'function') return WSP.notifyLocked();
 
 		var msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_PROJECT_LOCKED_MSG') : '';
-		if (!msg || msg === '[WSP_PROJECT_LOCKED_MSG]') msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_ERR_PROJECT_LOCKED') : 'Projeto trancado.';
+		if (!msg || msg === '[WSP_PROJECT_LOCKED_MSG]') msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_ERR_PROJECT_LOCKED') : 'Project locked.';
 		if (WSP && WSP.ui && typeof WSP.ui.notify === 'function') WSP.ui.notify(msg, "warning");
 	},
 
@@ -185,7 +185,7 @@ WSP.tools = {
 				if (!epv.available) {
 					eh.push('<div class="wsp-epv-install"><strong>' + this._escape(WSP.lang('WSP_EPV_SETUP_TITLE')) + '</strong><small>' + this._escape(WSP.lang('WSP_EPV_SETUP_DESCRIPTION')) + '</small>');
 					var setupChecks = setup.checks || {};
-					var setupLabels = { admin: 'WSP_EPV_SETUP_ADMIN', proc_open: 'WSP_EPV_SETUP_PROC_OPEN', php_cli: 'WSP_EPV_SETUP_PHP_CLI', zip: 'WSP_EPV_SETUP_ZIP', download: 'WSP_EPV_SETUP_DOWNLOAD', writable: 'WSP_EPV_SETUP_WRITABLE' };
+					var setupLabels = { proc_open: 'WSP_EPV_SETUP_PROC_OPEN', php_cli: 'WSP_EPV_SETUP_PHP_CLI' };
 					eh.push('<div class="wsp-epv-setup-checks">');
 					for (var setupKey in setupLabels) {
 						if (!Object.prototype.hasOwnProperty.call(setupLabels, setupKey)) continue;
@@ -193,12 +193,8 @@ WSP.tools = {
 						eh.push('<span class="' + (setupOk ? 'is-pass' : 'is-error') + '"><i class="fa ' + (setupOk ? 'fa-check' : 'fa-times') + '"></i> ' + this._escape(WSP.lang(setupLabels[setupKey])) + ': ' + this._escape(WSP.lang(setupOk ? 'WSP_EPV_SETUP_OK' : 'WSP_EPV_SETUP_MISSING')) + '</span>');
 					}
 					eh.push('</div><small>' + this._escape(WSP.lang('WSP_EPV_SETUP_SOURCE')) + '</small>');
-					if (epv.can_install && window.wspVars && window.wspVars.epvInstallUrl) {
-						eh.push('<button type="button" class="btn-save wsp-epv-install-btn"><i class="fa fa-download"></i> ' + this._escape(WSP.lang('WSP_EPV_INSTALL_BUTTON')) + '</button><small>' + this._escape(WSP.lang('WSP_EPV_SETUP_RETRY')) + '</small>');
-					}
+					eh.push('<small>' + this._escape(WSP.lang('WSP_EPV_INSTALL_MANUAL_HINT')) + '</small>');
 					eh.push('</div>');
-				} else if (epv.managed && epv.can_install && window.wspVars && window.wspVars.epvInstallUrl) {
-					eh.push('<div class="wsp-epv-install wsp-epv-installed-actions"><button type="button" class="btn-main wsp-epv-install-btn"><i class="fa fa-refresh"></i> ' + this._escape(WSP.lang('WSP_EPV_UPDATE_BUTTON')) + '</button></div>');
 				}
 				var epvMessages = epv.messages || [];
 				for (var em = 0; em < epvMessages.length; em++) {
@@ -269,37 +265,39 @@ WSP.tools = {
 		var checklist = r.checklist || [];
 		var issues = r.issues || [];
 		var lines = [];
+		var L = function (key, repl) { return WSP.lang(key, repl); };
 		var projectName = (window.wspVars && (wspVars.activeProjectName || wspVars.projectName)) || '';
 		var projectId = WSP.activeProjectId || (window.wspVars && window.wspVars.activeProjectId) || '';
 		var now = new Date();
 		var stamp = now.toISOString ? now.toISOString() : String(now);
+		var title = L('WSP_REPORT_TITLE');
 
-		lines.push('phpBB Workspace - Relatorio de validacao');
-		lines.push('=======================================');
-		lines.push(this._reportLine('Data', stamp));
-		lines.push(this._reportLine('Projeto', projectName || ('#' + projectId)));
-		lines.push(this._reportLine('Escopo', summary.scope || ''));
-		lines.push(this._reportLine('Pronto para envio', summary.ready ? 'sim' : 'nao'));
-		lines.push(this._reportLine('Pontuacao', (summary.score || 0) + '/100'));
-		lines.push(this._reportLine('Erros', summary.errors || 0));
-		lines.push(this._reportLine('Avisos', summary.warnings || 0));
-		lines.push(this._reportLine('Informacoes', summary.notices || 0));
-		lines.push(this._reportLine('Checks', (summary.passed || 0) + '/' + (summary.checks || 0)));
-		lines.push(this._reportLine('Arquivos', summary.files || 0));
+		lines.push(title);
+		lines.push(new Array(title.length + 1).join('='));
+		lines.push(this._reportLine(L('WSP_REPORT_DATE'), stamp));
+		lines.push(this._reportLine(L('WSP_REPORT_PROJECT'), projectName || ('#' + projectId)));
+		lines.push(this._reportLine(L('WSP_REPORT_SCOPE'), summary.scope || ''));
+		lines.push(this._reportLine(L('WSP_REPORT_READY'), summary.ready ? (L('WSP_REPORT_YES') + ((summary.epv_required === false) ? ' ' + L('WSP_REPORT_EPV_NOT_RUN') : '')) : L('WSP_REPORT_NO')));
+		lines.push(this._reportLine(L('WSP_REPORT_SCORE'), (summary.score || 0) + '/100'));
+		lines.push(this._reportLine(L('WSP_REPORT_ERRORS'), summary.errors || 0));
+		lines.push(this._reportLine(L('WSP_REPORT_WARNINGS'), summary.warnings || 0));
+		lines.push(this._reportLine(L('WSP_REPORT_NOTICES'), summary.notices || 0));
+		lines.push(this._reportLine(L('WSP_REPORT_CHECKS'), (summary.passed || 0) + '/' + (summary.checks || 0)));
+		lines.push(this._reportLine(L('WSP_REPORT_FILES'), summary.files || 0));
 		lines.push('');
-		lines.push('EPV oficial do phpBB');
-		lines.push('--------------------');
+		lines.push(L('WSP_REPORT_EPV_TITLE'));
+		lines.push(new Array(L('WSP_REPORT_EPV_TITLE').length + 1).join('-'));
 		if (!epv.required) {
-			lines.push('Nao exigido neste escopo.');
+			lines.push(L('WSP_REPORT_EPV_NOT_REQUIRED'));
 		} else {
-			lines.push(this._reportLine('Status', epv.status || 'unavailable'));
-			lines.push(this._reportLine('Versao', epv.version || ''));
-			lines.push(this._reportLine('Resumo', epv.summary || ''));
+			lines.push(this._reportLine(L('WSP_REPORT_STATUS'), epv.status || 'unavailable'));
+			lines.push(this._reportLine(L('WSP_REPORT_VERSION'), epv.version || ''));
+			lines.push(this._reportLine(L('WSP_REPORT_SUMMARY'), epv.summary || ''));
 			var counts = epv.counts || {};
-			lines.push(this._reportLine('Fatais', counts.fatal || 0));
-			lines.push(this._reportLine('Erros EPV', counts.errors || 0));
-			lines.push(this._reportLine('Avisos EPV', counts.warnings || 0));
-			lines.push(this._reportLine('Informacoes EPV', counts.notices || 0));
+			lines.push(this._reportLine(L('WSP_REPORT_EPV_FATAL'), counts.fatal || 0));
+			lines.push(this._reportLine(L('WSP_REPORT_EPV_ERRORS'), counts.errors || 0));
+			lines.push(this._reportLine(L('WSP_REPORT_EPV_WARNINGS'), counts.warnings || 0));
+			lines.push(this._reportLine(L('WSP_REPORT_EPV_NOTICES'), counts.notices || 0));
 			var epvMessages = epv.messages || [];
 			for (var em = 0; em < epvMessages.length; em++) {
 				var epi = epvMessages[em] || {};
@@ -307,15 +305,15 @@ WSP.tools = {
 			}
 			if (epv.raw_output) {
 				lines.push('');
-				lines.push('Saida bruta do EPV:');
+				lines.push(L('WSP_REPORT_EPV_RAW'));
 				lines.push(String(epv.raw_output));
 			}
 		}
 		lines.push('');
-		lines.push('Checklist');
-		lines.push('---------');
+		lines.push(L('WSP_REPORT_CHECKLIST'));
+		lines.push(new Array(L('WSP_REPORT_CHECKLIST').length + 1).join('-'));
 		if (!checklist.length) {
-			lines.push('(vazio)');
+			lines.push(L('WSP_REPORT_EMPTY'));
 		} else {
 			for (var i = 0; i < checklist.length; i++) {
 				var it = checklist[i] || {};
@@ -323,21 +321,21 @@ WSP.tools = {
 			}
 		}
 		lines.push('');
-		lines.push('Ocorrencias');
-		lines.push('-----------');
+		lines.push(L('WSP_REPORT_FINDINGS'));
+		lines.push(new Array(L('WSP_REPORT_FINDINGS').length + 1).join('-'));
 		if (!issues.length) {
-			lines.push('(nenhuma)');
+			lines.push(L('WSP_REPORT_NONE'));
 		} else {
 			for (var j = 0; j < issues.length; j++) {
 				var issue = issues[j] || {};
 				var loc = [];
 				if (issue.file) loc.push(issue.file);
-				if (issue.line) loc.push('linha ' + issue.line);
+				if (issue.line) loc.push(L('WSP_REPORT_LINE', { '%s': issue.line }));
 				if (issue.rule) loc.push(issue.rule);
 				lines.push((j + 1) + '. [' + (issue.severity || '') + '] ' + (issue.message || ''));
 				if (loc.length) lines.push('   ' + loc.join(' · '));
-				if (issue.excerpt) lines.push('   Trecho: ' + issue.excerpt);
-				if (issue.action) lines.push('   Acao: ' + issue.action);
+				if (issue.excerpt) lines.push('   ' + L('WSP_REPORT_EXCERPT') + ' ' + issue.excerpt);
+				if (issue.action) lines.push('   ' + L('WSP_REPORT_ACTION') + ' ' + issue.action);
 			}
 		}
 		lines.push('');
@@ -578,23 +576,6 @@ WSP.tools = {
 		$body.on('click.wsp_tools', '#apply-release-fixes', function (e) {
 			e.preventDefault();
 			self.applyValidationFixes($);
-		});
-
-		$body.on('click.wsp_tools', '.wsp-epv-install-btn', function (e) {
-			e.preventDefault();
-			if (!window.wspVars || !window.wspVars.epvInstallUrl) return WSP.ui.notify(WSP.lang('WSP_TOOLS_SEARCH_INTERFACE_ERROR'), 'error');
-			var $btn = jQuery(this);
-			WSP.ui.confirm(WSP.lang('WSP_EPV_INSTALL_CONFIRM'), function () {
-				$btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> ' + self._escape(WSP.lang('WSP_EPV_INSTALLING')));
-				WSP.ui.notify(WSP.lang('WSP_EPV_INSTALLING'), 'info');
-				self._postJson($, window.wspVars.epvInstallUrl, {}, function (r) {
-					WSP.ui.notify((r && r.message) ? r.message : WSP.lang('WSP_EPV_INSTALL_SUCCESS'), 'success');
-					self.runReleaseValidation($);
-				}, function (r) {
-					WSP.ui.notify((r && r.error) ? r.error : WSP.lang('WSP_ERROR_CRITICAL'), 'error');
-					$btn.prop('disabled', false);
-				});
-			});
 		});
 
 		$body.on('click.wsp_tools', '#export-validation-report', function (e) {

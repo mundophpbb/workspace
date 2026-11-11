@@ -491,7 +491,7 @@
                                 <strong>{{ task.TITLE }}</strong>
                                 <span>
                                     {% if task.ASSIGNED_USERNAME %}<i class="fa fa-user"></i> {{ task.ASSIGNED_USERNAME }}{% else %}<i class="fa fa-user-o"></i> {L_WSP_TASK_UNASSIGNED}{% endif %}
-                                    {% if task.FILE_NAME %} · <i class="fa fa-file-code-o"></i> {{ task.FILE_NAME }}{% endif %}
+                                    {% if task.FILE_NAME %} · <i class="fa fa-file-code-o"></i> {{ task.FILE_NAME|e('html') }}{% endif %}
                                 </span>
                             </div>
                             <div class="wsp-task-actions">
@@ -825,13 +825,13 @@
         $('.wsp-member-role').on('change', function () {
             var row = $(this).closest('.wsp-member-item');
             post(window.wspVars.updateMemberUrl, { user_id: row.data('user-id'), role: $(this).val() }, function () {
-                if (window.WSP && WSP.ui && WSP.ui.notify) WSP.ui.notify(window.wspVars.lang.WSP_MEMBER_UPDATED || 'Membro atualizado.', 'success');
+                if (window.WSP && WSP.ui && WSP.ui.notify) WSP.ui.notify(window.wspVars.lang.WSP_MEMBER_UPDATED || 'Member updated.', 'success');
             });
         });
 
         $('.wsp-remove-member').on('click', function (e) {
             e.preventDefault();
-            if (!confirm(window.wspVars.lang.WSP_CONFIRM_REMOVE_MEMBER || 'Remover membro?')) return;
+            if (!confirm(window.wspVars.lang.WSP_CONFIRM_REMOVE_MEMBER || 'Remove member?')) return;
             var row = $(this).closest('.wsp-member-item');
             post(window.wspVars.removeMemberUrl, { user_id: row.data('user-id') }, function () {
                 row.fadeOut(120, function () { row.remove(); });
@@ -867,13 +867,13 @@
                 mode: 'status',
                 status: $(this).val()
             }, function () {
-                if (window.WSP && WSP.ui && WSP.ui.notify) WSP.ui.notify(window.wspVars.lang.WSP_TASK_UPDATED || 'Tarefa atualizada.', 'success');
+                if (window.WSP && WSP.ui && WSP.ui.notify) WSP.ui.notify(window.wspVars.lang.WSP_TASK_UPDATED || 'Task updated.', 'success');
             });
         });
 
         $('.wsp-delete-task').on('click', function (e) {
             e.preventDefault();
-            if (!confirm(window.wspVars.lang.WSP_CONFIRM_DELETE_TASK || 'Excluir tarefa?')) return;
+            if (!confirm(window.wspVars.lang.WSP_CONFIRM_DELETE_TASK || 'Delete task?')) return;
             var row = $(this).closest('.wsp-task-item');
             post(window.wspVars.deleteTaskUrl, { task_id: row.data('task-id') }, function () {
                 row.fadeOut(120, function () { row.remove(); });
@@ -911,7 +911,7 @@
             if (toggle) {
                 toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
                 toggle.classList.toggle('is-active', open);
-                toggle.title = open ? (wspVars.lang.WSP_HIDE_COLLAB_PANEL || 'Ocultar colaboração') : (wspVars.lang.WSP_SHOW_COLLAB_PANEL || 'Mostrar colaboração');
+                toggle.title = open ? (wspVars.lang.WSP_HIDE_COLLAB_PANEL || 'Hide collaboration') : (wspVars.lang.WSP_SHOW_COLLAB_PANEL || 'Show collaboration');
             }
             refreshEditor();
         }

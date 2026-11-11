@@ -55,7 +55,7 @@ WSP.projects = {
 
 		var msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_PROJECT_LOCKED_MSG') : '';
 		if (!msg || msg === '[WSP_PROJECT_LOCKED_MSG]') {
-			msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_ERR_PROJECT_LOCKED') : 'Projeto trancado.';
+			msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_ERR_PROJECT_LOCKED') : 'Project locked.';
 		}
 		if (WSP && WSP.ui && typeof WSP.ui.notify === 'function') {
 			WSP.ui.notify(msg, "warning");
@@ -67,7 +67,7 @@ WSP.projects = {
 	 */
 	_notifyDenied: function () {
 		var msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_ERR_PERMISSION') : '';
-		if (!msg || msg === '[WSP_ERR_PERMISSION]') msg = 'Sem permissão.';
+		if (!msg || msg === '[WSP_ERR_PERMISSION]') msg = 'Permission denied.';
 		if (WSP && WSP.ui && typeof WSP.ui.notify === 'function') {
 			WSP.ui.notify(msg, 'error');
 		}

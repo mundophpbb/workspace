@@ -277,7 +277,7 @@
 						var body = String(txt || '');
 						var preview = body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220);
 						if (window.WSP && WSP.ui && typeof WSP.ui.notify === 'function') {
-							WSP.ui.notify('AJAX retornou resposta NÃO-JSON (HTTP ' + (xhr ? xhr.status : '') + '): ' + preview, 'error');
+							WSP.ui.notify(WSP.lang('WSP_ERR_AJAX_NON_JSON', { '%1$s': (xhr ? xhr.status : ''), '%2$s': preview }), 'error');
 						}
 						return;
 					}
@@ -506,7 +506,7 @@
 				msg = this.lang('WSP_ERR_PROJECT_LOCKED');
 			}
 			if (window.WSP && WSP.ui && typeof WSP.ui.notify === 'function') {
-				WSP.ui.notify(msg || 'Projeto trancado.', "warning");
+				WSP.ui.notify(msg || 'Project locked.', "warning");
 			}
 		},
 
@@ -562,6 +562,36 @@
 		},
 
 		/**
+		 * Editor options from window.wspVars.editor, validated again here so a
+		 * missing or malformed value can never break the editor.
+		 */
+		getEditorSettings: function () {
+			var src = (window.wspVars && window.wspVars.editor) || {};
+			var themeOk = typeof src.theme === 'string' && /^[a-z0-9_]+$/.test(src.theme);
+			var kbOk = ['default', 'vscode', 'sublime', 'vim', 'emacs'].indexOf(src.keybinding) !== -1;
+			var num = function (v, min, max, def) {
+				v = parseInt(v, 10);
+				return (isNaN(v) || v < min || v > max) ? def : v;
+			};
+			var bool = function (v, def) {
+				return (typeof v === 'boolean') ? v : def;
+			};
+
+			return {
+				theme: themeOk ? src.theme : 'github_dark',
+				keybinding: kbOk ? src.keybinding : 'default',
+				fontSize: num(src.fontSize, 10, 24, 14),
+				tabSize: num(src.tabSize, 2, 8, 4),
+				softTabs: bool(src.softTabs, true),
+				wrap: bool(src.wrap, true),
+				autocomplete: bool(src.autocomplete, true),
+				printMargin: bool(src.printMargin, false),
+				indentGuides: bool(src.indentGuides, true),
+				highlightLine: bool(src.highlightLine, true)
+			};
+		},
+
+		/**
 		 * Inicializa o ACE editor
 		 */
 		initEditor: function () {
@@ -585,23 +615,30 @@
 			}
 
 			this.editor = ace.edit("editor");
-			this.editor.setTheme("ace/theme/github_dark");
+
+			// Board-wide editor settings chosen in the ACP (Workspace IDE > Editor settings).
+			var cfg = this.getEditorSettings();
+
+			this.editor.setTheme("ace/theme/" + cfg.theme);
+			if (cfg.keybinding !== 'default') {
+				this.editor.setKeyboardHandler("ace/keyboard/" + cfg.keybinding);
+			}
 
 			this.editor.setOptions({
-				fontSize: "14px",
+				fontSize: cfg.fontSize + "px",
 				fontFamily: "Consolas, 'Courier New', monospace",
-				showPrintMargin: false,
-				displayIndentGuides: true,
-				highlightActiveLine: true,
+				showPrintMargin: cfg.printMargin,
+				displayIndentGuides: cfg.indentGuides,
+				highlightActiveLine: cfg.highlightLine,
 				behavioursEnabled: true,
-				wrap: true,
-				tabSize: 4,
-				useSoftTabs: true,
+				wrap: cfg.wrap,
+				tabSize: cfg.tabSize,
+				useSoftTabs: cfg.softTabs,
 				scrollPastEnd: 0.5,
 				readOnly: true,
-				enableBasicAutocompletion: true,
-				enableLiveAutocompletion: true,
-				enableSnippets: true
+				enableBasicAutocompletion: cfg.autocomplete,
+				enableLiveAutocompletion: cfg.autocomplete,
+				enableSnippets: cfg.autocomplete
 			});
 
 			this.editor.session.setUseWorker(false);

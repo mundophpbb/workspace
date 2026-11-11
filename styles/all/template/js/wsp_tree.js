@@ -88,7 +88,7 @@ WSP.tree = {
 	_lockedMsg: function () {
 		var msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_PROJECT_LOCKED_MSG') : '';
 		if (!msg || msg === '[WSP_PROJECT_LOCKED_MSG]') {
-			msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_ERR_PROJECT_LOCKED') : 'Projeto trancado.';
+			msg = (typeof WSP.lang === 'function') ? WSP.lang('WSP_ERR_PROJECT_LOCKED') : 'Project locked.';
 		}
 		return msg;
 	},
