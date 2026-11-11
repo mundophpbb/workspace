@@ -1,10 +1,10 @@
 {
 	"name": "mundophpbb/workspace",
 	"type": "phpbb-extension",
-	"description": "phpBB Workspace IDE with Extension Database preflight, automatic official phpBB EPV setup/execution, safe fixes and release packaging.",
+	"description": "Collaborative IDE for building phpBB extensions in the browser: shared projects, versions, reviews and tasks, plus an optional pre-validation with the official phpBB EPV to speed up the extension review.",
 	"homepage": "https://github.com/mundophpbb/workspace",
-	"version": "1.7.5",
-	"time": "2026-09-05",
+	"version": "1.9.0",
+	"time": "2026-11-11",
 	"license": "GPL-2.0-only",
 	"authors": [
 		{
