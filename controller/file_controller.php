@@ -222,6 +222,164 @@ class file_controller extends base_controller
 	}
 
 	/**
+	 * Imports a whole ZIP archive into the project with a single request.
+	 *
+	 * Nothing is extracted to the disk: the archive is read in memory by
+	 * zip_importer, paths are sanitised and every file goes through the same
+	 * extension and size rules as a normal upload.
+	 */
+	public function upload_zip()
+	{
+		if ($r = $this->ensure_workspace_access()) { return $r; }
+
+		$project_id = (int) $this->request->variable('project_id', 0);
+
+		$access = $this->assert_project_access($project_id, 'upload');
+		if (!$access['ok'])
+		{
+			return $this->json_error_msg($access['error']);
+		}
+
+		if (!class_exists('\ZipArchive'))
+		{
+			return $this->json_error('WSP_ERR_ZIP_NOT_AVAILABLE');
+		}
+
+		$file = $this->request->file('zip_file');
+		if (empty($file) || !isset($file['error']) || (int) $file['error'] === UPLOAD_ERR_NO_FILE)
+		{
+			return $this->json_error('WSP_ZIP_FILE_REQUIRED');
+		}
+		if ((int) $file['error'] === UPLOAD_ERR_INI_SIZE || (int) $file['error'] === UPLOAD_ERR_FORM_SIZE)
+		{
+			return $this->json_error('WSP_ERR_ZIP_PHP_LIMIT', [(string) ini_get('upload_max_filesize')]);
+		}
+		if ((int) $file['error'] !== UPLOAD_ERR_OK || empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name']))
+		{
+			return $this->json_error('WSP_ERR_ZIP_UPLOAD');
+		}
+
+		$importer = new \mundophpbb\workspace\service\zip_importer();
+		try
+		{
+			$result = $importer->read($file['tmp_name'], [$this, 'zip_entry_allowed'], $this->max_file_bytes());
+		}
+		catch (\RuntimeException $e)
+		{
+			$keys = [
+				'not_zip'  => 'WSP_ERR_ZIP_INVALID',
+				'empty'    => 'WSP_ERR_ZIP_EMPTY',
+				'too_many' => 'WSP_ERR_ZIP_TOO_MANY',
+				'too_big'  => 'WSP_ERR_ZIP_TOO_BIG',
+			];
+			return $this->json_error(isset($keys[$e->getMessage()]) ? $keys[$e->getMessage()] : 'WSP_ERR_ZIP_INVALID');
+		}
+
+		$uid = (int) $this->user->data['user_id'];
+		$created = 0;
+		$updated = 0;
+		$unchanged = 0;
+		$failed = [];
+
+		foreach ($result['files'] as $path => $content)
+		{
+			$path = $this->sanitize_rel_path($path);
+			if ($path === '')
+			{
+				continue;
+			}
+
+			$status = $this->store_imported_file($project_id, $path, (string) $content, $uid);
+			if ($status === 'created') { $created++; }
+			else if ($status === 'updated') { $updated++; }
+			else if ($status === 'unchanged') { $unchanged++; }
+			else { $failed[] = [$path, 'failed']; }
+		}
+
+		if ($created || $updated)
+		{
+			$this->log_to_changelog($project_id, $this->user->lang('WSP_LOG_ZIP_IMPORT', $created, $updated));
+			$this->project_repo->log_activity($project_id, $uid, 'zip_imported', 'project', '', ['created' => $created, 'updated' => $updated]);
+		}
+
+		return $this->json_success([
+			'created'   => $created,
+			'updated'   => $updated,
+			'unchanged' => $unchanged,
+			'skipped'   => $result['skipped'],
+			'failed'    => $failed,
+		]);
+	}
+
+	/**
+	 * Callback for zip_importer (must be public): is this path an accepted file type?
+	 */
+	public function zip_entry_allowed($path)
+	{
+		return $this->is_placeholder_path($path) || $this->is_extension_allowed($path);
+	}
+
+	/**
+	 * Stores one imported file (insert or update with version history), without per-file notifications.
+	 *
+	 * @return string created|updated|unchanged|failed
+	 */
+	private function store_imported_file($project_id, $filename, $raw_content, $uid)
+	{
+		$ext = $this->detect_file_type($filename);
+		$content_for_compare = $this->normalize_content($raw_content);
+
+		for ($attempt = 0; $attempt < 3; $attempt++)
+		{
+			$this->db->sql_transaction('begin');
+			$row = $this->project_repo->find_file($project_id, $filename);
+
+			if ($row)
+			{
+				$old = $this->normalize_content((string) $row['file_content']);
+				if ($old === $content_for_compare && (string) $row['file_content'] === $raw_content)
+				{
+					$this->db->sql_transaction('commit');
+					return 'unchanged';
+				}
+
+				if (!$this->project_repo->update_file_content((int) $row['file_id'], $raw_content, $ext, (int) $row['file_rev']))
+				{
+					$this->db->sql_transaction('rollback');
+					continue;
+				}
+
+				if ($old !== $content_for_compare)
+				{
+					$this->project_repo->create_file_version(
+						(int) $row['project_id'],
+						(int) $row['file_id'],
+						$uid,
+						(string) $row['file_name'],
+						$old,
+						'upload',
+						$this->user->lang('WSP_VERSION_BEFORE_SAVE')
+					);
+				}
+
+				$this->db->sql_transaction('commit');
+				return 'updated';
+			}
+
+			if (!$this->project_repo->insert_file($project_id, $filename, $raw_content, $ext))
+			{
+				$this->db->sql_transaction('rollback');
+				continue;
+			}
+
+			$this->db->sql_transaction('commit');
+			return 'created';
+		}
+
+		return 'failed';
+	}
+
+	/**
 	 * Adds file.
 	 */
 	public function add_file()

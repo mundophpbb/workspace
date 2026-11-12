@@ -31,6 +31,11 @@ mundophpbb_workspace_upload:
     defaults: { _controller: mundophpbb.workspace.controller.file:upload_file }
     methods: [POST]
 
+mundophpbb_workspace_upload_zip:
+    path: /workspace/upload_zip
+    defaults: { _controller: mundophpbb.workspace.controller.file:upload_zip }
+    methods: [POST]
+
 mundophpbb_workspace_rename_file:
     path: /workspace/rename_file
     defaults: { _controller: mundophpbb.workspace.controller.file:rename_file }

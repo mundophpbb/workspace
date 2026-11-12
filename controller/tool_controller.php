@@ -2213,6 +2213,40 @@ class tool_controller extends base_controller
 		return $stats === null ? null : (int) $stats['total'];
 	}
 
+	/**
+	 * Permissions declared by the project: config/permissions.yml (legacy convention),
+	 * migrations (permission.add) and core.permissions listeners.
+	 *
+	 * @param bool $migrations_only Only the permissions created by migrations.
+	 */
+	private function validation_collect_declared_permissions(array $files, $migrations_only = false)
+	{
+		$found = [];
+		foreach ($files as $name => $content)
+		{
+			$name = (string) $name;
+			$content = (string) $content;
+
+			if (!$migrations_only && $name === 'config/permissions.yml')
+			{
+				preg_match_all('/^ {2,4}([amu]_[a-z0-9_]+):\s*$/mi', $content, $m);
+				$found = array_merge($found, $m[1]);
+			}
+			else if (preg_match('#^migrations/.+\.php$#', $name))
+			{
+				preg_match_all('/permission\.add[\'"]\s*,\s*\[\s*[\'"]([amu]_[a-z0-9_]+)[\'"]/i', $content, $m);
+				$found = array_merge($found, $m[1]);
+			}
+			else if (!$migrations_only && preg_match('#^event/.+\.php$#', $name) && strpos($content, 'core.permissions') !== false)
+			{
+				preg_match_all('/[\'"]([amu]_[a-z0-9_]+)[\'"]\s*(?:\]\s*=|=>)/i', $content, $m);
+				$found = array_merge($found, $m[1]);
+			}
+		}
+
+		return array_values(array_unique(array_map('strtolower', $found)));
+	}
+
 	private function validation_class_has_method($relative_class, $method_name, array $files, $depth = 0)
 	{
 		if ($depth > 4 || $relative_class === '' || !isset($files[$relative_class]))
@@ -2224,13 +2258,52 @@ class tool_controller extends base_controller
 		{
 			return true;
 		}
+
+		// Methods can also come from traits used by the class (class-level "use Foo, \\Bar\\Baz;").
+		$unresolved_trait = false;
+		if (preg_match('/\b(?:class|trait)\s+[A-Za-z_][A-Za-z0-9_]*[^{]*\{/', $content, $class_match, PREG_OFFSET_CAPTURE))
+		{
+			$namespace = preg_match('/^\s*namespace\s+([^;{\s]+)/m', $content, $ns_match) ? trim((string) $ns_match[1], '\\') : '';
+			$class_body = substr($content, (int) $class_match[0][1] + strlen($class_match[0][0]));
+			if (preg_match_all('/^\s+use\s+([^;{]+)[;{]/m', $class_body, $trait_matches))
+			{
+				foreach ($trait_matches[1] as $trait_list)
+				{
+					foreach (explode(',', (string) $trait_list) as $trait_name)
+					{
+						$trait_name = trim($trait_name);
+						if ($trait_name === '')
+						{
+							continue;
+						}
+						$fqcn = ($trait_name[0] === '\\' || $namespace === '') ? ltrim($trait_name, '\\') : $namespace . '\\' . $trait_name;
+						$trait_file = $this->validation_find_declared_class_file($files, $fqcn);
+						if ($trait_file === '')
+						{
+							$unresolved_trait = true;
+							continue;
+						}
+						if ($trait_file !== $relative_class && $this->validation_class_has_method($trait_file, $method_name, $files, $depth + 1))
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+
 		if (preg_match('/\bextends\s+([A-Za-z_][A-Za-z0-9_]*)\b/', $content, $m))
 		{
 			$dir = dirname($relative_class);
 			$parent = ($dir === '.' ? '' : $dir . '/') . (string) $m[1] . '.php';
-			return $this->validation_class_has_method($parent, $method_name, $files, $depth + 1);
+			if ($this->validation_class_has_method($parent, $method_name, $files, $depth + 1))
+			{
+				return true;
+			}
 		}
-		return false;
+
+		// A trait that is not part of the project cannot be inspected: do not report a missing method.
+		return $unresolved_trait;
 	}
 
 	private function validation_parse_routes($content)
@@ -2805,13 +2878,34 @@ class ext extends \phpbb\extension\base {}', 'required-file');
 			}
 		}
 
-		if ($exists('config/permissions.yml'))
+		// phpBB 3.3 has no config/permissions.yml: permissions are created by a migration
+		// (permission.add) and labelled by a core.permissions listener plus language keys.
+		$declared_permissions = $this->validation_collect_declared_permissions($files);
+		$registers_permissions_event = false;
+		foreach ($files as $name => $content)
 		{
-			$check('permissions_yml', 'permissions.yml', 'pass', $this->user->lang('WSPV_091'));
+			if (preg_match('#^event/.+\.php$#', (string) $name) && strpos((string) $content, 'core.permissions') !== false)
+			{
+				$registers_permissions_event = true;
+				break;
+			}
+		}
+		$migration_permissions = $this->validation_collect_declared_permissions($files, true);
+		if ($migration_permissions && !$registers_permissions_event)
+		{
+			$check('permissions_yml', $this->user->lang('WSPV_PERM_TITLE'), 'warning', $this->user->lang('WSPV_PERM_EVENT_MISSING'));
+		}
+		else if ($migration_permissions)
+		{
+			$check('permissions_yml', $this->user->lang('WSPV_PERM_TITLE'), 'pass', $this->user->lang('WSPV_PERM_EVENT_OK'));
+		}
+		else if ($exists('config/permissions.yml'))
+		{
+			$check('permissions_yml', $this->user->lang('WSPV_PERM_TITLE'), 'pass', $this->user->lang('WSPV_091'));
 		}
 		else
 		{
-			$check('permissions_yml', 'permissions.yml', 'warning', $this->user->lang('WSPV_092'));
+			$check('permissions_yml', $this->user->lang('WSPV_PERM_TITLE'), 'pass', $this->user->lang('WSPV_PERM_NONE'));
 		}
 
 		$has_controller = $contains_file('#^controller/.+\.php$#');
@@ -2966,18 +3060,13 @@ class ext extends \phpbb\extension\base {}', 'required-file');
 
 		// 3) ACL consistency: permissions used in PHP must exist in permissions.yml.
 		$acl_problem_count = 0;
-		$defined_permissions = [];
+		$defined_permissions = $declared_permissions;
 		$permission_prefixes = [];
-		if ($exists('config/permissions.yml'))
+		foreach ($defined_permissions as $permission)
 		{
-			preg_match_all('/^ {4}([au]_[a-z0-9_]+):\s*$/mi', $files['config/permissions.yml'], $permission_matches);
-			$defined_permissions = array_values(array_unique(array_map('strtolower', $permission_matches[1])));
-			foreach ($defined_permissions as $permission)
+			if (preg_match('/^([amu]_[a-z0-9]+_)/', $permission, $m))
 			{
-				if (preg_match('/^([au]_[a-z0-9]+_)/', $permission, $m))
-				{
-					$permission_prefixes[(string) $m[1]] = true;
-				}
+				$permission_prefixes[(string) $m[1]] = true;
 			}
 		}
 		if ($defined_permissions)
@@ -2988,7 +3077,8 @@ class ext extends \phpbb\extension\base {}', 'required-file');
 				{
 					continue;
 				}
-				preg_match_all('/[\'\"]([au]_[a-z0-9_]+)[\'\"]/i', $content, $used_matches, PREG_OFFSET_CAPTURE);
+				// Permissions are always lower case: this keeps template variables such as 'U_FOO_BAR' out.
+				preg_match_all('/[\'\"]([amu]_[a-z0-9_]+)[\'\"]/', $content, $used_matches, PREG_OFFSET_CAPTURE);
 				foreach ($used_matches[1] as $permission_hit)
 				{
 					$permission = strtolower((string) $permission_hit[0]);

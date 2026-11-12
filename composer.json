@@ -3,7 +3,7 @@
 	"type": "phpbb-extension",
 	"description": "Collaborative IDE for building phpBB extensions in the browser: shared projects, versions, reviews and tasks, plus an optional pre-validation with the official phpBB EPV to speed up the extension review.",
 	"homepage": "https://github.com/mundophpbb/workspace",
-	"version": "1.9.0",
+	"version": "1.10.2",
 	"time": "2026-11-11",
 	"license": "GPL-2.0-only",
 	"authors": [

@@ -508,6 +508,7 @@ class main extends base_controller
 			'addUrl'           => $route('mundophpbb_workspace_add_project', []),
 			'addFileUrl'       => $route('mundophpbb_workspace_add_file', []),
 			'uploadUrl'        => $route('mundophpbb_workspace_upload', []),
+			'uploadZipUrl'     => $route('mundophpbb_workspace_upload_zip', []),
 			'renameUrl'        => $route('mundophpbb_workspace_rename_file', []),
 			'moveFileUrl'      => $route('mundophpbb_workspace_move_file', []),
 			'renameProjectUrl' => $route('mundophpbb_workspace_rename_project', []),
