@@ -8,6 +8,9 @@ use mundophpbb\workspace\repository\project_repository;
  */
 class permission_service
 {
+	/** Permissions a guest (ANONYMOUS) may effectively use: read-only. */
+	const GUEST_ALLOWED_ACL = ['u_workspace_access', 'u_workspace_view'];
+
 	/** @var \phpbb\auth\auth */
 	protected $auth;
 
@@ -38,7 +41,23 @@ class permission_service
 	 */
 	protected function acl($key)
 	{
+		// Todos os visitantes compartilham o mesmo user_id (ANONYMOUS), entao
+		// qualquer permissao de escrita valeria para o mundo inteiro e os projetos
+		// criados nao teriam dono real. Visitantes ficam restritos a leitura.
+		if ($this->is_guest() && !in_array($key, self::GUEST_ALLOWED_ACL, true))
+		{
+			return false;
+		}
+
 		return (bool) $this->auth->acl_get($key);
+	}
+
+	/**
+	 * Checks whether the current user is a guest (not logged in).
+	 */
+	public function is_guest()
+	{
+		return (int) ($this->user->data['user_id'] ?? 0) === ANONYMOUS;
 	}
 
 	/**
