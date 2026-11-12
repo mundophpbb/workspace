@@ -2506,7 +2506,7 @@ class tool_controller extends base_controller
 		$issues = [];
 		$checklist = [];
 
-		$add = function ($severity, $category, $message, $file = '', $action = '', $example = '', $rule = '', $line = 0, $excerpt = '') use (&$issues) {
+		$add = function ($severity, $category, $message, $file = '', $action = '', $example = '', $rule = '', $line = 0, $excerpt = '', $example_full = '') use (&$issues) {
 			$fixable_rules = ['php-closing-tag', 'php-open-tag-leading-whitespace', 'composer-type', 'composer-display-name', 'utf8-bom', 'line-ending-crlf', 'line-ending-cr'];
 			$issues[] = [
 				'severity' => (string) $severity,
@@ -2515,6 +2515,7 @@ class tool_controller extends base_controller
 				'file' => (string) $file,
 				'action' => (string) $action,
 				'example' => (string) $example,
+				'example_full' => (string) $example_full,
 				'rule' => (string) $rule,
 				'line' => (int) $line,
 				'excerpt' => (string) $excerpt,
@@ -3215,7 +3216,7 @@ class ext extends \phpbb\extension\base {}', 'required-file');
 					$language_problem_count += count($missing);
 					$preview = implode(', ', array_slice($missing, 0, 8));
 					if (count($missing) > 8) { $preview .= ', ...'; }
-					$add('warning', $this->user->lang('WSPV_053'), $this->user->lang('WSPV_135', $lang_dir . '/' . $relative_file, count($missing)), 'language/' . $lang_dir . '/' . $relative_file, $this->user->lang('WSPV_136'), $preview, 'language-pack-mismatch');
+					$add('warning', $this->user->lang('WSPV_053'), $this->user->lang('WSPV_135', $lang_dir . '/' . $relative_file, count($missing)), 'language/' . $lang_dir . '/' . $relative_file, $this->user->lang('WSPV_136'), $preview, 'language-pack-mismatch', 0, '', implode(', ', $missing));
 				}
 			}
 		}
@@ -3724,19 +3725,19 @@ class ext extends \phpbb\extension\base {}', 'required-file');
 			{
 				$indent_action .= $this->user->lang('WSPV_INDENT_AUTOFIX', $safe_style_fix_candidates);
 			}
-			$add('warning', $this->user->lang('WSPV_217'), $this->user->lang('WSPV_218', count($coding_style_files)), '', $indent_action, $preview, 'coding-indent-spaces');
+			$add('warning', $this->user->lang('WSPV_217'), $this->user->lang('WSPV_218', count($coding_style_files)), '', $indent_action, $preview, 'coding-indent-spaces', 0, '', implode('; ', $coding_style_files));
 		}
 		if ($comment_language_files)
 		{
 			$preview = implode(', ', array_slice($comment_language_files, 0, 12));
 			if (count($comment_language_files) > 12) { $preview .= ', ...'; }
-			$add('warning', $this->user->lang('WSPV_217'), $this->user->lang('WSPV_219', count($comment_language_files)), '', $this->user->lang('WSPV_220'), $preview, 'comments-non-english');
+			$add('warning', $this->user->lang('WSPV_217'), $this->user->lang('WSPV_219', count($comment_language_files)), '', $this->user->lang('WSPV_220'), $preview, 'comments-non-english', 0, '', implode(', ', $comment_language_files));
 		}
 		if ($direct_output_files)
 		{
 			$preview = implode(', ', array_slice($direct_output_files, 0, 10));
 			if (count($direct_output_files) > 10) { $preview .= ', ...'; }
-			$add('info', $this->user->lang('WSPV_221'), $this->user->lang('WSPV_222', count($direct_output_files)), '', $this->user->lang('WSPV_223'), $preview, 'direct-http-output');
+			$add('info', $this->user->lang('WSPV_221'), $this->user->lang('WSPV_222', count($direct_output_files)), '', $this->user->lang('WSPV_223'), $preview, 'direct-http-output', 0, '', implode(', ', $direct_output_files));
 		}
 
 		$check('coding_indent', $this->user->lang('WSPV_224'), $coding_style_problem_count ? 'warning' : 'pass', $coding_style_problem_count ? ($this->user->lang('WSPV_225', $coding_style_problem_count)) : $this->user->lang('WSPV_226'));

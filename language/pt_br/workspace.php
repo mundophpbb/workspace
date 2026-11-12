@@ -619,6 +619,7 @@ $lang = array_merge($lang, [
 	'WSP_REPORT_LINE'            => 'linha %s',
 	'WSP_REPORT_EXCERPT'         => 'Trecho:',
 	'WSP_REPORT_ACTION'          => 'Ação:',
+	'WSP_REPORT_DETAILS'         => 'Detalhes:',
 ]);
 
 // Validator (release checklist) messages.

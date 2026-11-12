@@ -905,7 +905,7 @@ class project_controller extends base_controller
 
 		$uid = (int) ($this->user->data['user_id'] ?? 0);
 		$owner_id = (int) $this->project_repo->get_project_owner_id($project_id);
-		if ($uid <= 0 || $owner_id <= 0 || $uid === $owner_id)
+		if ($uid <= 0 || $uid === ANONYMOUS || $owner_id <= 0 || $uid === $owner_id)
 		{
 			return $this->json_error('WSP_ERR_INVALID_DATA');
 		}

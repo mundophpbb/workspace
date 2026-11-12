@@ -82,11 +82,10 @@ class main_listener implements EventSubscriberInterface
 	 */
 	public function add_workspace_assets($event)
 	{
-		$is_logged  = (!empty($this->user->data['user_id']) && (int) $this->user->data['user_id'] !== ANONYMOUS);
-
-		// ✅ Acesso ao Workspace (entrada na IDE) continua sendo u_workspace_access
-		// Workspace implementation detail.
-		$has_access = ($is_logged && (bool) $this->auth->acl_get('u_workspace_access'));
+		// Acesso ao Workspace (entrada na IDE) = u_workspace_access.
+		// Visitantes tambem entram quando o grupo "Visitantes" recebe essa permissao;
+		// o permission_service limita visitantes a somente leitura.
+		$has_access = (bool) $this->auth->acl_get('u_workspace_access');
 
 		if ($has_access && method_exists($this->user, 'add_lang_ext'))
 		{
