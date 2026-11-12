@@ -259,7 +259,7 @@ WSP.ui = {
 	/**
  * Workspace module.
  */
-	notify: function (message, type) {
+	notify: function (message, type, sticky) {
 		type = type || 'success';
 
 		var ui = this._getUI();
@@ -276,13 +276,20 @@ WSP.ui = {
 			'<div id="' + id + '" class="wsp-notification is-' + type + '">' +
 				'<i class="fa fa-' + (icons[type] || icons.info) + '"></i>' +
 				'<span>' + message + '</span>' +
+				(sticky ? '<button type="button" class="wsp-notification-close" aria-label="Close">&times;</button>' : '') +
 			'</div>';
 
 		ui.$notify.append(html);
 
+		// Sticky notifications (for example the upload report) stay until closed.
+		if (sticky) {
+			return id;
+		}
+
 		setTimeout(function () {
 			jQuery('#' + id).fadeOut(400, function () { jQuery(this).remove(); });
 		}, 4000);
+		return id;
 	},
 
 	/**

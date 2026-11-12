@@ -336,6 +336,8 @@ WSP.tools = {
 				if (loc.length) lines.push('   ' + loc.join(' · '));
 				if (issue.excerpt) lines.push('   ' + L('WSP_REPORT_EXCERPT') + ' ' + issue.excerpt);
 				if (issue.action) lines.push('   ' + L('WSP_REPORT_ACTION') + ' ' + issue.action);
+				var details = issue.example_full || issue.example;
+				if (details) lines.push('   ' + L('WSP_REPORT_DETAILS') + ' ' + details);
 			}
 		}
 		lines.push('');
