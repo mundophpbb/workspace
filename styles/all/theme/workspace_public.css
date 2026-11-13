@@ -1,0 +1,125 @@
+/* Workspace 1.26.3: public project catalog. Intentionally scoped; does not
+   change the phpBB style or load the heavyweight IDE editor. */
+.wsp-public {
+	--wsp-p-bg: #f5f7fb;
+	--wsp-p-card: #fff;
+	--wsp-p-text: #172a3e;
+	--wsp-p-muted: #62748a;
+	--wsp-p-border: #dbe5ef;
+	--wsp-p-primary: #206ab1;
+	--wsp-p-primary-hover: #164d86;
+	--wsp-p-soft: #eaf3fd;
+	--wsp-p-hero: #142d46;
+	--wsp-p-shadow: 0 8px 26px rgba(23, 42, 62, .055);
+	background: var(--wsp-p-bg);
+	color: var(--wsp-p-text);
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	line-height: 1.5;
+	padding: clamp(12px, 2.6vw, 32px);
+	border-radius: 14px;
+	margin: 12px auto 24px;
+	box-sizing: border-box;
+}
+.wsp-public *, .wsp-public *::before, .wsp-public *::after { box-sizing: border-box; }
+.wsp-public a { text-decoration: none; }
+.wsp-public .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.wsp-public a:focus-visible, .wsp-public button:focus-visible, .wsp-public select:focus-visible, .wsp-public input:focus-visible {
+	outline: 3px solid #f5b849;
+	outline-offset: 3px;
+}
+.wsp-public-hero {
+	background: linear-gradient(114deg, var(--wsp-p-hero) 0%, #225783 76%, #296c95 100%);
+	color: #fff;
+	border-radius: 13px;
+	padding: clamp(26px, 4.5vw, 52px);
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+}
+.wsp-public-hero-inner { position: relative; z-index: 1; max-width: 660px; }
+.wsp-public-eyebrow { color: #b7d5f5; text-transform: uppercase; letter-spacing: .12em; font-size: 11px; font-weight: 750; display: flex; gap: 10px; align-items: center; }
+.wsp-public-eyebrow .fa { font-size: 16px; }
+.wsp-public h1 { color: #fff !important; font-family: inherit; font-size: clamp(28px, 4vw, 42px); font-weight: 750; line-height: 1.14; margin: 17px 0 13px; padding: 0; border: 0; overflow-wrap: anywhere; }
+.wsp-public-description { color: #e1ecf9; max-width: 640px; font-size: 15px; margin: 0 0 24px; overflow-wrap: anywhere; }
+.wsp-public-hero-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.wsp-public-stat, .wsp-public-visibility { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,.19); background: rgba(255,255,255,.11); border-radius: 30px; padding: 7px 13px; font-size: 12px; font-weight: 650; }
+.wsp-public-hero-decor { color: rgba(255,255,255,.075); position: absolute; font-size: clamp(90px, 16vw, 220px); right: 7%; top: -5px; transform: rotate(-14deg); pointer-events: none; }
+.wsp-public-notice { display: flex; gap: 12px; align-items: flex-start; margin-top: 16px; padding: 13px 16px; border: 1px solid #bdd9f4; background: var(--wsp-p-soft); border-radius: 9px; font-size: 13px; color: var(--wsp-p-text); overflow-wrap: anywhere; }
+.wsp-public-notice .fa { color: var(--wsp-p-primary); margin-top: 3px; }
+.wsp-public-listing { margin-top: 30px; }
+.wsp-public-section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; margin-bottom: 18px; }
+.wsp-public-kicker { text-transform: uppercase; letter-spacing: .12em; font-size: 10px; font-weight: 800; color: var(--wsp-p-primary); }
+.wsp-public h2 { color: var(--wsp-p-text); border: 0; font-family: inherit; font-size: clamp(20px, 2.7vw, 25px); font-weight: 750; line-height: 1.2; margin: 6px 0 0; }
+.wsp-public-results { font-size: 12px; color: var(--wsp-p-muted); white-space: nowrap; }
+/* Compact desktop search: phpBB theme form rules must not stretch this field. */
+.wsp-public-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 9px; padding: 12px; border: 1px solid var(--wsp-p-border); background: var(--wsp-p-card); border-radius: 11px; margin-bottom: 20px; box-shadow: var(--wsp-p-shadow); }
+.wsp-public .wsp-public-search { position: relative; display: block; flex: 0 1 320px; width: 320px; max-width: 320px; min-width: 180px; height: 40px; align-self: flex-end; margin: 0; padding: 0; }
+.wsp-public-search .fa { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--wsp-p-muted); pointer-events: none; }
+.wsp-public .wsp-public-search input[type="search"] { display: block; box-sizing: border-box; border: 1px solid var(--wsp-p-border); background: var(--wsp-p-bg); color: var(--wsp-p-text); border-radius: 8px; padding: 8px 11px 8px 35px; margin: 0; font-family: inherit; font-size: 13px; line-height: 20px; width: 100%; min-width: 0; min-height: 40px; max-height: 40px; height: 40px; box-shadow: none; }
+.wsp-public-search input::placeholder { color: var(--wsp-p-muted); }
+.wsp-public-control { display: flex; flex-direction: column; gap: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--wsp-p-muted); font-weight: 700; flex: 0 1 155px; }
+.wsp-public-control select { min-height: 40px; height: 40px; width: 100%; background: var(--wsp-p-bg); color: var(--wsp-p-text); border: 1px solid var(--wsp-p-border); border-radius: 8px; padding: 8px 10px; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1.2; }
+.wsp-public-filter-button { align-self: flex-end; min-height: 40px; height: 40px; background: var(--wsp-p-primary); color: #fff; border: 1px solid var(--wsp-p-primary); border-radius: 8px; padding: 9px 17px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; line-height: 1; }
+.wsp-public-filter-button:hover { background: var(--wsp-p-primary-hover); }
+.wsp-public-clear { align-self: center; color: var(--wsp-p-primary); font-weight: 650; font-size: 12px; }
+.wsp-public-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.wsp-public-card { min-width: 0; display: flex; flex-direction: column; padding: 21px; background: var(--wsp-p-card); border: 1px solid var(--wsp-p-border); border-radius: 12px; box-shadow: var(--wsp-p-shadow); transition: transform .15s, border-color .15s, box-shadow .15s; }
+.wsp-public-card:hover { transform: translateY(-2px); border-color: #a8c9e8; box-shadow: 0 12px 28px rgba(24,47,72,.11); }
+.wsp-public-card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.wsp-public-card-icon { display: inline-flex; justify-content: center; align-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--wsp-p-soft); color: var(--wsp-p-primary); font-size: 18px; }
+.wsp-public-card-type { background: var(--wsp-p-bg); color: var(--wsp-p-muted); border-radius: 12px; padding: 4px 10px; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .03em; }
+.wsp-public-card h3 { color: var(--wsp-p-text); font-family: inherit; font-size: 16px; font-weight: 750; line-height: 1.35; overflow-wrap: anywhere; border: 0; margin: 17px 0 8px; padding: 0; }
+.wsp-public-card h3 a { color: inherit; }
+.wsp-public-card h3 a:hover { color: var(--wsp-p-primary); }
+.wsp-public-card-desc { font-size: 12px; line-height: 1.65; color: var(--wsp-p-muted); margin: 0 0 16px; overflow-wrap: anywhere; min-height: 38px; }
+.wsp-public-card-meta { display: flex; flex-wrap: wrap; gap: 8px 16px; border-top: 1px solid var(--wsp-p-border); padding: 13px 0; margin-top: auto; color: var(--wsp-p-muted); font-size: 11px; }
+.wsp-public-card-meta span { display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.wsp-public-card-actions { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 10px; }
+.wsp-public-open { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--wsp-p-soft); color: var(--wsp-p-primary); border-radius: 7px; padding: 10px 13px; font-size: 12px; font-weight: 750; flex: 1 1 auto; }
+.wsp-public-open:hover { background: var(--wsp-p-primary); color: #fff; }
+.wsp-public-download { display: flex; justify-content: center; align-items: center; height: 37px; width: 37px; flex: none; color: var(--wsp-p-primary); background: var(--wsp-p-bg); border: 1px solid var(--wsp-p-border); border-radius: 7px; }
+.wsp-public-download:hover { background: var(--wsp-p-soft); }
+.wsp-public-empty { background: var(--wsp-p-card); border: 1px dashed var(--wsp-p-border); border-radius: 12px; text-align: center; padding: 45px 16px; color: var(--wsp-p-muted); }
+.wsp-public-empty > .fa { font-size: 34px; color: var(--wsp-p-primary); }
+.wsp-public-empty h3 { color: var(--wsp-p-text); font-size: 18px; margin: 12px 0 6px; }
+.wsp-public-empty p { margin: 0; }
+.wsp-public-pagination { margin-top: 24px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; font-size: 12px; font-weight: 650; }
+.wsp-public-pagination a { border: 1px solid var(--wsp-p-border); background: var(--wsp-p-card); border-radius: 8px; color: var(--wsp-p-primary); padding: 9px 14px; }
+.wsp-public-pagination a:hover { background: var(--wsp-p-soft); }
+.wsp-public-page-disabled { color: var(--wsp-p-muted); opacity: .6; padding: 9px 14px; }
+.wsp-public-layout-list .wsp-public-grid { grid-template-columns: 1fr; gap: 10px; }
+.wsp-public-layout-list .wsp-public-card { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; grid-template-rows: auto auto auto; gap: 0 16px; align-items: center; padding: 14px 18px; }
+.wsp-public-layout-list .wsp-public-card-top { grid-column: 1; grid-row: 1 / span 3; }
+.wsp-public-layout-list .wsp-public-card-type { display: none; }
+.wsp-public-layout-list .wsp-public-card h3 { grid-column: 2; grid-row: 1; margin: 0 0 3px; }
+.wsp-public-layout-list .wsp-public-card-desc { grid-column: 2; grid-row: 2; min-height: 0; margin: 0; }
+.wsp-public-layout-list .wsp-public-card-meta { grid-column: 2; grid-row: 3; margin: 8px 0 0; padding: 0; border: 0; }
+.wsp-public-layout-list .wsp-public-card-actions { grid-column: 3; grid-row: 1 / span 3; margin: 0; padding: 0; }
+.wsp-public-layout-list .wsp-public-open { min-width: 134px; }
+.wsp-public-theme-dark { --wsp-p-bg: #121e2d; --wsp-p-card: #1b2b3d; --wsp-p-text: #eaf1fa; --wsp-p-muted: #b4c3d4; --wsp-p-border: #34485f; --wsp-p-primary: #83bdff; --wsp-p-primary-hover: #316eaa; --wsp-p-soft: #233d5a; --wsp-p-shadow: 0 8px 26px rgba(0,0,0,.18); }
+.wsp-public-theme-dark .wsp-public-filter-button { background: #28669f; color: #fff; border-color: #28669f; }
+.wsp-public-theme-dark .wsp-public-open:hover { background: #28669f; }
+.wsp-public-theme-dark .wsp-public-notice { border-color: var(--wsp-p-border); }
+@media (prefers-color-scheme: dark) {
+	.wsp-public-theme-auto { --wsp-p-bg: #121e2d; --wsp-p-card: #1b2b3d; --wsp-p-text: #eaf1fa; --wsp-p-muted: #b4c3d4; --wsp-p-border: #34485f; --wsp-p-primary: #83bdff; --wsp-p-primary-hover: #316eaa; --wsp-p-soft: #233d5a; --wsp-p-shadow: 0 8px 26px rgba(0,0,0,.18); }
+	.wsp-public-theme-auto .wsp-public-filter-button { background: #28669f; color: #fff; border-color: #28669f; }
+	.wsp-public-theme-auto .wsp-public-open:hover { background: #28669f; }
+	.wsp-public-theme-auto .wsp-public-notice { border-color: var(--wsp-p-border); }
+}
+@media (max-width: 960px) { .wsp-public-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 650px) {
+	.wsp-public { padding: 12px; margin: 8px 0 18px; }
+	.wsp-public-grid { grid-template-columns: minmax(0, 1fr); }
+	.wsp-public-hero { padding: 25px 20px; }
+	.wsp-public-hero-decor { right: -24px; top: 10px; opacity: .5; }
+	.wsp-public-controls { padding: 11px; }
+	.wsp-public .wsp-public-search { flex: 1 1 100%; width: 100%; max-width: none; min-width: 0; height: 44px; }
+	.wsp-public .wsp-public-search input[type="search"] { min-height: 44px; max-height: 44px; height: 44px; }
+	.wsp-public-control { flex: 1 1 125px; }
+	.wsp-public-filter-button { flex: 1 0 100%; }
+	.wsp-public-layout-list .wsp-public-card { display: flex; align-items: stretch; }
+	.wsp-public-layout-list .wsp-public-card-top { margin-bottom: 10px; }
+	.wsp-public-layout-list .wsp-public-card h3 { margin-top: 6px; }
+	.wsp-public-layout-list .wsp-public-card-actions { padding-top: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .wsp-public-card { transition: none; } }

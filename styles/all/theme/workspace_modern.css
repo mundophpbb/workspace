@@ -1,0 +1,205 @@
+/* Workspace IDE 1.58.1 — Visual refresh, scoped to the editor and its dialogs.
+   No editor internals, checkbox semantics, or application handlers are modified. */
+#wsp-main-container {
+  --wsp-modern-surface: #192431;
+  --wsp-modern-raised: #223041;
+  --wsp-modern-field: #101b29;
+  --wsp-modern-line: rgba(166, 192, 216, .25);
+  --wsp-modern-focus: #67b7ef;
+  --wsp-radius: 10px;
+  --wsp-radius-sm: 8px;
+  border-radius: 14px;
+  border-color: rgba(157, 184, 207, .25);
+  box-shadow: 0 14px 48px rgba(0, 0, 0, .21);
+}
+#wsp-main-container .workspace-header {
+  padding: 11px 15px;
+  min-height: 43px;
+  background: linear-gradient(110deg, #24384a, #192734);
+  border-bottom-color: rgba(166, 192, 216, .16);
+}
+#wsp-main-container .workspace-sidebar { background: #1d2b38; }
+#wsp-main-container .editor-toolbar-rich {
+  background: #1c2a39;
+  border-bottom: 1px solid rgba(166, 192, 216, .17);
+}
+#wsp-main-container .wsp-toolbar-dropdown {
+  background: #1e2d3c;
+  border: 1px solid rgba(166, 192, 216, .25);
+  border-radius: 12px;
+  box-shadow: 0 17px 40px rgba(0, 0, 0, .40);
+}
+#wsp-main-container .wsp-menu-item { border-radius: 7px; }
+#wsp-main-container .wsp-menu-item:hover,
+#wsp-main-container .wsp-menu-item:focus-visible { background: rgba(103, 183, 239, .12); }
+/* Every form field shares the same geometry. Exclude Ace's hidden input and
+   functional checkboxes/radio/range/color/file controls. */
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal)
+  :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not(.ace_text-input), select, textarea:not(.ace_text-input)) {
+  box-sizing: border-box;
+  min-height: 39px;
+  max-width: 100%;
+  padding: 9px 12px;
+  background: #101b29 !important;
+  color: #f3f7fc !important;
+  border: 1px solid rgba(166, 192, 216, .32) !important;
+  border-radius: 9px !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .08);
+  font-size: 13px;
+  line-height: 1.45;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal)
+  :is(input:not(.ace_text-input), select, textarea:not(.ace_text-input)):focus-visible {
+  outline: 2px solid rgba(103, 183, 239, .44) !important;
+  outline-offset: 1px;
+  border-color: #67b7ef !important;
+  box-shadow: 0 0 0 3px rgba(103, 183, 239, .13) !important;
+}
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal)
+  :is(input, textarea)::placeholder { color: #a7bacb !important; opacity: 1; }
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal) select { padding-right: 29px; }
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal) :is(input, select, textarea):disabled {
+  opacity: .58; cursor: not-allowed;
+}
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal)
+  :is(input[type="checkbox"], input[type="radio"]) {
+  accent-color: #67b7ef;
+  width: 16px; height: 16px; vertical-align: middle;
+}
+/* Shared dialog surfaces. Preserve scroll behavior and explicit hidden state. */
+.wsp-modal-overlay { background: rgba(5, 12, 22, .75) !important; backdrop-filter: blur(5px); padding: 12px; box-sizing: border-box; }
+.wsp-modal-overlay .wsp-modal-box,
+.wsp-modal-overlay :is(.wsp-validator-modal-box, .wsp-gh-modal-box, .wsp-lab-modal-box, .wsp-generator-modal-box, .wsp-cp-modal-box),
+#wsp-custom-modal #wsp-modal-card {
+  background: #1b2836 !important;
+  border: 1px solid rgba(174, 201, 224, .23) !important;
+  border-radius: 15px !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .56) !important;
+  color: #edf4fb;
+}
+.wsp-modal-overlay :is(h3, h4, h5), #wsp-custom-modal #wsp-modal-title {
+  color: #f6f9fd;
+  letter-spacing: -.012em;
+}
+.wsp-modal-overlay .wsp-modal-tabs {
+  gap: 6px;
+  padding: 8px 0 10px;
+  border-bottom: 1px solid rgba(174, 201, 224, .19);
+}
+.wsp-modal-overlay .wsp-modal-tab {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 9px 13px;
+  color: #c9d8e6;
+}
+.wsp-modal-overlay .wsp-modal-tab:hover { background: #293b4f; color: white; }
+.wsp-modal-overlay .wsp-modal-tab.is-active,
+.wsp-modal-overlay .wsp-modal-tab[aria-selected="true"] {
+  background: #294968;
+  border-color: rgba(110, 186, 239, .45);
+  color: #ffffff;
+}
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal)
+  :is(button, .button, .btn-tool, .btn-icon, .btn-main, .btn-save-icon):not(.wsp-modal-tab) {
+  border-radius: 8px;
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal)
+  :is(button, .button):focus-visible { outline: 2px solid #78c5fa; outline-offset: 2px; }
+:is(#wsp-main-container, .wsp-modal-overlay) :is(.wsp-portfolio-card, .wsp-stats-tile, .wsp-compat-section, .wsp-composer-patch) {
+  background: rgba(18, 31, 45, .40);
+  border-color: rgba(174, 201, 224, .21);
+  border-radius: 11px;
+}
+/* Remove decorative tooltips, keeping accessible ARIA labels. */
+#wsp-main-container [data-tooltip]::before,
+#wsp-main-container [data-tooltip]::after,
+#wsp-floating-tooltip { display: none !important; content: none !important; }
+@media(max-width: 680px) {
+  #wsp-main-container { border-radius: 8px; }
+  .wsp-modal-overlay { padding: 7px; }
+  .wsp-modal-overlay .wsp-modal-box { max-width: 100%; }
+  .wsp-modal-overlay .wsp-modal-tab { padding: 9px 10px; }
+}
+@media(prefers-reduced-motion: reduce) {
+  :is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal) * { transition-duration: 0.01ms !important; }
+}
+
+/* Contextual labels and buttons: more hierarchy, no extra decoration. */
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal) :is(label, .wsp-menu-field label) {
+  color: #d8e6f2;
+  font-weight: 600;
+}
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal) :is(input[type="search"], .wsp-tools-search) {
+  border-radius: 10px !important;
+}
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal) :is(input, textarea, select):is(:read-only):not(select):not([type="checkbox"]):not([type="radio"]):not(.ace_text-input) {
+  color: #e3ecf4;
+}
+.wsp-modal-overlay .modal-buttons, #wsp-custom-modal .wsp-modal-footer {
+  gap: 10px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(174, 201, 224, .13);
+}
+.wsp-modal-overlay .modal-buttons .button, #wsp-custom-modal .wsp-modal-footer .button {
+  min-height: 37px;
+  padding: 8px 15px;
+}
+
+
+/* Workspace IDE 1.58.2 — flat buttons and airier toolbar.
+   Retain focus visibility and selected/disabled state; remove decorative motion. */
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal)
+  :is(button, .button, .btn-tool, .btn-icon, .btn-main, .btn-save-icon, .btn-copy, .btn-copy-alt, .btn-save, .wsp-modal-tab, .wsp-menu-item),
+:is(#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal)
+  :is(button, .button, .btn-tool, .btn-icon, .btn-main, .btn-save-icon, .btn-copy, .btn-copy-alt, .btn-save, .wsp-modal-tab, .wsp-menu-item):is(:hover, :active, :focus) {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+/* Icon visuals follow the button: no animation or translate on hover. */
+#wsp-main-container :is(.editor-toolbar-rich, .workspace-header)
+  :is(button, .btn-tool, .btn-icon, .btn-main, .btn-save-icon, .wsp-toolbar-menu-toggle) :is(i, svg, .icon),
+#wsp-main-container :is(.editor-toolbar-rich, .workspace-header)
+  :is(button, .btn-tool, .btn-icon, .btn-main, .btn-save-icon, .wsp-toolbar-menu-toggle):hover :is(i, svg, .icon) {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+  filter: none !important;
+}
+/* Space between toolbar groups and between actions; keep existing wrapping. */
+#wsp-main-container .editor-toolbar-rich.wsp-toolbar-menu-mode {
+  column-gap: 14px !important;
+  row-gap: 10px !important;
+  padding: 10px 14px !important;
+}
+#wsp-main-container .editor-toolbar-rich.wsp-toolbar-compact .toolbar-section {
+  column-gap: 11px !important;
+  row-gap: 9px !important;
+}
+#wsp-main-container .editor-toolbar-rich.wsp-toolbar-compact
+  :is(.toolbar-menu-actions, .toolbar-release-actions, .toolbar-output-actions, .toolbar-primary-actions) {
+  gap: 11px !important;
+}
+#wsp-main-container .editor-toolbar-rich .toolbar-section
+  :is(.btn-icon, .btn-tool, .btn-main, .btn-save-icon, .wsp-toolbar-menu-toggle) {
+  min-height: 36px;
+  min-width: 36px;
+}
+#wsp-main-container .workspace-header .header-actions { gap: 10px; }
+@media (max-width: 980px) {
+  #wsp-main-container .editor-toolbar-rich.wsp-toolbar-menu-mode {
+	column-gap: 10px !important;
+	row-gap: 8px !important;
+	padding: 9px 10px !important;
+  }
+  #wsp-main-container .editor-toolbar-rich.wsp-toolbar-compact .toolbar-section,
+  #wsp-main-container .editor-toolbar-rich.wsp-toolbar-compact
+	:is(.toolbar-menu-actions, .toolbar-release-actions, .toolbar-output-actions, .toolbar-primary-actions) {
+	gap: 8px !important;
+  }
+}
