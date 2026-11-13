@@ -1,0 +1,36 @@
+{% include 'overall_header.html' %}
+<h1>{{ lang('ACP_WORKSPACE_PERFORMANCE') }}</h1>
+<p>{{ lang('ACP_WSP_PERF_EXPLAIN') }}</p>
+<form action="{{ U_ACTION }}" method="post">
+    <fieldset><legend>{{ lang('ACP_WSP_PERF_PROBE') }}</legend>
+        <p>{{ lang('ACP_WSP_PERF_SCOPE') }}</p>
+        <p><input class="button1" type="submit" name="run_probe" value="{{ lang('ACP_WSP_PERF_RUN') }}" />
+        <input class="button2" type="submit" name="compare_probe" value="{{ lang('ACP_WSP_PERF_COMPARE_RUN') }}" /></p>
+        {{ S_FORM_TOKEN }}
+    </fieldset>
+</form>
+{% if WSP_PERF_COMPARISON %}
+<h2>{{ lang('ACP_WSP_PERF_COMPARE_TITLE') }}</h2>
+<p>{{ lang('ACP_WSP_PERF_COMPARE_EXPLAIN') }}</p>
+<table class="table1 responsive">
+<thead><tr><th>{{ lang('ACP_WSP_PERF_TABLE') }}</th><th>{{ lang('ACP_WSP_PERF_BASELINE') }}</th><th>{{ lang('ACP_WSP_PERF_CURRENT') }}</th><th>{{ lang('ACP_WSP_PERF_VARIATION') }}</th><th>{{ lang('ACP_WSP_PERF_PERCENT') }}</th><th>{{ lang('ACP_WSP_PERF_STATUS') }}</th></tr></thead>
+<tbody>{% for row in performance_comparison %}
+<tr><td>{{ row.NAME }}</td><td>{{ row.BASELINE }}</td><td>{{ row.CURRENT }}</td><td>{{ row.DELTA }}</td><td>{{ row.PERCENT }}</td><td>{% if not row.AVAILABLE %}{{ lang('ACP_WSP_PERF_UNAVAILABLE') }}{% elseif row.ATTENTION %}<strong>{{ lang('ACP_WSP_PERF_ATTENTION') }}</strong>{% else %}{{ lang('ACP_WSP_PERF_NO_ATTENTION') }}{% endif %}</td></tr>
+{% endfor %}</tbody></table>
+<p>{{ lang('ACP_WSP_PERF_COMPARE_QUERIES') }}: {{ WSP_PERF_COMPARE_QUERIES }}</p>
+{% endif %}
+{% if WSP_PERF_RAN %}
+<div class="successbox"><p>{{ lang('ACP_WSP_PERF_SNAPSHOT') }}</p></div>
+<table class="table1 responsive">
+<thead><tr><th>{{ lang('ACP_WSP_PERF_TABLE') }}</th><th>{{ lang('ACP_WSP_PERF_COUNT') }}</th><th>{{ lang('ACP_WSP_PERF_DURATION') }}</th></tr></thead>
+<tbody>{% for row in performance_rows %}
+<tr><td>{{ row.NAME }}</td><td>{% if row.OK %}{{ row.COUNT }}{% else %}{{ lang('ACP_WSP_PERF_UNAVAILABLE') }}{% endif %}</td><td>{{ row.MS }}</td></tr>
+{% endfor %}</tbody>
+</table>
+<dl><dt>{{ lang('ACP_WSP_PERF_QUERIES') }}</dt><dd>{{ WSP_PERF_QUERIES }}</dd>
+<dt>{{ lang('ACP_WSP_PERF_TOTAL') }}</dt><dd>{{ WSP_PERF_MS }} ms</dd>
+<dt>{{ lang('ACP_WSP_PERF_MEMORY') }}</dt><dd>{{ WSP_PERF_MEMORY }} KiB</dd>
+<dt>{{ lang('ACP_WSP_PERF_PEAK') }}</dt><dd>{{ WSP_PERF_PEAK }} KiB</dd></dl>
+{% endif %}
+<p>{{ lang('ACP_WSP_PERF_FOOTER') }}</p>
+{% include 'overall_footer.html' %}

@@ -1,0 +1,43 @@
+{% include 'overall_header.html' %}
+<h1>{{ lang('ACP_WORKSPACE_DIAGNOSTICS') }}</h1>
+<p>{{ lang('ACP_WORKSPACE_DIAGNOSTICS_EXPLAIN') }}</p>
+<style>
+.wsp-diag-summary { display:flex; flex-wrap:wrap; gap:12px; margin:16px 0; }
+.wsp-diag-stat { padding:12px 18px; background:#f5f7fa; border:1px solid #dce1e7; border-radius:6px; min-width:105px; }
+.wsp-diag-stat strong { display:block; font-size:1.4em; color:#283448; }
+.wsp-diag-status { display:inline-block; padding:3px 8px; border-radius:4px; font-weight:600; background:#e9edf2; }
+.wsp-diag-status--ok { background:#e3f3e7; color:#196432; }
+.wsp-diag-status--warning, .wsp-diag-status--error { background:#fff0d3; color:#804d0c; }
+.wsp-diag-status--disabled { background:#eceff2; color:#4d5967; }
+.wsp-diag-detail { margin-top:6px; }
+.wsp-diag-detail summary { cursor:pointer; color:#245a83; }
+.wsp-diag-detail p { margin:7px 0; }
+@media (max-width: 720px) { .wsp-diag-summary { gap:6px; } .wsp-diag-stat { flex:1; min-width:65px; padding:8px; } }
+</style>
+<div class="wsp-diag-summary" aria-label="{{ lang('ACP_WORKSPACE_DIAGNOSTICS') }}">
+  <div class="wsp-diag-stat"><strong>{{ WSP_DIAG_OK }}</strong>{{ lang('ACP_WSP_DIAG_STATUS_OK') }}</div>
+  <div class="wsp-diag-stat"><strong>{{ WSP_DIAG_WARNING }}</strong>{{ lang('ACP_WSP_DIAG_ATTENTION') }}</div>
+  <div class="wsp-diag-stat"><strong>{{ WSP_DIAG_DISABLED }}</strong>{{ lang('ACP_WSP_DIAG_STATUS_DISABLED') }}</div>
+</div>
+<table class="table1 responsive">
+  <thead><tr><th>{{ lang('ACP_WSP_DIAG_COMPONENT') }}</th><th>{{ lang('ACP_WSP_DIAG_RESULT') }}</th><th>{{ lang('ACP_WSP_DIAG_NOTES') }}</th></tr></thead>
+  <tbody>
+    {% for check in diagnostics %}
+      <tr>
+        <td><strong>{{ check.NAME }}</strong></td>
+        <td><span class="wsp-diag-status wsp-diag-status--{{ check.CLASS }}">{{ check.STATUS }}</span></td>
+        <td>
+          {{ check.DETAIL }}
+          <details class="wsp-diag-detail">
+            <summary>{{ lang('ACP_WSP_DIAG_GUIDANCE') }}</summary>
+            <p><strong>{{ lang('ACP_WSP_HELP_CAUSE') }}:</strong> {{ check.CAUSE }}</p>
+            <p><strong>{{ lang('ACP_WSP_HELP_IMPACT') }}:</strong> {{ check.IMPACT }}</p>
+            <p><strong>{{ lang('ACP_WSP_HELP_ACTION') }}:</strong> {{ check.ACTION }}</p>
+          </details>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p>{{ lang('ACP_WORKSPACE_DIAGNOSTICS_FOOTER') }}</p>
+{% include 'overall_footer.html' %}

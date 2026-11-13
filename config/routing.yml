@@ -1,0 +1,605 @@
+# ==========================================================
+# MUNDO PHPBB WORKSPACE - CONFIGURAÇÃO DE ROTAS (ROUTING)
+# ==========================================================
+
+# Página Principal
+mundophpbb_workspace_main:
+    path: /workspace
+    defaults: { _controller: mundophpbb.workspace.controller.main:handle }
+    methods: [GET]
+
+# ----------------------------------------------------------
+# GESTÃO DE ARQUIVOS (FILE CONTROLLER)
+# ----------------------------------------------------------
+mundophpbb_workspace_load:
+    path: /workspace/load
+    defaults: { _controller: mundophpbb.workspace.controller.file:load_file }
+    methods: [GET]
+
+mundophpbb_workspace_save:
+    path: /workspace/save
+    defaults: { _controller: mundophpbb.workspace.controller.file:save_file }
+    methods: [POST]
+
+mundophpbb_workspace_add_file:
+    path: /workspace/add_file
+    defaults: { _controller: mundophpbb.workspace.controller.file:add_file }
+    methods: [POST]
+
+mundophpbb_workspace_upload:
+    path: /workspace/upload
+    defaults: { _controller: mundophpbb.workspace.controller.file:upload_file }
+    methods: [POST]
+
+mundophpbb_workspace_upload_zip:
+    path: /workspace/upload_zip
+    defaults: { _controller: mundophpbb.workspace.controller.file:upload_zip }
+    methods: [POST]
+
+mundophpbb_workspace_rename_file:
+    path: /workspace/rename_file
+    defaults: { _controller: mundophpbb.workspace.controller.file:rename_file }
+    methods: [POST]
+
+mundophpbb_workspace_move_file:
+    path: /workspace/move_file
+    defaults: { _controller: mundophpbb.workspace.controller.file:move_file }
+    methods: [POST]
+
+mundophpbb_workspace_delete_file:
+    path: /workspace/delete_file
+    defaults: { _controller: mundophpbb.workspace.controller.file:delete_file }
+    methods: [POST]
+
+# ----------------------------------------------------------
+# GESTÃO DE PROJETOS (PROJECT CONTROLLER)
+# ----------------------------------------------------------
+mundophpbb_workspace_add_project:
+    path: /workspace/add_project
+    defaults: { _controller: mundophpbb.workspace.controller.project:add_project }
+    methods: [POST]
+
+mundophpbb_workspace_rename_project:
+    path: /workspace/rename_project
+    defaults: { _controller: mundophpbb.workspace.controller.project:rename_project }
+    methods: [POST]
+
+mundophpbb_workspace_delete_project:
+    path: /workspace/delete_project
+    defaults: { _controller: mundophpbb.workspace.controller.project:delete_project }
+    methods: [POST]
+
+mundophpbb_workspace_delete_folder:
+    path: /workspace/delete_folder
+    defaults: { _controller: mundophpbb.workspace.controller.project:delete_folder }
+    methods: [POST]
+
+mundophpbb_workspace_rename_folder:
+    path: /workspace/rename_folder
+    defaults: { _controller: mundophpbb.workspace.controller.project:rename_folder }
+    methods: [POST]
+
+mundophpbb_workspace_download:
+    path: /workspace/download/{project_id}
+    defaults: { _controller: mundophpbb.workspace.controller.project:download_project }
+    requirements:
+        project_id: '\d+'
+    methods: [GET]
+
+# Pacote final no layout exigido pelo phpBB Extension Database: vendor/extension/...
+mundophpbb_workspace_download_submission:
+    path: /workspace/submission/{project_id}
+    defaults: { _controller: mundophpbb.workspace.controller.project:download_submission_package }
+    requirements:
+        project_id: '\d+'
+    methods: [GET]
+
+# Exportacao colaborativa com relatorios de revisao/equipe/atividade
+mundophpbb_workspace_export_collab:
+    path: /workspace/export_collab/{project_id}
+    defaults: { _controller: mundophpbb.workspace.controller.project:export_collaborative_package }
+    requirements:
+        project_id: '\d+'
+    methods: [GET]
+
+# ----------------------------------------------------------
+# FERRAMENTAS (TOOL CONTROLLER)
+# ----------------------------------------------------------
+mundophpbb_workspace_diff:
+    path: /workspace/diff
+    defaults: { _controller: mundophpbb.workspace.controller.tool:generate_diff }
+    methods: [POST]
+
+mundophpbb_workspace_search:
+    path: /workspace/search
+    defaults: { _controller: mundophpbb.workspace.controller.tool:search_project }
+    methods: [POST]
+
+mundophpbb_workspace_replace:
+    path: /workspace/replace
+    defaults: { _controller: mundophpbb.workspace.controller.tool:replace_project }
+    methods: [POST]
+
+mundophpbb_workspace_changelog:
+    path: /workspace/changelog
+    defaults: { _controller: mundophpbb.workspace.controller.tool:generate_changelog }
+    methods: [POST]
+
+# Workspace 1.19.0: checkpoint-based release notes (preview and guarded save).
+mundophpbb_workspace_release_notes_preview:
+    path: /workspace/release-notes/preview
+    defaults: { _controller: mundophpbb.workspace.controller.release_notes:preview }
+    methods: [POST]
+
+mundophpbb_workspace_release_notes_apply:
+    path: /workspace/release-notes/apply
+    defaults: { _controller: mundophpbb.workspace.controller.release_notes:apply }
+    methods: [POST]
+
+mundophpbb_workspace_clear_changelog:
+    path: /workspace/clear_changelog
+    defaults: { _controller: mundophpbb.workspace.controller.tool:clear_changelog }
+    methods: [POST]
+
+mundophpbb_workspace_refresh_cache:
+    path: /workspace/refresh_cache
+    defaults: { _controller: mundophpbb.workspace.controller.tool:refresh_cache }
+    methods: [POST]
+
+
+# Radar estático: somente editores autenticados (POST + form token)
+mundophpbb_workspace_radar:
+    path: /workspace/radar
+    defaults: { _controller: mundophpbb.workspace.controller.radar:scan }
+    methods: [POST]
+
+# Scaffold generation requires authenticated editor + create permissions and CSRF
+mundophpbb_workspace_generator_preview:
+    path: /workspace/generator/preview
+    defaults: { _controller: mundophpbb.workspace.controller.generator:preview }
+    methods: [POST]
+
+mundophpbb_workspace_generator_apply:
+    path: /workspace/generator/apply
+    defaults: { _controller: mundophpbb.workspace.controller.generator:apply }
+    methods: [POST]
+
+# Workspace 1.14.0: compare saved projects and view static architecture.
+mundophpbb_workspace_arch_compare:
+    path: /workspace/architecture/compare
+    defaults: { _controller: mundophpbb.workspace.controller.architecture:compare }
+    methods: [POST]
+
+mundophpbb_workspace_arch_map:
+    path: /workspace/architecture/map
+    defaults: { _controller: mundophpbb.workspace.controller.architecture:graph }
+    methods: [POST]
+
+# Workspace 1.15.0: read-only ACL source inventory, POST + project ACL.
+mundophpbb_workspace_arch_permissions:
+    path: /workspace/architecture/permissions
+    defaults: { _controller: mundophpbb.workspace.controller.architecture:permissions }
+    methods: [POST]
+
+# Workspace 1.16.0: bounded, read-only compatibility test laboratory.
+mundophpbb_workspace_test_lab:
+    path: /workspace/architecture/test-lab
+    defaults: { _controller: mundophpbb.workspace.controller.architecture:testLab }
+    methods: [POST]
+
+# Workspace 1.20.0: read-only security scan (CSRF + edit ACL).
+mundophpbb_workspace_security_audit:
+    path: /workspace/architecture/security-audit
+    defaults: { _controller: mundophpbb.workspace.controller.architecture:securityAudit }
+    methods: [POST]
+
+# Workspace 1.24.0: read-only, authenticated quality dashboard.
+mundophpbb_workspace_quality_dashboard:
+    path: /workspace/architecture/quality-dashboard
+    defaults: { _controller: mundophpbb.workspace.controller.architecture:qualityDashboard }
+    methods: [POST]
+
+# Workspace 1.21.0: static, scoped upgrade review (read-only, CSRF required).
+mundophpbb_workspace_upgrade_advisor:
+    path: /workspace/architecture/upgrade-advisor
+    defaults: { _controller: mundophpbb.workspace.controller.architecture:upgradePlan }
+    methods: [POST]
+
+mundophpbb_workspace_arch_diff:
+    path: /workspace/architecture/diff
+    defaults: { _controller: mundophpbb.workspace.controller.architecture:diff }
+    methods: [POST]
+
+# Workspace 1.18.0: global search preview and atomic selected-file refactoring.
+mundophpbb_workspace_refactor_preview:
+    path: /workspace/refactor/preview
+    defaults: { _controller: mundophpbb.workspace.controller.refactor:preview }
+    methods: [POST]
+
+mundophpbb_workspace_refactor_apply:
+    path: /workspace/refactor/apply
+    defaults: { _controller: mundophpbb.workspace.controller.refactor:apply }
+    methods: [POST]
+
+# Workspace 1.17.0 - project-wide checkpoints (CSRF + server-side permissions)
+mundophpbb_workspace_checkpoint_list:
+    path: /workspace/checkpoints/list
+    defaults: { _controller: mundophpbb.workspace.controller.checkpoint:listing }
+    methods: [POST]
+
+mundophpbb_workspace_checkpoint_create:
+    path: /workspace/checkpoints/create
+    defaults: { _controller: mundophpbb.workspace.controller.checkpoint:create }
+    methods: [POST]
+
+mundophpbb_workspace_checkpoint_preview:
+    path: /workspace/checkpoints/preview
+    defaults: { _controller: mundophpbb.workspace.controller.checkpoint:preview }
+    methods: [POST]
+
+mundophpbb_workspace_checkpoint_restore:
+    path: /workspace/checkpoints/restore
+    defaults: { _controller: mundophpbb.workspace.controller.checkpoint:restore }
+    methods: [POST]
+
+mundophpbb_workspace_checkpoint_delete:
+    path: /workspace/checkpoints/delete
+    defaults: { _controller: mundophpbb.workspace.controller.checkpoint:remove }
+    methods: [POST]
+
+# ----------------------------------------------------------
+# VALIDADOR phpBB / CHECKLIST DE RELEASE
+# ----------------------------------------------------------
+mundophpbb_workspace_validate_release:
+    path: /workspace/validate_release
+    defaults: { _controller: mundophpbb.workspace.controller.tool:validate_release }
+    methods: [POST]
+
+# Confere se os arquivos nao mudaram desde a validacao antes de preparar o ZIP
+mundophpbb_workspace_verify_release_snapshot:
+    path: /workspace/release/verify
+    defaults: { _controller: mundophpbb.workspace.controller.tool:verify_release_snapshot }
+    methods: [POST]
+
+# Aplica apenas correcoes automaticas consideradas seguras pelo validador
+mundophpbb_workspace_apply_validation_fixes:
+    path: /workspace/validation_fix
+    defaults: { _controller: mundophpbb.workspace.controller.tool:apply_validation_fixes }
+    methods: [POST]
+
+# Official EPV setup assistant
+mundophpbb_workspace_epv_status:
+    path: /workspace/epv/status
+    defaults: { _controller: mundophpbb.workspace.controller.tool:epv_status }
+    methods: [POST]
+
+
+# ----------------------------------------------------------
+# LOCK DO PROJETO (trancar/destrancar)
+# Ativado agora (requer métodos no Project Controller).
+# ----------------------------------------------------------
+mundophpbb_workspace_lock_project:
+    path: /workspace/lock_project
+    defaults: { _controller: mundophpbb.workspace.controller.project:lock_project }
+    methods: [POST]
+
+mundophpbb_workspace_unlock_project:
+    path: /workspace/unlock_project
+    defaults: { _controller: mundophpbb.workspace.controller.project:unlock_project }
+    methods: [POST]
+# ----------------------------------------------------------
+# COLABORACAO (MEMBROS + ATIVIDADE)
+# ----------------------------------------------------------
+mundophpbb_workspace_members:
+    path: /workspace/members
+    defaults: { _controller: mundophpbb.workspace.controller.project:list_members }
+    methods: [POST]
+
+mundophpbb_workspace_add_member:
+    path: /workspace/member/add
+    defaults: { _controller: mundophpbb.workspace.controller.project:add_member }
+    methods: [POST]
+
+mundophpbb_workspace_update_member:
+    path: /workspace/member/update
+    defaults: { _controller: mundophpbb.workspace.controller.project:update_member }
+    methods: [POST]
+
+mundophpbb_workspace_remove_member:
+    path: /workspace/member/remove
+    defaults: { _controller: mundophpbb.workspace.controller.project:remove_member }
+    methods: [POST]
+
+mundophpbb_workspace_activity:
+    path: /workspace/activity
+    defaults: { _controller: mundophpbb.workspace.controller.project:list_activity }
+    methods: [POST]
+
+# Modo de colaboração e solicitação por MP
+mundophpbb_workspace_collaboration_mode:
+    path: /workspace/collaboration_mode
+    defaults: { _controller: mundophpbb.workspace.controller.project:set_collaboration_mode }
+    methods: [POST]
+
+mundophpbb_workspace_request_collaboration:
+    path: /workspace/request_collaboration
+    defaults: { _controller: mundophpbb.workspace.controller.project:request_collaboration }
+    methods: [POST]
+
+# Configuração do grupo global de acesso ao Workspace
+mundophpbb_workspace_access_group_config:
+    path: /workspace/access_group_config
+    defaults: { _controller: mundophpbb.workspace.controller.project:configure_access_group }
+    methods: [POST]
+
+# ----------------------------------------------------------
+# REVISAO POR ARQUIVO (COMENTARIOS)
+# ----------------------------------------------------------
+mundophpbb_workspace_comments:
+    path: /workspace/comments
+    defaults: { _controller: mundophpbb.workspace.controller.file:list_comments }
+    methods: [POST]
+
+mundophpbb_workspace_add_comment:
+    path: /workspace/comment/add
+    defaults: { _controller: mundophpbb.workspace.controller.file:add_comment }
+    methods: [POST]
+
+mundophpbb_workspace_resolve_comment:
+    path: /workspace/comment/resolve
+    defaults: { _controller: mundophpbb.workspace.controller.file:resolve_comment }
+    methods: [POST]
+
+mundophpbb_workspace_delete_comment:
+    path: /workspace/comment/delete
+    defaults: { _controller: mundophpbb.workspace.controller.file:delete_comment }
+    methods: [POST]
+
+# ----------------------------------------------------------
+# FLUXO DE REVISAO/APROVACAO POR ARQUIVO
+# ----------------------------------------------------------
+mundophpbb_workspace_file_review:
+    path: /workspace/file_review
+    defaults: { _controller: mundophpbb.workspace.controller.file:get_file_review }
+    methods: [POST]
+
+mundophpbb_workspace_request_file_review:
+    path: /workspace/file_review/request
+    defaults: { _controller: mundophpbb.workspace.controller.file:request_file_review }
+    methods: [POST]
+
+mundophpbb_workspace_set_file_review:
+    path: /workspace/file_review/set
+    defaults: { _controller: mundophpbb.workspace.controller.file:set_file_review }
+    methods: [POST]
+
+
+
+# ----------------------------------------------------------
+# HISTORICO DE VERSOES POR ARQUIVO
+# ----------------------------------------------------------
+mundophpbb_workspace_file_versions:
+    path: /workspace/file_versions
+    defaults: { _controller: mundophpbb.workspace.controller.file:list_file_versions }
+    methods: [POST]
+
+mundophpbb_workspace_file_version_view:
+    path: /workspace/file_version/view
+    defaults: { _controller: mundophpbb.workspace.controller.file:view_file_version }
+    methods: [POST]
+
+mundophpbb_workspace_file_version_restore:
+    path: /workspace/file_version/restore
+    defaults: { _controller: mundophpbb.workspace.controller.file:restore_file_version }
+    methods: [POST]
+
+mundophpbb_workspace_file_lock:
+    path: /workspace/file_lock
+    defaults: { _controller: mundophpbb.workspace.controller.file:get_file_lock }
+    methods: [POST]
+
+mundophpbb_workspace_lock_file:
+    path: /workspace/file_lock/set
+    defaults: { _controller: mundophpbb.workspace.controller.file:lock_file }
+    methods: [POST]
+
+mundophpbb_workspace_unlock_file:
+    path: /workspace/file_lock/release
+    defaults: { _controller: mundophpbb.workspace.controller.file:unlock_file }
+    methods: [POST]
+
+
+# ----------------------------------------------------------
+# NOTIFICACOES COLABORATIVAS
+# ----------------------------------------------------------
+mundophpbb_workspace_notifications:
+    path: /workspace/notifications
+    defaults: { _controller: mundophpbb.workspace.controller.project:list_notifications }
+    methods: [POST]
+
+mundophpbb_workspace_notifications_read:
+    path: /workspace/notifications/read
+    defaults: { _controller: mundophpbb.workspace.controller.project:mark_notifications_read }
+    methods: [POST]
+
+# ----------------------------------------------------------
+# QUADRO DE TAREFAS COLABORATIVAS
+# ----------------------------------------------------------
+mundophpbb_workspace_tasks:
+    path: /workspace/tasks
+    defaults: { _controller: mundophpbb.workspace.controller.project:list_tasks }
+    methods: [POST]
+
+mundophpbb_workspace_task_add:
+    path: /workspace/task/add
+    defaults: { _controller: mundophpbb.workspace.controller.project:add_task }
+    methods: [POST]
+
+mundophpbb_workspace_task_update:
+    path: /workspace/task/update
+    defaults: { _controller: mundophpbb.workspace.controller.project:update_task }
+    methods: [POST]
+
+mundophpbb_workspace_task_delete:
+    path: /workspace/task/delete
+    defaults: { _controller: mundophpbb.workspace.controller.project:delete_task }
+    methods: [POST]
+
+# Workspace 1.25.0: read-only, CSRF-protected, scoped template visual mock.
+mundophpbb_workspace_template_preview_catalog:
+    path: /workspace/templates/catalog
+    defaults: { _controller: mundophpbb.workspace.controller.template_preview:catalog }
+    methods: [POST]
+
+mundophpbb_workspace_template_preview_render:
+    path: /workspace/templates/preview
+    defaults: { _controller: mundophpbb.workspace.controller.template_preview:renderPreview }
+    methods: [POST]
+
+# Workspace 1.26.0: pending automatic documentation feature (formerly planned as 1.23).
+mundophpbb_workspace_documentation_preview:
+    path: /workspace/documentation/preview
+    defaults: { _controller: mundophpbb.workspace.controller.documentation:preview }
+    methods: [POST]
+
+mundophpbb_workspace_documentation_apply:
+    path: /workspace/documentation/apply
+    defaults: { _controller: mundophpbb.workspace.controller.documentation:apply }
+    methods: [POST]
+
+# Workspace 1.27.0: opt-in, public GitHub repositories; POST + phpBB CSRF token.
+mundophpbb_workspace_github_status:
+    path: /workspace/github/status
+    defaults: { _controller: mundophpbb.workspace.controller.github:status }
+    methods: [POST]
+
+mundophpbb_workspace_github_link:
+    path: /workspace/github/link
+    defaults: { _controller: mundophpbb.workspace.controller.github:link }
+    methods: [POST]
+
+mundophpbb_workspace_github_unlink:
+    path: /workspace/github/unlink
+    defaults: { _controller: mundophpbb.workspace.controller.github:unlink_repo }
+    methods: [POST]
+
+mundophpbb_workspace_github_preview:
+    path: /workspace/github/preview
+    defaults: { _controller: mundophpbb.workspace.controller.github:preview }
+    methods: [POST]
+
+mundophpbb_workspace_github_apply:
+    path: /workspace/github/apply
+    defaults: { _controller: mundophpbb.workspace.controller.github:apply }
+    methods: [POST]
+
+# Workspace 1.28.0: public GitHub Actions status and read-only workflow preview.
+# Workspace 1.33.0: manual read-only GitHub health overview.
+mundophpbb_workspace_github_health:
+    path: /workspace/github/health
+    defaults: { _controller: mundophpbb.workspace.controller.github:health }
+    methods: [POST]
+
+mundophpbb_workspace_github_actions:
+    path: /workspace/github/actions
+    defaults: { _controller: mundophpbb.workspace.controller.github:actions }
+    methods: [POST]
+
+# Workspace 1.29.0: published Releases and read-only Release-to-project comparison.
+mundophpbb_workspace_github_releases:
+    path: /workspace/github/releases
+    defaults: { _controller: mundophpbb.workspace.controller.github:releases }
+    methods: [POST]
+
+mundophpbb_workspace_github_release_compare:
+    path: /workspace/github/release-compare
+    defaults: { _controller: mundophpbb.workspace.controller.github:compare_release }
+    methods: [POST]
+
+# Workspace 1.31: compare individual text files in a public Release, read-only.
+mundophpbb_workspace_github_release_file_diff:
+    path: /workspace/github/release-file-diff
+    defaults: { _controller: mundophpbb.workspace.controller.github:release_file_diff }
+    methods: [POST]
+
+# Workspace 1.32: recent public commits on the linked reference (read-only).
+mundophpbb_workspace_github_commits:
+    path: /workspace/github/commits
+    defaults: { _controller: mundophpbb.workspace.controller.github:commits }
+    methods: [POST]
+
+mundophpbb_workspace_github_commit_detail:
+    path: /workspace/github/commit-detail
+    defaults: { _controller: mundophpbb.workspace.controller.github:commit_detail }
+    methods: [POST]
+
+mundophpbb_workspace_github_commit_compare:
+    path: /workspace/github/commit-compare
+    defaults: { _controller: mundophpbb.workspace.controller.github:compare_commit }
+    methods: [POST]
+
+mundophpbb_workspace_github_commit_diff:
+    path: /workspace/github/commit-file-diff
+    defaults: { _controller: mundophpbb.workspace.controller.github:commit_file_diff }
+    methods: [POST]
+
+mundophpbb_workspace_github_workflow:
+    path: /workspace/github/workflow
+    defaults: { _controller: mundophpbb.workspace.controller.github:workflow }
+    methods: [POST]
+
+# Workspace 1.35.0: project-local version history, no automatic publishing.
+mundophpbb_workspace_release_history_list:
+    path: /workspace/releases/history
+    defaults: { _controller: mundophpbb.workspace.controller.release_history:listing }
+    methods: [POST]
+
+mundophpbb_workspace_release_history_create:
+    path: /workspace/releases/record
+    defaults: { _controller: mundophpbb.workspace.controller.release_history:create }
+    methods: [POST]
+
+# Workspace 1.37.0 - portfolio of authorized projects; read only.
+mundophpbb_workspace_portfolio_summary:
+    path: /workspace/portfolio/summary
+    defaults: { _controller: mundophpbb.workspace.controller.portfolio:summary }
+    methods: [POST]
+
+# Workspace 1.43.0 - read-only, per-project checkpoint integrity audit.
+mundophpbb_workspace_backup_audit:
+    path: /workspace/backups/audit
+    defaults: { _controller: mundophpbb.workspace.controller.checkpoint:audit }
+    methods: [POST]
+
+# Workspace 1.44.0: portable project ZIP export and read-only import verification.
+mundophpbb_workspace_backup_export:
+    path: /workspace/backups/export
+    defaults: { _controller: mundophpbb.workspace.controller.checkpoint:export_zip }
+    methods: [POST]
+
+mundophpbb_workspace_backup_inspect:
+    path: /workspace/backups/inspect
+    defaults: { _controller: mundophpbb.workspace.controller.checkpoint:inspect_zip }
+    methods: [POST]
+
+# Workspace 1.45.0: selective preview-token-gated ZIP recovery.
+mundophpbb_workspace_backup_prepare_restore:
+    path: /workspace/backups/prepare-restore
+    defaults: { _controller: mundophpbb.workspace.controller.checkpoint:prepare_zip_restore }
+    methods: [POST]
+
+mundophpbb_workspace_backup_restore_zip:
+    path: /workspace/backups/restore-zip
+    defaults: { _controller: mundophpbb.workspace.controller.checkpoint:restore_zip }
+    methods: [POST]
+
+# Workspace 1.46.0 - validate and import portable backup into a new private project.
+mundophpbb_workspace_migration_preview:
+    path: /workspace/migration/preview
+    defaults: { _controller: mundophpbb.workspace.controller.checkpoint:migrate_preview }
+    methods: [POST]
+
+mundophpbb_workspace_migration_import:
+    path: /workspace/migration/import
+    defaults: { _controller: mundophpbb.workspace.controller.checkpoint:migrate_import }
+    methods: [POST]

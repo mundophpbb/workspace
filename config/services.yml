@@ -1,0 +1,378 @@
+services:
+
+    # =========================================================
+    # SERVICES (REPOSITORY + PERMISSION)
+    # =========================================================
+
+    mundophpbb.workspace.project_repository:
+        class: mundophpbb\workspace\repository\project_repository
+        arguments:
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+
+    mundophpbb.workspace.permission_service:
+        class: mundophpbb\workspace\service\permission_service
+        arguments:
+            - '@auth'
+            - '@user'
+            - '@mundophpbb.workspace.project_repository'
+
+
+    # =========================================================
+    # CONTROLLERS
+    # =========================================================
+
+    # Controller Principal (Renderização da IDE e Estado Inicial)
+    mundophpbb.workspace.controller.main:
+        class: mundophpbb\workspace\controller\main
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+        tags:
+            - { name: controller.service }
+
+    # Controller de Arquivos
+    mundophpbb.workspace.controller.file:
+        class: mundophpbb\workspace\controller\file_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+        tags:
+            - { name: controller.service }
+
+    # Controller de Projetos
+    mundophpbb.workspace.controller.project:
+        class: mundophpbb\workspace\controller\project_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+        tags:
+            - { name: controller.service }
+
+    # Controller de Ferramentas
+    mundophpbb.workspace.controller.tool:
+        class: mundophpbb\workspace\controller\tool_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+        tags:
+            - { name: controller.service }
+
+
+    # Radar de problemas (análise estática sem executar arquivos do usuário)
+    mundophpbb.workspace.radar_analyzer:
+        class: mundophpbb\workspace\service\radar_analyzer
+
+    mundophpbb.workspace.controller.radar:
+        class: mundophpbb\workspace\controller\radar_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+            - '@mundophpbb.workspace.radar_analyzer'
+        tags:
+            - { name: controller.service }
+
+    # Workspace 1.14.0: read-only project comparison and dependency graph.
+    mundophpbb.workspace.architecture_inspector:
+        class: mundophpbb\workspace\service\architecture_inspector
+
+    # Workspace 1.15.0: static ACL inventory for hypothetical profiles.
+    mundophpbb.workspace.permission_auditor:
+        class: mundophpbb\workspace\service\permission_auditor
+
+    # Workspace 1.16.0: compatibility indicators and external CI preparation.
+    mundophpbb.workspace.compatibility_lab:
+        class: mundophpbb\workspace\service\compatibility_lab
+
+    # Workspace 1.20.0: static security audit (no source execution).
+    mundophpbb.workspace.security_auditor:
+        class: mundophpbb\workspace\service\security_auditor
+
+    # Workspace 1.21.0: read-only upgrade migration and dependency risk review.
+    mundophpbb.workspace.upgrade_advisor:
+        class: mundophpbb\workspace\service\upgrade_advisor
+
+    # Workspace 1.24.0: read-only aggregated project quality evidence.
+    mundophpbb.workspace.quality_dashboard:
+        class: mundophpbb\workspace\service\quality_dashboard
+        arguments:
+            - '@mundophpbb.workspace.radar_analyzer'
+            - '@mundophpbb.workspace.security_auditor'
+            - '@mundophpbb.workspace.compatibility_lab'
+            - '@mundophpbb.workspace.permission_auditor'
+
+    mundophpbb.workspace.controller.architecture:
+        class: mundophpbb\workspace\controller\architecture_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+            - '@mundophpbb.workspace.architecture_inspector'
+            - '@mundophpbb.workspace.permission_auditor'
+            - '@mundophpbb.workspace.compatibility_lab'
+            - '@mundophpbb.workspace.security_auditor'
+            - '@mundophpbb.workspace.upgrade_advisor'
+            - '@mundophpbb.workspace.quality_dashboard'
+        tags:
+            - { name: controller.service }
+
+    # Workspace 1.18.0: bounded literal refactoring engine, without user-defined regex execution.
+    mundophpbb.workspace.refactor_engine:
+        class: mundophpbb\workspace\service\refactor_engine
+
+    mundophpbb.workspace.controller.refactor:
+        class: mundophpbb\workspace\controller\refactor_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+            - '@mundophpbb.workspace.refactor_engine'
+            - '@mundophpbb.workspace.checkpoint_manager'
+        tags:
+            - { name: controller.service }
+
+    # Workspace 1.19.0: release notes derived from checkpoint snapshots.
+    mundophpbb.workspace.release_notes_builder:
+        class: mundophpbb\workspace\service\release_notes_builder
+
+    mundophpbb.workspace.release_notes_snapshot_reader:
+        class: mundophpbb\workspace\service\release_notes_snapshot_reader
+        arguments:
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+
+    mundophpbb.workspace.controller.release_notes:
+        class: mundophpbb\workspace\controller\release_notes_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+            - '@mundophpbb.workspace.checkpoint_manager'
+            - '@mundophpbb.workspace.release_notes_builder'
+            - '@mundophpbb.workspace.release_notes_snapshot_reader'
+        tags:
+            - { name: controller.service }
+
+    # Workspace 1.17.0 - bounded full-project restoration checkpoints.
+    mundophpbb.workspace.checkpoint_manager:
+        class: mundophpbb\workspace\service\checkpoint_manager
+        arguments:
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+
+    mundophpbb.workspace.controller.checkpoint:
+        class: mundophpbb\workspace\controller\checkpoint_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+            - '@mundophpbb.workspace.checkpoint_manager'
+        tags:
+            - { name: controller.service }
+
+    # Visual phpBB feature generator (preview + atomic apply)
+    mundophpbb.workspace.feature_generator:
+        class: mundophpbb\workspace\service\feature_generator
+
+    mundophpbb.workspace.controller.generator:
+        class: mundophpbb\workspace\controller\generator_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+            - '@mundophpbb.workspace.feature_generator'
+        tags:
+            - { name: controller.service }
+
+    # =========================================================
+    # LISTENER
+    # =========================================================
+
+    mundophpbb.workspace.listener:
+        class: mundophpbb\workspace\event\main_listener
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+        tags:
+            - { name: event.listener }
+    # Workspace 1.25.0: isolated read-only template mock, never evaluates Twig/PHP.
+    mundophpbb.workspace.template_preview:
+        class: mundophpbb\workspace\service\template_preview
+
+    mundophpbb.workspace.controller.template_preview:
+        class: mundophpbb\workspace\controller\template_preview_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+            - '@mundophpbb.workspace.template_preview'
+        tags:
+            - { name: controller.service }
+
+    # Workspace 1.26.0: evidence-based README generator, explicit overwrite only.
+    mundophpbb.workspace.documentation_builder:
+        class: mundophpbb\workspace\service\documentation_builder
+
+    mundophpbb.workspace.controller.documentation:
+        class: mundophpbb\workspace\controller\documentation_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+            - '@mundophpbb.workspace.documentation_builder'
+            - '@mundophpbb.workspace.release_notes_snapshot_reader'
+        tags:
+            - { name: controller.service }
+
+    # Workspace 1.27.0: public repositories only (no credentials).
+    mundophpbb.workspace.github_links:
+        class: mundophpbb\workspace\repository\github_link_repository
+        arguments:
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+
+    mundophpbb.workspace.github_client:
+        class: mundophpbb\workspace\service\github_public_client
+
+    mundophpbb.workspace.controller.github:
+        class: mundophpbb\workspace\controller\github_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+            - '@mundophpbb.workspace.github_links'
+            - '@mundophpbb.workspace.github_client'
+        tags:
+            - { name: controller.service }
+
+    mundophpbb.workspace.controller.portfolio:
+        class: mundophpbb\workspace\controller\portfolio_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+        tags:
+            - { name: controller.service }
+
+    mundophpbb.workspace.controller.release_history:
+        class: mundophpbb\workspace\controller\release_history_controller
+        arguments:
+            - '@controller.helper'
+            - '@template'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+            - '@request'
+            - '@user'
+            - '@auth'
+            - '%core.root_path%'
+            - '@mundophpbb.workspace.project_repository'
+            - '@mundophpbb.workspace.permission_service'
+            - '@mundophpbb.workspace.checkpoint_manager'
+        tags:
+            - { name: controller.service }
