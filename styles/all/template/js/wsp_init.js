@@ -72,6 +72,102 @@
 		return str.indexOf(suffix, str.length - suffix.length) !== -1;
 	}
 
+	// 1.55.0: load optional feature scripts on the first explicit tool click.
+	// Keep the editor and collaboration modules in the initial page request.
+	var optionalTools = [
+		{ name: 'Generator', property: 'generator', file: 'wsp_generator.js', selector: '#open-generator, #open-phpunit-generator' },
+		{ name: 'Architecture', property: 'architecture', file: 'wsp_architecture.js', selector: '#wsp-arch-open-compare, #wsp-arch-open-map' },
+		{ name: 'Permissions', property: 'permissions', file: 'wsp_permissions.js', selector: '#wsp-perm-open' },
+		{ name: 'Test laboratory', property: 'testLab', file: 'wsp_test_lab.js', selector: '#wsp-lab-open' },
+		{ name: 'Security audit', property: 'securityAudit', file: 'wsp_security_audit.js', selector: '#wsp-sec-open' },
+		{ name: 'Upgrade advisor', property: 'upgradeAdvisor', file: 'wsp_upgrade_advisor.js', selector: '#wsp-up-open' },
+		{ name: 'Quality dashboard', property: 'qualityDashboard', file: 'wsp_quality_dashboard.js', selector: '#wsp-ql-open' },
+		{ name: 'Template preview', property: 'templatePreview', file: 'wsp_template_preview.js', selector: '#wsp-tp-open' },
+		{ name: 'Release notes', property: 'releaseNotes', file: 'wsp_release_notes.js', selector: '#wsp-rn-open' },
+		{ name: 'Documentation', property: 'documentation', file: 'wsp_documentation.js', selector: '#wsp-doc-open' },
+		{ name: 'GitHub repositories', property: 'githubRepositories', file: 'wsp_github.js', selector: '#wsp-gh-open' }
+	];
+	var scriptBase = '';
+	var scriptQuery = '';
+	(function resolveScriptBase() {
+		// phpBB's INCLUDEJS script has an absolute same-origin URL, even under subdirectories.
+		var current = document.currentScript;
+		var source = current && current.src || '';
+		if (!/\/wsp_init\.js(?:\?.*)?$/.test(source)) {
+			var fallback = document.querySelector('script[src*="/wsp_init.js"]');
+			source = fallback ? fallback.src : '';
+		}
+		var match = /^(https?:\/\/[^?#]+\/)(?:wsp_init\.js)(\?[^#]*)?$/.exec(source);
+		if (!match) return;
+		var anchor = document.createElement('a');
+		anchor.href = match[1];
+		if (anchor.protocol !== window.location.protocol || anchor.host !== window.location.host) return;
+		scriptBase = match[1];
+		scriptQuery = match[2] || '';
+	})();
+
+	function activateModule(m) {
+		if (!m.ref) return;
+		if (typeof m.ref.init === 'function') m.ref.init($);
+		if (typeof m.ref.render === 'function') m.ref.render($);
+		if (typeof m.ref.bindEvents === 'function') m.ref.bindEvents($);
+	}
+	function registerOptionalTool(spec) {
+		var state = 'idle';
+		var pendingTarget = null;
+		var projectAtClick = null;
+		function notifyFailure() {
+			if (window.WSP && WSP.ui && typeof WSP.ui.notify === 'function') {
+				WSP.ui.notify(safeLang('WSP_ERROR_CRITICAL'), 'error');
+			}
+		}
+		function onClick(event) {
+			var target = event.target;
+			var button = target && typeof target.closest === 'function' ? target.closest(spec.selector) : null;
+			if (!button || state === 'ready') return;
+			// Stop the first click before the toolbar closes its menu. Re-dispatch only
+			// after the optional module has installed its delegated listeners.
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			if (state === 'loading') return;
+			if (!scriptBase) {
+				console.error('WSP: cannot locate optional script directory');
+				notifyFailure();
+				return;
+			}
+			state = 'loading';
+			pendingTarget = button;
+			projectAtClick = window.WSP ? WSP.activeProjectId : null;
+			var script = document.createElement('script');
+			script.src = scriptBase + spec.file + scriptQuery;
+			script.async = true;
+			script.onload = function () {
+				try {
+					var module = window.WSP && WSP[spec.property];
+					if (!module) throw new Error('Optional module not registered: ' + spec.property);
+					activateModule({ name: spec.name, ref: module });
+					state = 'ready';
+					document.removeEventListener('click', onClick, true);
+					if (pendingTarget && pendingTarget.isConnected && WSP.activeProjectId === projectAtClick && !pendingTarget.disabled) pendingTarget.click();
+				} catch (error) {
+					state = 'failed';
+					console.error('WSP: optional module initialization failed', spec.name, error);
+					notifyFailure();
+				}
+				pendingTarget = null;
+			};
+			script.onerror = function () {
+				state = 'idle'; // Retry on a later deliberate click.
+				pendingTarget = null;
+				if (script.parentNode) script.parentNode.removeChild(script);
+				console.error('WSP: optional JavaScript could not load', spec.file);
+				notifyFailure();
+			};
+			document.head.appendChild(script);
+		}
+		document.addEventListener('click', onClick, true);
+	}
+
 	function startWorkspace() {
 		if (started) return;
 		if (!hasWorkspaceDom()) return;
@@ -98,23 +194,19 @@
 			{ name: 'Files', ref: WSP.files },
 			{ name: 'Projects', ref: WSP.projects },
 			{ name: 'Upload', ref: WSP.upload },
-			{ name: 'Tools', ref: WSP.tools }
+			{ name: 'Tools', ref: WSP.tools },
+			{ name: 'Radar', ref: WSP.radar },
+			{ name: 'Project checkpoints', ref: WSP.checkpoints },
+			{ name: 'Global refactoring', ref: WSP.refactor }
 		];
-
 		for (var i = 0; i < modules.length; i++) {
-			var m = modules[i];
 			try {
-				if (!m.ref) continue;
-
-				if (typeof m.ref.init === 'function') m.ref.init($);
-				if (typeof m.ref.render === 'function') m.ref.render($);
-				if (typeof m.ref.bindEvents === 'function') m.ref.bindEvents($);
-
-				console.log("WSP: " + safeLang('WSP_MODULE_LOADED', { '%s': m.name }));
+				activateModule(modules[i]);
 			} catch (e) {
-				console.error("WSP: " + safeLang('WSP_MODULE_ERROR', { '%s': m.name }), e);
+				console.error('WSP: module initialization error', modules[i].name, e);
 			}
 		}
+		optionalTools.forEach(registerOptionalTool);
 
 		// 3) Estado visual toolbar (Core)
 		if (typeof WSP.updateUIState === 'function') {
@@ -134,6 +226,7 @@
 			WSP.ajaxGetJson(window.wspVars.loadUrl, { file_id: savedFileId }, function (r) {
 				if (r && r.success) {
 					WSP.activeFileId = savedFileId;
+					WSP.activeFileRev = (typeof r.file_rev === 'number') ? r.file_rev : null;
 
 					var ed = getEditor();
 					if (!ed) {
@@ -212,7 +305,7 @@
 		depTries++;
 
 		var libsReady = (typeof jQuery !== 'undefined' && typeof ace !== 'undefined' && typeof window.wspVars !== 'undefined');
-		var modulesReady = (window.WSP && WSP.ui && WSP.tree && WSP.files && WSP.projects && WSP.upload && WSP.tools);
+		var modulesReady = (window.WSP && WSP.ui && WSP.tree && WSP.files && WSP.projects && WSP.upload && WSP.tools && WSP.radar);
 
 		if (libsReady && modulesReady) {
 			$(startWorkspace);

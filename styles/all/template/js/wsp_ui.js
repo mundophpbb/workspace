@@ -78,70 +78,33 @@ WSP.ui = {
 		var $doc = jQuery(document);
 		var $body = jQuery('body');
 
-		function refreshTooltips() {
-			jQuery('#wsp-main-container button, #wsp-main-container [title]').each(function () {
+		// 1.58.1: remove visual tooltips while retaining accessible names.
+		// Existing titles are moved to aria-label only on controls without a name.
+		function removeDecorativeTooltips(root) {
+			var $root = jQuery(root);
+			$root.find('[title], [data-tooltip]').addBack('[title], [data-tooltip]').each(function () {
 				var $el = jQuery(this);
-				var label = $el.attr('aria-label') || $el.attr('title');
-				if (!label) return;
-				$el.attr('aria-label', label);
-				$el.attr('data-tooltip', label);
+				var label = $el.attr('aria-label') || $el.attr('title') || $el.attr('data-tooltip');
+				if (label && !$el.attr('aria-label') && $el.is('button, a, input, select, textarea, [role="button"]')) {
+					$el.attr('aria-label', label);
+				}
+				$el.removeAttr('title data-tooltip');
 			});
 		}
-
-		refreshTooltips();
-		setTimeout(refreshTooltips, 500);
-
-		// Tooltip flutuante fora do container do editor.
-		// Workspace UI logic.
-		function ensureFloatingTooltip() {
-			var $tip = jQuery('#wsp-floating-tooltip');
-			if (!$tip.length) {
-				$tip = jQuery('<div id="wsp-floating-tooltip" role="tooltip" aria-hidden="true"></div>').appendTo('body');
-			}
-			return $tip;
-		}
-
-		function hideFloatingTooltip() {
-			jQuery('#wsp-floating-tooltip').removeClass('is-visible').attr('aria-hidden', 'true');
-		}
-
-		function showFloatingTooltip(el) {
-			var $el = jQuery(el);
-			var label = $el.attr('data-tooltip') || $el.attr('aria-label') || $el.attr('title');
-			if (!label) return;
-
-			var $tip = ensureFloatingTooltip();
-			$tip.text(label).addClass('is-visible').attr('aria-hidden', 'false');
-
-			var rect = el.getBoundingClientRect();
-			var tipRect = $tip[0].getBoundingClientRect();
-			var gap = 8;
-			var left = rect.left + (rect.width / 2) - (tipRect.width / 2);
-			var top = rect.bottom + gap;
-
-			// Workspace UI logic.
-			left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
-
-			// Workspace UI logic.
-			// Workspace UI logic.
-			if (top + tipRect.height + 8 > window.innerHeight) {
-				top = rect.top - tipRect.height - gap;
-			}
-			top = Math.max(8, top);
-
-			$tip.css({ left: Math.round(left) + 'px', top: Math.round(top) + 'px' });
-		}
-
-		$doc.off('.wsp_floating_tooltip')
-			.on('mouseenter.wsp_floating_tooltip focusin.wsp_floating_tooltip', '#wsp-main-container [data-tooltip]', function () {
-				showFloatingTooltip(this);
-			})
-			.on('mouseleave.wsp_floating_tooltip focusout.wsp_floating_tooltip mousedown.wsp_floating_tooltip', '#wsp-main-container [data-tooltip]', function () {
-				hideFloatingTooltip();
+		var uiScope = '#wsp-main-container, .wsp-modal-overlay, #wsp-custom-modal';
+		removeDecorativeTooltips(jQuery(uiScope));
+		// Toolbars and dialogs can be assembled after initialization.
+		// Capture on hover/focus removes native title tooltips before they display.
+		$doc.off('.wsp_tooltip_cleanup')
+			.on('mouseover.wsp_tooltip_cleanup focusin.wsp_tooltip_cleanup', uiScope, function (event) {
+				var target = event.target;
+				if (target && target.nodeType === 1) {
+					var $target = jQuery(target);
+					var $titled = $target.closest('[title], [data-tooltip]');
+					if ($titled.length && $titled.closest(uiScope).length) removeDecorativeTooltips($titled[0]);
+				}
 			});
-
-		jQuery(window).off('scroll.wsp_floating_tooltip resize.wsp_floating_tooltip')
-			.on('scroll.wsp_floating_tooltip resize.wsp_floating_tooltip', hideFloatingTooltip);
+		jQuery('#wsp-floating-tooltip').remove();
 
 		$doc.off('keydown.wsp_accessibility_polish').on('keydown.wsp_accessibility_polish', function (e) {
 			var isEsc = (e.key === 'Escape' || e.keyCode === 27);

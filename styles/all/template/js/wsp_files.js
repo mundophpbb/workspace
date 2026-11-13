@@ -140,10 +140,12 @@ WSP.files = {
 			if (resolved) html.push('<span class="wsp-comment-status"><i class="fa fa-check"></i> ' + this._escape(WSP.lang('WSP_COMMENT_RESOLVED')) + '</span>');
 			html.push('</div>');
 			html.push('<div class="wsp-comment-message">' + msg + '</div>');
-			html.push('<div class="wsp-comment-actions">');
-			html.push('<button type="button" class="wsp-resolve-comment" data-resolved="' + (resolved ? '0' : '1') + '">' + this._escape(resolved ? WSP.lang('WSP_REOPEN_COMMENT') : WSP.lang('WSP_RESOLVE_COMMENT')) + '</button>');
-			html.push('<button type="button" class="wsp-delete-comment"><i class="fa fa-trash-o"></i> ' + this._escape(WSP.lang('WSP_DELETE_COMMENT')) + '</button>');
-			html.push('</div>');
+			if (this._canEdit()) {
+				html.push('<div class="wsp-comment-actions">');
+				html.push('<button type="button" class="wsp-resolve-comment" data-resolved="' + (resolved ? '0' : '1') + '">' + this._escape(resolved ? WSP.lang('WSP_REOPEN_COMMENT') : WSP.lang('WSP_RESOLVE_COMMENT')) + '</button>');
+				html.push('<button type="button" class="wsp-delete-comment"><i class="fa fa-trash-o"></i> ' + this._escape(WSP.lang('WSP_DELETE_COMMENT')) + '</button>');
+				html.push('</div>');
+			}
 			html.push('</div>');
 		}
 		$list.html(html.join(''));
@@ -463,6 +465,7 @@ WSP.files = {
 				}
 
 				WSP.activeFileId = fileId;
+				WSP.activeFileRev = (typeof r.file_rev === 'number') ? r.file_rev : null;
 				WSP.versionViewMode = false;
 				localStorage.setItem('wsp_active_file_id', fileId);
 
@@ -516,6 +519,7 @@ WSP.files = {
 				self.initAutoSave();
 				self.bindDirtyDetector();
 				self.bindSaveShortcut();
+				jQuery(document).trigger('wsp:file-loaded', [fileId]);
 			}, 'WSP_ERROR_CRITICAL', function () {
 				setLoadingEffect(false);
 				restorePreviousSelection(prevActiveId);
@@ -553,15 +557,29 @@ WSP.files = {
 				.html('<i class="fa fa-spinner fa-spin fa-fw"></i>');
 
 			var contentToSave = ed.getValue();
+			var savingFileId = WSP.activeFileId;
+			var savingFileRev = WSP.activeFileRev;
+			if (typeof savingFileRev !== 'number' || savingFileRev < 0) {
+				$btn.prop('disabled', false).html('<i class="fa fa-save fa-fw"></i>');
+				WSP.ui.notify(WSP.lang('WSP_ERR_FILE_REV_REQUIRED'), 'error');
+				return;
+			}
 
-			self._postJson($, window.wspVars.saveUrl, { file_id: WSP.activeFileId, content: contentToSave }, function (r) {
+			self._postJson($, window.wspVars.saveUrl, { file_id: savingFileId, file_rev: savingFileRev, content: contentToSave }, function (r) {
 				if (r && r.success) {
+					// The user may have changed files (or typed more) while POST was pending.
+					if (String(WSP.activeFileId) !== String(savingFileId)) {
+						$btn.prop('disabled', false).html('<i class="fa fa-save fa-fw"></i>');
+						return;
+					}
+					WSP.activeFileRev = (typeof r.file_rev === 'number') ? r.file_rev : (savingFileRev + 1);
 					WSP.originalContent = contentToSave;
-					localStorage.removeItem('wsp_backup_' + WSP.activeFileId);
-					self.loadVersions(WSP.activeFileId);
+					var hasNewChanges = ed.getValue() !== contentToSave;
+					if (!hasNewChanges) localStorage.removeItem('wsp_backup_' + savingFileId);
+					self.loadVersions(savingFileId);
 
 					var $activeLink = jQuery('.load-file[data-id="' + WSP.activeFileId + '"]');
-					if ($activeLink.length) {
+					if ($activeLink.length && !hasNewChanges) {
 						var cleanName = ($activeLink.text() || '').replace(/^\* /, '');
 						$activeLink.text(cleanName).removeClass('is-dirty');
 					}
@@ -628,6 +646,7 @@ WSP.files = {
 
 		$body.on('submit.wsp_files', '#wsp-review-form', function (e) {
 			e.preventDefault();
+			if (!self._canEdit()) return self._notifyLockedOrDenied();
 			if (!WSP.activeFileId) return;
 
 			var $form = jQuery(this);
@@ -652,6 +671,7 @@ WSP.files = {
 
 		$body.on('click.wsp_files', '.wsp-resolve-comment', function (e) {
 			e.preventDefault();
+			if (!self._canEdit()) return self._notifyLockedOrDenied();
 			var $item = jQuery(this).closest('.wsp-comment-item');
 			var cid = parseInt(String($item.data('comment-id') || 0), 10) || 0;
 			var resolved = parseInt(String(jQuery(this).attr('data-resolved') || '1'), 10) || 0;
@@ -665,6 +685,7 @@ WSP.files = {
 
 		$body.on('click.wsp_files', '.wsp-delete-comment', function (e) {
 			e.preventDefault();
+			if (!self._canEdit()) return self._notifyLockedOrDenied();
 			if (!confirm(WSP.lang('WSP_CONFIRM_DELETE_COMMENT'))) return;
 			var $item = jQuery(this).closest('.wsp-comment-item');
 			var cid = parseInt(String($item.data('comment-id') || 0), 10) || 0;
@@ -707,7 +728,7 @@ WSP.files = {
 			if (!confirm(WSP.lang('WSP_CONFIRM_RESTORE_VERSION'))) return;
 			var vid = parseInt(String(jQuery(this).closest('.wsp-version-item').data('version-id') || 0), 10) || 0;
 			if (!vid) return;
-			self._postJson($, window.wspVars.fileVersionRestoreUrl, { version_id: vid }, function (r) {
+			self._postJson($, window.wspVars.fileVersionRestoreUrl, { version_id: vid, file_rev: WSP.activeFileRev }, function (r) {
 				if (r && r.success) {
 					var ed = self._getEditor();
 					var content = String(r.content || '');
@@ -717,6 +738,7 @@ WSP.files = {
 					}
 					WSP.versionViewMode = false;
 					WSP.originalContent = content;
+					WSP.activeFileRev = (typeof r.file_rev === 'number') ? r.file_rev : null;
 					self.renderVersions(r.versions || []);
 					self.loadReviewStatus(WSP.activeFileId);
 					if (WSP.ui && WSP.ui.notify) WSP.ui.notify(WSP.lang('WSP_VERSION_RESTORED'), 'success');

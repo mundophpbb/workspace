@@ -1,6 +1,7 @@
 (function ($) {
 	'use strict';
 
+	var repositionQueued = false;
 	function closeToolbarMenus() {
 		$('.wsp-toolbar-menu.is-open')
 			.removeClass('is-open')
@@ -61,6 +62,37 @@
 		});
 	}
 
+	function normalizeSearch(text) {
+		var value = String(text || '').toLocaleLowerCase();
+		if (typeof value.normalize === 'function') {
+			value = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+		}
+		return value;
+	}
+
+	function filterTools($dropdown) {
+		var query = normalizeSearch($dropdown.find('#wsp-tools-search').val()).trim();
+		var visible = 0;
+		var $items = $dropdown.children('.wsp-menu-item');
+		$items.each(function () {
+			var $item = $(this);
+			var match = !query || normalizeSearch($item.text()).indexOf(query) !== -1;
+			$item.toggleClass('wsp-tools-search-hidden', !match);
+			if (match) { visible++; }
+		});
+		var $blocks = $dropdown.children('.wsp-menu-heading, .wsp-menu-separator');
+		$blocks.each(function () { $(this).toggleClass('wsp-tools-search-hidden', !!query); });
+		$dropdown.find('.wsp-tools-search-empty').prop('hidden', !query || visible !== 0);
+		$dropdown.scrollTop(0);
+	}
+
+	function scheduleReposition() {
+		if (repositionQueued) { return; }
+		repositionQueued = true;
+		var schedule = window.requestAnimationFrame || function (fn) { return window.setTimeout(fn, 16); };
+		schedule(function () { repositionQueued = false; repositionOpenMenu(); });
+	}
+
 	function openToolbarMenu($menu) {
 		closeToolbarMenus();
 		$menu.addClass('is-open')
@@ -88,11 +120,28 @@
 				closeToolbarMenus();
 				return;
 			}
+			if ($menu.find('#wsp-tools-search').length) {
+				$menu.find('#wsp-tools-search').val('');
+				filterTools($menu.find('.wsp-toolbar-dropdown').first());
+			}
 			openToolbarMenu($menu);
 		});
 
 		$body.on('click.wsp_toolbar', '.wsp-toolbar-dropdown', function (e) {
 			e.stopPropagation();
+		});
+
+		$body.on('input.wsp_toolbar', '#wsp-tools-search', function () {
+			var $dropdown = $(this).closest('.wsp-toolbar-dropdown');
+			filterTools($dropdown);
+			scheduleReposition();
+		});
+
+		$body.on('keydown.wsp_toolbar', '#wsp-tools-search', function (e) {
+			if (e.key === 'Enter') {
+				var $items = $(this).closest('.wsp-toolbar-dropdown').children('.wsp-menu-item:not(.wsp-tools-search-hidden):not(:disabled)');
+				if ($items.length === 1) { e.preventDefault(); $items.first().trigger('click'); }
+			}
 		});
 
 		$body.on('click.wsp_toolbar', '.wsp-toolbar-dropdown button:not(.wsp-toolbar-menu-toggle):not(:disabled)', function () {
@@ -122,11 +171,11 @@
 		});
 
 		$(window).on('resize.wsp_toolbar scroll.wsp_toolbar', function () {
-			repositionOpenMenu();
+			scheduleReposition();
 		});
 
 		$('.editor-toolbar-rich').on('scroll.wsp_toolbar', function () {
-			repositionOpenMenu();
+			scheduleReposition();
 		});
 	});
 })(jQuery);

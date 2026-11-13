@@ -5,6 +5,10 @@
 WSP.tools = {
 	_ui: null,
 	_lastValidationReport: null,
+	_validationProjectId: 0,
+	_validationRunning: false,
+	_wizardMode: false,
+	_packageDownloadStarted: false,
 
 	_getUI: function () {
 		if (this._ui) return this._ui;
@@ -36,6 +40,11 @@ WSP.tools = {
 			$validatorChecklist: jQuery('#wsp-validator-checklist'),
 			$validatorIssues: jQuery('#wsp-validator-issues'),
 			$validatorScope: jQuery('#wsp-validator-scope'),
+			$wizard: jQuery('#wsp-release-wizard'),
+			$wizardStatus: jQuery('#wsp-release-status'),
+			$wizardMeta: jQuery('#wsp-release-metadata'),
+			$wizardStart: jQuery('#wsp-release-start'),
+			$validatorTitle: jQuery('#wsp-validator-modal-title'),
 			$runValidatorBtn: jQuery('#run-release-validator'),
 			$applyFixesBtn: jQuery('#apply-release-fixes'),
 			$exportReportBtn: jQuery('#export-validation-report')
@@ -109,11 +118,16 @@ WSP.tools = {
 		}
 
 		if (window.WSP && typeof WSP.ajaxPostJson === 'function') {
-			WSP.ajaxPostJson(url, data, function (r) {
+			// The shared request helper shows failures. Its jqXHR also completes on
+			// HTTP, permission and invalid-JSON errors, preventing stuck spinners.
+			var request = WSP.ajaxPostJson(url, data, function (r) {
 				cbOk && cbOk(r);
-				cbAlways && cbAlways();
 			}, 'WSP_ERROR_CRITICAL');
-			return;
+			if (cbAlways) {
+				if (request && typeof request.always === 'function') request.always(cbAlways);
+				else cbAlways();
+			}
+			return request;
 		}
 
 		return $.post(url, WSP.withCsrf(data), function (r) {
@@ -128,6 +142,106 @@ WSP.tools = {
 
 
 
+
+	_currentValidationProjectId: function () {
+		return parseInt(String(WSP.activeProjectId || (window.wspVars && window.wspVars.activeProjectId) || 0), 10) || 0;
+	},
+
+	_canDownloadValidatedPackage: function (summary) {
+		summary = summary || {};
+		return !!(this._lastValidationReport && !this._validationRunning &&
+			this._validationProjectId === this._currentValidationProjectId() &&
+			!this._hasUnsavedChanges() &&
+			window.wspVars && window.wspVars.downloadSubmissionUrl &&
+			parseInt(window.wspVars.activeCanDownload, 10) === 1 &&
+			WSP.canEditActiveProjectUI && WSP.canEditActiveProjectUI() &&
+			summary.ready && summary.scope === 'phpbb_ext_db' &&
+			summary.epv_status === 'pass' && /^[0-9a-f]{24}$/.test(String(summary.fingerprint || '')));
+	},
+
+	_setWizardStep: function (step, state) {
+		var ui = this._getUI();
+		if (!ui.$wizard || !ui.$wizard.length) return;
+		ui.$wizard.find('[data-wsp-release-step="' + step + '"]')
+			.removeClass('is-pass is-warning is-error')
+			.addClass(state ? 'is-' + state : '');
+	},
+
+	_updateReleaseWizard: function (report) {
+		var ui = this._getUI();
+		if (!this._wizardMode || !ui.$wizard || !ui.$wizard.length) return;
+		var s = (report && report.summary) || {};
+		var epv = (report && report.official_epv) || {};
+		var hasResult = !!(report && report.summary);
+		var ready = this._canDownloadValidatedPackage(s);
+		var message = WSP.lang('WSP_RELEASE_BEGIN_HINT');
+		var color = '';
+
+		this._setWizardStep('structure', !hasResult ? '' : ((parseInt(s.errors, 10) || 0) === 0 ? 'pass' : 'error'));
+		this._setWizardStep('epv', !hasResult ? '' : (epv.status === 'pass' ? 'pass' : (epv.status === 'unavailable' || epv.status === 'cooldown' || epv.status === 'busy' ? 'warning' : 'error')));
+		this._setWizardStep('fixes', !hasResult ? '' : ((parseInt(s.errors, 10) || 0) === 0 && (parseInt(s.fixable, 10) || 0) === 0 ? 'pass' : 'warning'));
+		this._setWizardStep('package', ready ? 'pass' : (hasResult ? 'warning' : ''));
+		jQuery('#wsp-release-record').prop('disabled', !ready || !this._packageDownloadStarted ||
+			!WSP.releaseHistory || !WSP.releaseHistory.allowed());
+
+		if (this._validationRunning) {
+			message = WSP.lang('WSP_RELEASE_RUNNING');
+		} else if (hasResult) {
+			if (s.scope !== 'phpbb_ext_db') message = WSP.lang('WSP_RELEASE_SCOPE_REQUIRED');
+			else if (s.epv_status !== 'pass') message = WSP.lang('WSP_RELEASE_EPV_REQUIRED');
+			else if (!s.ready) message = WSP.lang('WSP_RELEASE_REVIEW');
+			else if (!window.wspVars || parseInt(window.wspVars.activeCanDownload, 10) !== 1) message = WSP.lang('WSP_RELEASE_NO_DOWNLOAD');
+			else if (this._hasUnsavedChanges()) message = WSP.lang('WSP_RELEASE_UNSAVED');
+			else message = WSP.lang('WSP_RELEASE_COMPLETE');
+			color = ready ? 'is-pass' : 'is-warning';
+		} else if (this._releaseReportOutdated) {
+			message = WSP.lang('WSP_RELEASE_REPORT_STALE');
+			color = 'is-warning';
+		}
+		ui.$wizardStatus.removeClass('is-pass is-warning is-error').addClass(color).text(message);
+		if (hasResult) {
+			var meta = [];
+			if (s.extension_version) meta.push(WSP.lang('WSP_RELEASE_VERSION') + ': ' + s.extension_version);
+			if (s.fingerprint) meta.push(WSP.lang('WSP_RELEASE_FINGERPRINT') + ': ' + s.fingerprint);
+			ui.$wizardMeta.text(meta.join(' | ')).prop('hidden', !meta.length);
+		} else {
+			ui.$wizardMeta.empty().prop('hidden', true);
+		}
+		ui.$wizardStart.prop('disabled', this._validationRunning);
+	},
+
+	_setReleaseWizardMode: function (enabled) {
+		this._wizardMode = !!enabled;
+		var ui = this._getUI();
+		ui.$wizard.prop('hidden', !this._wizardMode);
+		ui.$validatorScope.prop('disabled', this._wizardMode);
+		ui.$validatorTitle.html('<i class="fa ' + (this._wizardMode ? 'fa-rocket' : 'fa-check-square-o') + '"></i> ' +
+			this._escape(WSP.lang(this._wizardMode ? 'WSP_RELEASE_ASSISTANT_TITLE' : 'WSP_VALIDATE_RELEASE')));
+		if (this._wizardMode) {
+			ui.$validatorScope.val('phpbb_ext_db');
+			this._invalidateReleaseReport(false);
+			ui.$validatorSummary.text(WSP.lang('WSP_VALIDATOR_WAITING'));
+			ui.$validatorChecklist.empty();
+			ui.$validatorIssues.empty();
+			ui.$epvPanel.empty().prop('hidden', true);
+		}
+		this._updateReleaseWizard(this._lastValidationReport);
+	},
+
+	_invalidateReleaseReport: function (changed) {
+		var hadReport = !!this._lastValidationReport;
+		this._lastValidationReport = null;
+		this._validationProjectId = 0;
+		this._packageDownloadStarted = false;
+		this._releaseReportOutdated = !!changed && (hadReport || this._releaseReportOutdated);
+		var ui = this._getUI();
+		this.renderPublicationAudit(null);
+		ui.$exportReportBtn.prop('disabled', true);
+		ui.$applyFixesBtn.prop('disabled', true);
+		jQuery('#download-submission-package').prop('disabled', true).removeClass('is-active');
+		this._updateReleaseWizard(null);
+	},
+
 	_syncValidationFixButton: function (summary) {
 		var ui = this._getUI();
 		if (!ui.$applyFixesBtn || !ui.$applyFixesBtn.length) return;
@@ -135,7 +249,7 @@ WSP.tools = {
 		summary = summary || {};
 		var fixCount = parseInt(summary.fixable || 0, 10) || 0;
 		var hasReport = !!this._lastValidationReport;
-		var canFix = !!(hasReport && window.wspVars && window.wspVars.applyValidationFixesUrl && this._canWrite());
+		var canFix = !!(hasReport && window.wspVars && window.wspVars.applyValidationFixesUrl && WSP.canEditActiveProjectUI && WSP.canEditActiveProjectUI());
 		var label = WSP.lang('WSP_VALIDATOR_APPLY_SAFE_FIXES_COUNT', { '%d': fixCount });
 		var hint = fixCount > 0
 			? WSP.lang('WSP_VALIDATOR_SAFE_FIXES_HINT')
@@ -148,10 +262,36 @@ WSP.tools = {
 			.html('<i class="fa fa-magic"></i> ' + this._escape(label));
 	},
 
+	renderPublicationAudit: function (audit) {
+		var $panel = jQuery('#wsp-publication-audit');
+		if (!$panel.length) return;
+		if (!audit || !Array.isArray(audit.items)) {
+			$panel.empty().prop('hidden', true);
+			return;
+		}
+		var keys = {
+			composer: 'WSP_PUB_COMPOSER', version: 'WSP_PUB_VERSION', readme: 'WSP_PUB_README',
+			changelog: 'WSP_PUB_CHANGELOG', changelog_version: 'WSP_PUB_CHANGELOG_VERSION',
+			license: 'WSP_PUB_LICENSE', languages: 'WSP_PUB_LANGUAGES', workflow: 'WSP_PUB_WORKFLOW'
+		};
+		var html = '<h5>' + this._escape(WSP.lang('WSP_PUB_TITLE')) + '</h5>';
+		html += '<p>' + this._escape(WSP.lang('WSP_PUB_ADVISORY')) + '</p>';
+		html += '<p><strong>' + this._escape(String(audit.passed || 0) + '/' + String(audit.total || 0)) + '</strong> ' + this._escape(WSP.lang('WSP_PUB_PASSED')) + '</p>';
+		for (var i = 0; i < audit.items.length; i++) {
+			var item = audit.items[i] || {};
+			var status = ['pass', 'warning', 'pending', 'info'].indexOf(item.status) >= 0 ? item.status : 'info';
+			var title = WSP.lang(keys[item.key] || 'WSP_PUB_UNKNOWN');
+			html += '<div class="wsp-pub-item is-' + status + '"><strong>' + this._escape(title) + '</strong><small>' + this._escape(item.file || '') + ' · ' + this._escape(item.detail || '') + '</small></div>';
+		}
+		$panel.html(html).prop('hidden', false);
+	},
+
 	renderReleaseValidation: function (r) {
 		var ui = this._getUI();
 		var summary = r.summary || {};
 		this._lastValidationReport = r;
+		this._validationProjectId = this._currentValidationProjectId();
+		this._releaseReportOutdated = false;
 		function pill(cls, icon, text) {
 			return '<span class="wsp-validator-pill ' + cls + '"><i class="fa ' + icon + '"></i> ' + text + '</span>';
 		}
@@ -240,17 +380,19 @@ WSP.tools = {
 			ui.$validatorIssues.html(ih.join(''));
 		}
 
+		this.renderPublicationAudit(r.publication || null);
 		this._syncValidationFixButton(summary);
 		if (ui.$exportReportBtn && ui.$exportReportBtn.length) {
 			ui.$exportReportBtn.prop('disabled', false);
 		}
 		var $submissionBtn = jQuery('#download-submission-package');
 		if ($submissionBtn.length) {
-			var canPackage = !!(summary.ready && summary.scope === 'phpbb_ext_db' && summary.epv_status === 'pass' && window.wspVars && window.wspVars.downloadSubmissionUrl);
+			var canPackage = this._canDownloadValidatedPackage(summary);
 			$submissionBtn.prop('disabled', !canPackage);
 			$submissionBtn.toggleClass('is-active', canPackage);
 		}
 
+		this._updateReleaseWizard(r);
 		function selfEscape(v) { return String(v == null ? '' : v); }
 	},
 
@@ -284,7 +426,16 @@ WSP.tools = {
 		lines.push(this._reportLine(L('WSP_REPORT_NOTICES'), summary.notices || 0));
 		lines.push(this._reportLine(L('WSP_REPORT_CHECKS'), (summary.passed || 0) + '/' + (summary.checks || 0)));
 		lines.push(this._reportLine(L('WSP_REPORT_FILES'), summary.files || 0));
+		if (summary.extension_version) lines.push(this._reportLine(L('WSP_REPORT_EXT_VERSION'), summary.extension_version));
+		if (summary.fingerprint) lines.push(this._reportLine(L('WSP_REPORT_FINGERPRINT'), summary.fingerprint));
 		lines.push('');
+		var publication = r.publication || {};
+		if (Array.isArray(publication.items)) {
+			lines.push(L('WSP_PUB_TITLE') + ' (' + (publication.passed || 0) + '/' + (publication.total || 0) + ')');
+			lines.push(L('WSP_PUB_ADVISORY'));
+			publication.items.forEach(function (it) { lines.push('- [' + String(it.status || 'info') + '] ' + String(it.key || '') + ': ' + String(it.file || '') + ' - ' + String(it.detail || '')); });
+			lines.push('');
+		}
 		lines.push(L('WSP_REPORT_EPV_TITLE'));
 		lines.push(new Array(L('WSP_REPORT_EPV_TITLE').length + 1).join('-'));
 		if (!epv.required) {
@@ -346,14 +497,14 @@ WSP.tools = {
 
 	exportValidationReport: function () {
 		var r = this._lastValidationReport;
-		if (!r) {
+		if (!r || this._validationProjectId !== this._currentValidationProjectId()) {
 			WSP.ui.notify(WSP.lang('WSP_EXPORT_VALIDATION_NO_REPORT'), 'warning');
 			return;
 		}
 		var text = this.buildValidationReportText(r);
 		var stamp = new Date();
 		var pad = function (n) { return (n < 10 ? '0' : '') + n; };
-		var name = 'workspace-validacao-' + stamp.getFullYear() + pad(stamp.getMonth() + 1) + pad(stamp.getDate()) + '-' + pad(stamp.getHours()) + pad(stamp.getMinutes()) + '.txt';
+		var name = (this._wizardMode ? 'workspace-lancamento-' : 'workspace-validacao-') + stamp.getFullYear() + pad(stamp.getMonth() + 1) + pad(stamp.getDate()) + '-' + pad(stamp.getHours()) + pad(stamp.getMinutes()) + '.txt';
 		try {
 			var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
 			var url = URL.createObjectURL(blob);
@@ -375,9 +526,17 @@ WSP.tools = {
 		var ui = self._getUI();
 		var projectId = WSP.activeProjectId || (window.wspVars && window.wspVars.activeProjectId) || 0;
 		if (!projectId) return WSP.ui.notify(WSP.lang('WSP_TOOLS_SEARCH_NEED_PROJECT'), 'warning');
+		if (!WSP.canEditActiveProjectUI || !WSP.canEditActiveProjectUI()) {
+			return WSP.ui.notify(WSP.lang('WSP_VALIDATOR_EDITOR_ONLY'), 'warning');
+		}
 		if (!window.wspVars || !window.wspVars.validateReleaseUrl) return WSP.ui.notify(WSP.lang('WSP_TOOLS_SEARCH_INTERFACE_ERROR'), 'error');
+		if (self._validationRunning) return WSP.ui.notify(WSP.lang('WSP_RELEASE_VALIDATING'), 'warning');
+		if (self._hasUnsavedChanges()) return WSP.ui.notify(WSP.lang('WSP_RELEASE_UNSAVED'), 'warning');
 
+		self._invalidateReleaseReport(false);
+		self._validationRunning = true;
 		ui.$validatorModal.fadeIn(200);
+		self._updateReleaseWizard(null);
 		ui.$validatorSummary.html('<span class="wsp-validator-pill"><i class="fa fa-spinner fa-spin"></i> ' + WSP.lang('WSP_VALIDATOR_RUNNING') + '</span>');
 		ui.$validatorChecklist.empty();
 		ui.$validatorIssues.empty();
@@ -386,7 +545,7 @@ WSP.tools = {
 		if (ui.$applyFixesBtn && ui.$applyFixesBtn.length) ui.$applyFixesBtn.prop('disabled', true);
 		if (ui.$exportReportBtn && ui.$exportReportBtn.length) ui.$exportReportBtn.prop('disabled', true);
 
-		var scope = (ui.$validatorScope && ui.$validatorScope.length) ? ui.$validatorScope.val() : 'normal';
+		var scope = self._wizardMode ? 'phpbb_ext_db' : ((ui.$validatorScope && ui.$validatorScope.length) ? ui.$validatorScope.val() : 'normal');
 		self._postJson($, window.wspVars.validateReleaseUrl, { project_id: projectId, scope: scope }, function (r) {
 			self.renderReleaseValidation(r);
 			if (r.summary && r.summary.ready) WSP.ui.notify(WSP.lang('WSP_VALIDATOR_READY'), 'success');
@@ -394,7 +553,11 @@ WSP.tools = {
 		}, function (r) {
 			WSP.ui.notify((r && r.error) ? r.error : WSP.lang('WSP_ERROR_CRITICAL'), 'error');
 		}, function () {
+			self._validationRunning = false;
 			ui.$runValidatorBtn.prop('disabled', false);
+			var summary = self._lastValidationReport && self._lastValidationReport.summary;
+			jQuery('#download-submission-package').prop('disabled', !self._canDownloadValidatedPackage(summary));
+			self._updateReleaseWizard(self._lastValidationReport);
 		});
 	},
 	applyValidationFixes: function ($) {
@@ -403,7 +566,9 @@ WSP.tools = {
 		var projectId = WSP.activeProjectId || (window.wspVars && window.wspVars.activeProjectId) || 0;
 		if (!projectId) return WSP.ui.notify(WSP.lang('WSP_TOOLS_SEARCH_NEED_PROJECT'), 'warning');
 		if (!window.wspVars || !window.wspVars.applyValidationFixesUrl) return WSP.ui.notify(WSP.lang('WSP_TOOLS_SEARCH_INTERFACE_ERROR'), 'error');
-		if (!self._canWrite()) return self._notifyLocked();
+		if (!WSP.canEditActiveProjectUI || !WSP.canEditActiveProjectUI()) {
+			return WSP.ui.notify(WSP.lang('WSP_VALIDATOR_EDITOR_ONLY'), 'warning');
+		}
 		if (!self._confirmLoseChanges()) return;
 
 		WSP.ui.confirm(WSP.lang('WSP_VALIDATOR_APPLY_SAFE_FIXES_CONFIRM'), function () {
@@ -413,6 +578,7 @@ WSP.tools = {
 				var applied = r.applied || 0;
 				WSP.ui.notify(WSP.lang('WSP_VALIDATOR_FIXES_APPLIED', { '%d': applied }), applied > 0 ? 'success' : 'info');
 				if (r.report) self.renderReleaseValidation(r.report);
+				if (applied > 0) self._invalidateReleaseReport(true);
 				if (typeof WSP.ui.seamlessRefresh === 'function') WSP.ui.seamlessRefresh();
 				if (WSP.activeFileId) jQuery('.active-file .load-file').trigger('click');
 			}, function (r) {
@@ -569,8 +735,53 @@ WSP.tools = {
 			});
 		});
 
-		// 3) VALIDADOR phpBB / CHECKLIST
-		$body.on('click.wsp_tools', '#validate-release-project, #run-release-validator', function (e) {
+		// 3) VALIDADOR phpBB / CHECKLIST / ASSISTENTE DE LANCAMENTO
+		$body.on('click.wsp_tools', '#open-release-assistant', function (e) {
+			e.preventDefault();
+			if (!WSP.canEditActiveProjectUI || !WSP.canEditActiveProjectUI()) {
+				return WSP.ui.notify(WSP.lang('WSP_VALIDATOR_EDITOR_ONLY'), 'warning');
+			}
+			self._setReleaseWizardMode(true);
+			ui.$validatorModal.fadeIn(200);
+		});
+
+		$body.on('click.wsp_tools', '#wsp-release-start', function (e) {
+			e.preventDefault();
+			self.runReleaseValidation($);
+		});
+
+		$body.on('click.wsp_tools', '#wsp-release-record', function (e) {
+			e.preventDefault();
+			var summary = (self._lastValidationReport || {}).summary || {};
+			if (!self._wizardMode || !self._packageDownloadStarted || !self._canDownloadValidatedPackage(summary) ||
+				!WSP.releaseHistory || !WSP.releaseHistory.allowed()) return;
+			self._postJson($, window.wspVars.verifyReleaseSnapshotUrl,
+				{project_id:self._currentValidationProjectId(), fingerprint:String(summary.fingerprint)}, function (result) {
+				if (!result.matches || !self._canDownloadValidatedPackage(summary)) {
+					self._invalidateReleaseReport(true);
+					WSP.ui.notify(WSP.lang('WSP_RELEASE_SNAPSHOT_CHANGED'), 'warning');
+					return;
+				}
+				var packageName = String(summary.extension_package || '');
+				var version = String(summary.extension_version || '');
+				if (!/^[A-Za-z][A-Za-z0-9_]*\/[A-Za-z][A-Za-z0-9_]*$/.test(packageName) ||
+					!/^v?[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
+					WSP.ui.notify(WSP.lang('WSP_RH_INVALID'), 'warning'); return;
+				}
+				var fileName = (packageName.replace('/', '_') + '_' + version.replace(/[^A-Za-z0-9._-]/g, '_') + '.zip');
+				jQuery('#release-validator-modal').hide();
+				WSP.releaseHistory.openPrepared({projectId:self._currentValidationProjectId(),
+					version:version, packageName:fileName, fingerprint:String(summary.fingerprint)});
+			});
+		});
+
+		$body.on('click.wsp_tools', '#validate-release-project', function (e) {
+			e.preventDefault();
+			self._setReleaseWizardMode(false);
+			self.runReleaseValidation($);
+		});
+
+		$body.on('click.wsp_tools', '#run-release-validator', function (e) {
 			e.preventDefault();
 			self.runReleaseValidation($);
 		});
@@ -589,16 +800,34 @@ WSP.tools = {
 			e.preventDefault();
 			var report = self._lastValidationReport || {};
 			var summary = report.summary || {};
-			if (!summary.ready || summary.scope !== 'phpbb_ext_db') {
-				WSP.ui.notify(WSP.lang('WSP_VALIDATOR_RUN_EXTDB_FIRST'), 'warning');
+			if (!self._canDownloadValidatedPackage(summary)) {
+				WSP.ui.notify(self._hasUnsavedChanges() ? WSP.lang('WSP_RELEASE_UNSAVED') : WSP.lang('WSP_VALIDATOR_RUN_EXTDB_FIRST'), 'warning');
 				return;
 			}
-			var pid = parseInt(String(WSP.activeProjectId || (window.wspVars && window.wspVars.activeProjectId) || 0), 10) || 0;
+			var pid = self._currentValidationProjectId();
 			var u = String((window.wspVars && window.wspVars.downloadSubmissionUrl) || '');
-			if (!pid || !u) return;
+			if (!pid || !u || !window.wspVars.verifyReleaseSnapshotUrl) return;
 			if (u.indexOf('project_id=0') !== -1) u = u.replace('project_id=0', 'project_id=' + pid);
 			else u = u.replace(/\/0(\b|\/)?/, '/' + pid);
-			window.location.href = u;
+			var fingerprint = String(summary.fingerprint);
+			var $button = jQuery(this).prop('disabled', true);
+			self._postJson($, window.wspVars.verifyReleaseSnapshotUrl, { project_id: pid, fingerprint: fingerprint }, function (r) {
+				if (!r.matches || !self._canDownloadValidatedPackage(summary)) {
+					self._invalidateReleaseReport(true);
+					WSP.ui.notify(WSP.lang('WSP_RELEASE_SNAPSHOT_CHANGED'), 'warning');
+					return;
+				}
+				// Server checks the fingerprint again during ZIP creation (TOCTOU).
+				window.location.href = u + (u.indexOf('?') === -1 ? '?' : '&') + 'fingerprint=' + encodeURIComponent(fingerprint);
+				// A browser navigation cannot confirm the ZIP actually arrived.
+				// Explicitly ask the developer to verify the download before recording.
+				self._packageDownloadStarted = true;
+				self._updateReleaseWizard(self._lastValidationReport);
+			}, function (r) {
+				WSP.ui.notify((r && r.error) ? r.error : WSP.lang('WSP_ERROR_CRITICAL'), 'error');
+			}, function () {
+				$button.prop('disabled', !self._canDownloadValidatedPackage(summary));
+			});
 		});
 
 		// 3) CACHE phpBB
@@ -620,6 +849,29 @@ WSP.tools = {
 				$icon.removeClass('fa-spin');
 				$btn.removeClass('btn-cache-loading');
 			});
+		});
+
+		// Any successful file mutation invalidates an earlier validation report.
+		// The server still checks the exact snapshot on every wizard ZIP download.
+		var mutationRoutes = [];
+		var mutationKeys = [
+			'saveUrl', 'addFileUrl', 'uploadUrl', 'uploadZipUrl', 'renameUrl',
+			'moveFileUrl', 'deleteFileUrl', 'renameFolderUrl', 'deleteFolderUrl',
+			'replaceUrl', 'applyValidationFixesUrl', 'fileVersionRestoreUrl',
+			'changelogUrl', 'clearChangelogUrl', 'generatorApplyUrl'
+		];
+		for (var k = 0; k < mutationKeys.length; k++) {
+			if (window.wspVars && window.wspVars[mutationKeys[k]]) {
+				mutationRoutes.push(String(window.wspVars[mutationKeys[k]]).split('?')[0]);
+			}
+		}
+		ui.$doc.off('ajaxSuccess.wsp_tools').on('ajaxSuccess.wsp_tools', function (event, xhr, settings) {
+			if (!self._lastValidationReport || !settings || String(settings.type || '').toUpperCase() !== 'POST') return;
+			var requestPath = String(settings.url || '').split('?')[0];
+			if (mutationRoutes.indexOf(requestPath) === -1) return;
+			var data = xhr && xhr.responseJSON;
+			if (data && data.success === false) return;
+			self._invalidateReleaseReport(true);
 		});
 
 		// 4) ESC fecha modais

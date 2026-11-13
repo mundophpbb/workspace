@@ -53,6 +53,7 @@
 	// ==========================================================
 	window.WSP = {
 		activeFileId: null,
+		activeFileRev: null,
 		activeProjectId: null,
 		activeFolderPath: '',
 		originalContent: "",
@@ -253,7 +254,8 @@
 			if (typeof data._nocache === 'undefined') data._nocache = Date.now();
 
 			if (!window.jQuery) return;
-			window.jQuery.ajax({
+			// Return jqXHR so callers can always restore their button state on failure.
+			return window.jQuery.ajax({
 				url: url,
 				type: 'POST',
 				data: data,

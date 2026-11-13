@@ -1,0 +1,94 @@
+{% INCLUDE 'overall_header.html' %}
+{% INCLUDECSS '@mundophpbb_workspace/workspace_public.css' %}
+
+<main class="wsp-public wsp-public-theme-{{ WSP_PUBLIC_THEME|e('html_attr') }} wsp-public-layout-{{ WSP_PUBLIC_LAYOUT|e('html_attr') }}" id="wsp-public-catalog">
+    <section class="wsp-public-hero" aria-labelledby="wsp-public-heading">
+        <div class="wsp-public-hero-inner">
+            <div class="wsp-public-eyebrow"><i class="fa fa-code" aria-hidden="true"></i> Workspace IDE <span aria-hidden="true">/</span> {L_WSP_PUBLIC_COMMUNITY}</div>
+            <h1 id="wsp-public-heading">{{ WSP_PUBLIC_TITLE|e }}</h1>
+            <p class="wsp-public-description">{{ WSP_PUBLIC_DESCRIPTION|e }}</p>
+            <div class="wsp-public-hero-footer">
+                <span class="wsp-public-stat"><i class="fa fa-folder-open-o" aria-hidden="true"></i> {{ WSP_PUBLIC_TOTAL }} {L_WSP_PUBLIC_PROJECTS}</span>
+                {% if WSP_PUBLIC_IS_GUEST %}<span class="wsp-public-visibility"><i class="fa fa-eye" aria-hidden="true"></i> {L_WSP_PUBLIC_READ_ONLY}</span>{% endif %}
+            </div>
+        </div>
+        <div class="wsp-public-hero-decor" aria-hidden="true"><i class="fa fa-code-fork"></i></div>
+    </section>
+
+    {% if WSP_PUBLIC_MESSAGE %}
+    <aside class="wsp-public-notice"><i class="fa fa-info-circle" aria-hidden="true"></i><span>{{ WSP_PUBLIC_MESSAGE|e }}</span></aside>
+    {% endif %}
+
+    <section class="wsp-public-listing" aria-labelledby="wsp-public-projects-heading">
+        <div class="wsp-public-section-head">
+            <div>
+                <span class="wsp-public-kicker">{L_WSP_PUBLIC_EXPLORE}</span>
+                <h2 id="wsp-public-projects-heading">{L_WSP_PUBLIC_PROJECTS_HEADING}</h2>
+            </div>
+            <span class="wsp-public-results">{{ WSP_PUBLIC_TOTAL }} {L_WSP_PUBLIC_RESULTS}</span>
+        </div>
+
+        <form class="wsp-public-controls" action="{{ WSP_PUBLIC_FORM_URL|e('html_attr') }}" method="get" role="search">
+            <input type="hidden" name="catalog" value="1">
+            <label class="wsp-public-search" for="wsp-public-search">
+                <i class="fa fa-search" aria-hidden="true"></i>
+                <span class="sr-only">{L_WSP_PUBLIC_SEARCH}</span>
+                <input id="wsp-public-search" type="search" name="q" maxlength="80" value="{{ WSP_PUBLIC_QUERY|e('html_attr') }}" placeholder="{L_WSP_PUBLIC_SEARCH}" autocomplete="off">
+            </label>
+            <label class="wsp-public-control">
+                <span>{L_WSP_PUBLIC_SORT_LABEL}</span>
+                <select name="sort" aria-label="{L_WSP_PUBLIC_SORT_LABEL}">
+                    <option value="recent"{% if WSP_PUBLIC_SORT == 'recent' %} selected{% endif %}>{L_WSP_PUBLIC_SORT_RECENT}</option>
+                    <option value="name"{% if WSP_PUBLIC_SORT == 'name' %} selected{% endif %}>{L_WSP_PUBLIC_SORT_NAME}</option>
+                </select>
+            </label>
+            <label class="wsp-public-control">
+                <span>{L_WSP_PUBLIC_VIEW_LABEL}</span>
+                <select name="layout" aria-label="{L_WSP_PUBLIC_VIEW_LABEL}">
+                    <option value="cards"{% if WSP_PUBLIC_LAYOUT == 'cards' %} selected{% endif %}>{L_WSP_PUBLIC_VIEW_CARDS}</option>
+                    <option value="list"{% if WSP_PUBLIC_LAYOUT == 'list' %} selected{% endif %}>{L_WSP_PUBLIC_VIEW_LIST}</option>
+                </select>
+            </label>
+            <button class="wsp-public-filter-button" type="submit"><i class="fa fa-filter" aria-hidden="true"></i> {L_WSP_PUBLIC_FILTER}</button>
+            {% if WSP_PUBLIC_QUERY %}<a class="wsp-public-clear" href="{{ WSP_PUBLIC_RESET_URL|e('html_attr') }}">{L_WSP_PUBLIC_CLEAR}</a>{% endif %}
+        </form>
+
+        {% if WSP_PUBLIC_TOTAL %}
+        <div class="wsp-public-grid">
+            {% for project in loops.public_projects %}
+            <article class="wsp-public-card">
+                <div class="wsp-public-card-top">
+                    <span class="wsp-public-card-icon"><i class="fa fa-folder-open-o" aria-hidden="true"></i></span>
+                    <span class="wsp-public-card-type">{L_WSP_PUBLIC_PROJECT}</span>
+                </div>
+                <h3><a href="{{ project.URL|e('html_attr') }}">{{ project.NAME|e }}</a></h3>
+                <p class="wsp-public-card-desc">{% if project.DESCRIPTION %}{{ project.DESCRIPTION|e }}{% else %}{L_WSP_PUBLIC_NO_DESCRIPTION}{% endif %}</p>
+                {% if (WSP_PUBLIC_SHOW_AUTHOR and project.AUTHOR) or (WSP_PUBLIC_SHOW_UPDATED and project.UPDATED) or WSP_PUBLIC_SHOW_FILE_COUNT %}
+                <div class="wsp-public-card-meta">
+                    {% if WSP_PUBLIC_SHOW_AUTHOR and project.AUTHOR %}<span><i class="fa fa-user-o" aria-hidden="true"></i> {{ project.AUTHOR|e }}</span>{% endif %}
+                    {% if WSP_PUBLIC_SHOW_UPDATED and project.UPDATED %}<span><i class="fa fa-clock-o" aria-hidden="true"></i> {{ project.UPDATED|e }}</span>{% endif %}
+                    {% if WSP_PUBLIC_SHOW_FILE_COUNT %}<span><i class="fa fa-file-code-o" aria-hidden="true"></i> {{ project.FILE_COUNT }} {L_WSP_PUBLIC_FILES}</span>{% endif %}
+                </div>
+                {% endif %}
+                <div class="wsp-public-card-actions">
+                    <a class="wsp-public-open" href="{{ project.URL|e('html_attr') }}"><i class="fa fa-eye" aria-hidden="true"></i> {L_WSP_PUBLIC_OPEN} <i class="fa fa-angle-right" aria-hidden="true"></i></a>
+                    {% if project.CAN_DOWNLOAD %}<a class="wsp-public-download" href="{{ project.DOWNLOAD_URL|e('html_attr') }}" title="{L_WSP_PUBLIC_DOWNLOAD}" aria-label="{L_WSP_PUBLIC_DOWNLOAD}: {{ project.NAME|e('html_attr') }}"><i class="fa fa-download" aria-hidden="true"></i></a>{% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="wsp-public-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{L_WSP_PUBLIC_EMPTY}</h3><p>{L_WSP_PUBLIC_EMPTY_HINT}</p></div>
+        {% endif %}
+
+        {% if WSP_PUBLIC_PAGES > 1 %}
+        <nav class="wsp-public-pagination" aria-label="{L_WSP_PUBLIC_PAGES}">
+            {% if WSP_PUBLIC_HAS_PREV %}<a href="{{ WSP_PUBLIC_PREV_URL|e('html_attr') }}"><i class="fa fa-angle-left" aria-hidden="true"></i> {L_WSP_PUBLIC_PREVIOUS}</a>{% else %}<span class="wsp-public-page-disabled">{L_WSP_PUBLIC_PREVIOUS}</span>{% endif %}
+            <span>{L_WSP_PUBLIC_PAGE} {{ WSP_PUBLIC_PAGE }} {L_WSP_PUBLIC_OF} {{ WSP_PUBLIC_PAGES }}</span>
+            {% if WSP_PUBLIC_HAS_NEXT %}<a href="{{ WSP_PUBLIC_NEXT_URL|e('html_attr') }}">{L_WSP_PUBLIC_NEXT} <i class="fa fa-angle-right" aria-hidden="true"></i></a>{% else %}<span class="wsp-public-page-disabled">{L_WSP_PUBLIC_NEXT}</span>{% endif %}
+        </nav>
+        {% endif %}
+    </section>
+</main>
+
+{% INCLUDE 'overall_footer.html' %}

@@ -1,6 +1,7 @@
 {% INCLUDE 'overall_header.html' %}
 {% INCLUDECSS '@mundophpbb_workspace/workspace.css' %}
 {% INCLUDECSS '@mundophpbb_workspace/workspace_github.css' %}
+{% INCLUDECSS '@mundophpbb_workspace/workspace_modern.css' %}
 
 {# Native phpBB CSRF fields used by Workspace AJAX POST requests. #}
 <div id="wsp-csrf-fields" hidden aria-hidden="true">{{ S_FORM_TOKEN }}</div>
@@ -14,9 +15,10 @@
     <div class="workspace-header">
         <div class="header-left">
             <span class="wsp-github-brand" title="{L_WSP_TITLE}">
-                <i class="icon fa-github fa-fw" aria-hidden="true"></i>
+                <i class="icon fa-code fa-fw" aria-hidden="true"></i>
                 <span class="app-name">{L_WSP_TITLE}</span>
             </span>
+            {% if WSP_PUBLIC_CATALOG_ENABLED %}<a class="wsp-public-return" href="{{ WSP_PUBLIC_CATALOG_URL|e('html_attr') }}" title="{L_WSP_PUBLIC_BROWSE}"><i class="fa fa-th-large" aria-hidden="true"></i><span>{L_WSP_PUBLIC_BROWSE}</span></a>{% endif %}
             <span class="path-divider">/</span>
             <span class="wsp-repository-name">
                 <i class="icon fa-book fa-fw" aria-hidden="true"></i>
@@ -55,6 +57,18 @@
         </div>
     </div>
 
+    {% if WSP_IS_GUEST %}
+    <div class="wsp-access-notice" role="status">
+        <i class="fa fa-eye" aria-hidden="true"></i>
+        <span><strong>{L_WSP_READ_ONLY_GUEST_TITLE}</strong> {L_WSP_READ_ONLY_GUEST_MESSAGE}</span>
+    </div>
+    {% elseif ACTIVE_PROJECT_ID > 0 and not ACTIVE_CAN_EDIT %}
+    <div class="wsp-access-notice" role="status">
+        <i class="fa fa-eye" aria-hidden="true"></i>
+        <span><strong>{L_WSP_READ_ONLY_PROJECT_TITLE}</strong> {L_WSP_READ_ONLY_PROJECT_MESSAGE}</span>
+    </div>
+    {% endif %}
+
     <div id="wsp-notifications-panel" class="wsp-notifications-panel" style="display:none">
         <div class="wsp-notifications-header">
             <strong><i class="fa fa-bell-o"></i> {L_WSP_NOTIFICATIONS}</strong>
@@ -65,209 +79,158 @@
         </div>
     </div>
 
-    {# TOOLBAR GLOBAL: ocupa toda a largura acima do explorador e do editor #}
-    <div class="editor-toolbar-rich wsp-toolbar-menu-mode wsp-toolbar-compact" data-wsp-toolbar="grouped">
-
-                <div class="toolbar-section toolbar-primary-actions">
-                    <div class="wsp-toolbar-menu">
-                        <button type="button" class="btn-main btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_NEW}" aria-label="{L_WSP_MENU_NEW}">
-                            <i class="icon fa-plus fa-fw"></i>
-                            <span class="btn-label">{L_WSP_MENU_NEW}</span>
-                            <i class="fa fa-caret-down wsp-menu-caret"></i>
-                        </button>
-                        <div class="wsp-toolbar-dropdown" role="menu">
-                            <button id="add-project" class="wsp-menu-item" role="menuitem" title="{L_WSP_NEW_PROJECT}" aria-label="{L_WSP_NEW_PROJECT}">
-                                <i class="fa fa-plus-square"></i><span>{L_WSP_NEW_PROJECT}</span>
-                            </button>
-                            <button class="wsp-menu-item add-file-to-project" role="menuitem" title="{L_WSP_ADD_FILE}">
-                                <i class="fa fa-file-text"></i><span>{L_WSP_ADD_FILE}</span>
-                            </button>
-                            <button class="wsp-menu-item add-folder-to-project" role="menuitem" title="{L_WSP_NEW_ROOT_FOLDER_TITLE}">
-                                <i class="fa fa-folder"></i><span>{L_WSP_NEW_ROOT_FOLDER_TITLE}</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <button id="open-project" class="btn-icon" title="{L_WSP_OPEN_PROJECT}" aria-label="{L_WSP_OPEN_PROJECT}">
-                        <i class="icon fa-folder-open-o fa-fw"></i>
-                    </button>
-
-                    <button class="trigger-upload btn-icon" title="{L_WSP_UPLOAD_FILES}" aria-label="{L_WSP_UPLOAD_FILES}">
-                        <i class="fa fa-cloud-upload"></i>
-                    </button>
-
-                    <button class="trigger-import-zip btn-icon" title="{L_WSP_IMPORT_ZIP}" aria-label="{L_WSP_IMPORT_ZIP}">
-                        <i class="fa fa-file-archive-o"></i>
-                    </button>
-
-                    <button id="save-file" class="btn-save-icon btn-with-label"
-                            title="{L_WSP_SAVE_CHANGES}"
-                            aria-label="{L_WSP_SAVE_CHANGES}">
-                        <i class="fa fa-save fa-fw"></i>
-                        <span class="btn-label">{L_WSP_SAVE}</span>
-                    </button>
+    {# Toolbar 1.13.2: acoes frequentes expostas, recursos complementares agrupados. #}
+    <div class="editor-toolbar-rich wsp-toolbar-menu-mode wsp-toolbar-compact wsp-toolbar-organized" data-wsp-toolbar="grouped">
+        <div class="toolbar-section toolbar-primary-actions">
+            {% if not WSP_IS_GUEST %}
+            <div class="wsp-toolbar-menu">
+                <button type="button" class="btn-main btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_NEW}" aria-label="{L_WSP_MENU_NEW}">
+                    <i class="fa fa-plus" aria-hidden="true"></i><span class="btn-label">{L_WSP_MENU_NEW}</span><i class="fa fa-caret-down wsp-menu-caret" aria-hidden="true"></i>
+                </button>
+                <div class="wsp-toolbar-dropdown" role="menu" aria-label="{L_WSP_MENU_NEW}">
+                    <button type="button" id="add-project" class="wsp-menu-item" role="menuitem" title="{L_WSP_NEW_PROJECT}"><i class="fa fa-plus-square" aria-hidden="true"></i><span>{L_WSP_NEW_PROJECT}</span></button>
+                    <button type="button" class="wsp-menu-item add-file-to-project" role="menuitem" title="{L_WSP_ADD_FILE}"><i class="fa fa-file-text" aria-hidden="true"></i><span>{L_WSP_ADD_FILE}</span></button>
+                    <button type="button" class="wsp-menu-item add-folder-to-project" role="menuitem" title="{L_WSP_NEW_ROOT_FOLDER_TITLE}"><i class="fa fa-folder" aria-hidden="true"></i><span>{L_WSP_NEW_ROOT_FOLDER_TITLE}</span></button>
                 </div>
+            </div>
+            {% endif %}
+            <button type="button" id="open-project" class="btn-icon btn-with-label wsp-open-project-action" title="{L_WSP_OPEN_PROJECT}" aria-label="{L_WSP_OPEN_PROJECT}">
+                <i class="fa fa-folder-open-o" aria-hidden="true"></i><span class="btn-label">{L_WSP_OPEN_PROJECT}</span>
+            </button>
+            {% if not WSP_IS_GUEST %}
+            <button type="button" id="save-file" class="btn-save-icon btn-with-label" title="{L_WSP_SAVE_CHANGES}" aria-label="{L_WSP_SAVE_CHANGES}">
+                <i class="fa fa-save" aria-hidden="true"></i><span class="btn-label">{L_WSP_SAVE}</span>
+            </button>
+            {% endif %}
+        </div>
 
-                <div class="v-divider"></div>
-
-                <div class="toolbar-section actions-active toolbar-menu-actions">
-                    <div class="wsp-toolbar-menu">
-                        <button type="button" class="btn-icon btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_FILE}">
-                            <i class="fa fa-file-text-o"></i>
-                            <span class="btn-label">{L_WSP_MENU_FILE}</span>
-                            <i class="fa fa-caret-down wsp-menu-caret"></i>
-                        </button>
-                        <div class="wsp-toolbar-dropdown" role="menu">
-                            <button class="wsp-menu-item trigger-upload" role="menuitem" title="{L_WSP_UPLOAD_FILES}">
-                                <i class="fa fa-cloud-upload"></i><span>{L_WSP_UPLOAD_FILES}</span>
-                            </button>
-                            <button class="wsp-menu-item trigger-import-zip" role="menuitem" title="{L_WSP_IMPORT_ZIP}">
-                                <i class="fa fa-file-archive-o"></i><span>{L_WSP_IMPORT_ZIP}</span>
-                            </button>
-                            <div class="wsp-menu-separator"></div>
-                            <button class="wsp-menu-item wsp-menu-hint" type="button" disabled>
-                                <i class="fa fa-info-circle"></i><span>{L_WSP_TREE_ACTIONS_HINT}</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="wsp-toolbar-menu">
-                        <button type="button" class="btn-icon btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_PROJECT}">
-                            <i class="fa fa-folder-open-o"></i>
-                            <span class="btn-label">{L_WSP_MENU_PROJECT}</span>
-                            <i class="fa fa-caret-down wsp-menu-caret"></i>
-                        </button>
-                        <div class="wsp-toolbar-dropdown" role="menu">
-                            <button class="wsp-menu-item rename-active-project" role="menuitem" title="{L_WSP_RENAME_PROJECT}">
-                                <i class="fa fa-pencil-square-o"></i><span>{L_WSP_RENAME_PROJECT}</span>
-                            </button>
-                            <button class="wsp-menu-item delete-project wsp-menu-danger" role="menuitem" title="{L_DELETE}">
-                                <i class="fa fa-trash"></i><span>{L_DELETE}</span>
-                            </button>
-                            <div class="wsp-menu-separator"></div>
-                            {% if ACTIVE_PROJECT_CAN_MANAGE %}
-                            <div class="wsp-menu-field">
-                                <label for="wsp-collaboration-mode"><i class="fa fa-user-plus"></i> {L_WSP_COLLAB_MODE}</label>
-                                <select id="wsp-collaboration-mode" data-current-mode="{{ ACTIVE_PROJECT_COLLAB_MODE }}">
-                                    <option value="private"{% if ACTIVE_PROJECT_COLLAB_MODE == 'private' %} selected{% endif %}>{L_WSP_COLLAB_MODE_PRIVATE}</option>
-                                    <option value="pm_request"{% if ACTIVE_PROJECT_COLLAB_MODE == 'pm_request' %} selected{% endif %}>{L_WSP_COLLAB_MODE_PM_REQUEST}</option>
-                                </select>
-                            </div>
-                            <div class="wsp-menu-separator"></div>
-                            {% endif %}
-                            {% if WSP_CAN_LOCK %}
-                                <button id="lock-project" class="wsp-menu-item lock-project" role="menuitem" title="{L_WSP_PROJECT_LOCK}" aria-label="{L_WSP_PROJECT_LOCK}" data-wsp-i18n-title="WSP_PROJECT_LOCK">
-                                    <i class="fa fa-lock"></i><span>{L_WSP_PROJECT_LOCK}</span>
-                                </button>
-                                <button id="unlock-project" class="wsp-menu-item unlock-project" role="menuitem" title="{L_WSP_PROJECT_UNLOCK}" aria-label="{L_WSP_PROJECT_UNLOCK}" data-wsp-i18n-title="WSP_PROJECT_UNLOCK">
-                                    <i class="fa fa-unlock"></i><span>{L_WSP_PROJECT_UNLOCK}</span>
-                                </button>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="wsp-toolbar-menu">
-                        <button type="button" class="btn-icon btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_EDITOR}">
-                            <i class="fa fa-code"></i>
-                            <span class="btn-label">{L_WSP_MENU_EDITOR}</span>
-                            <i class="fa fa-caret-down wsp-menu-caret"></i>
-                        </button>
-                        <div class="wsp-toolbar-dropdown" role="menu">
-                            <button class="wsp-menu-item open-search-replace" role="menuitem" title="{L_WSP_SEARCH_REPLACE}">
-                                <i class="fa fa-search"></i><span>{L_WSP_SEARCH_REPLACE}</span>
-                            </button>
-                            <button id="open-diff-tool" class="wsp-menu-item" role="menuitem" title="{L_WSP_DIFF_TITLE}">
-                                <i class="fa fa-columns"></i><span>{L_WSP_DIFF_TITLE}</span>
-                            </button>
-                            <button class="wsp-menu-item generate-project-changelog" role="menuitem" title="{L_WSP_GENERATE_CHANGELOG}" aria-label="{L_WSP_GENERATE_CHANGELOG}" data-wsp-i18n-title="WSP_GENERATE_CHANGELOG">
-                                <i class="fa fa-code-fork"></i><span>{L_WSP_GENERATE_CHANGELOG}</span>
-                            </button>
-                            <button class="wsp-menu-item clear-project-changelog wsp-menu-danger" role="menuitem" title="{L_WSP_CLEAR_CHANGELOG}" aria-label="{L_WSP_CLEAR_CHANGELOG}" data-wsp-i18n-title="WSP_CLEAR_CHANGELOG">
-                                <i class="fa fa-eraser"></i><span>{L_WSP_CLEAR_CHANGELOG}</span>
-                            </button>
-                            <div class="wsp-menu-separator"></div>
-                            <button id="copy-bbcode" class="wsp-menu-item" role="menuitem" title="{L_WSP_COPY_BBCODE}">
-                                <i class="fa fa-copy"></i><span>{L_WSP_COPY_BBCODE}</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="wsp-toolbar-menu">
-                        <button type="button" class="btn-icon btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_LOCKS}">
-                            <i class="fa fa-lock"></i>
-                            <span class="btn-label">{L_WSP_MENU_LOCKS}</span>
-                            <i class="fa fa-caret-down wsp-menu-caret"></i>
-                        </button>
-                        <div class="wsp-toolbar-dropdown" role="menu">
-                            <button id="lock-file" class="wsp-menu-item" role="menuitem" title="{L_WSP_LOCK_FILE}" aria-label="{L_WSP_LOCK_FILE}" style="display:none">
-                                <i class="fa fa-lock"></i><span>{L_WSP_LOCK_FILE}</span>
-                            </button>
-                            <button id="unlock-file" class="wsp-menu-item" role="menuitem" title="{L_WSP_UNLOCK_FILE}" aria-label="{L_WSP_UNLOCK_FILE}" style="display:none">
-                                <i class="fa fa-unlock"></i><span>{L_WSP_UNLOCK_FILE}</span>
-                            </button>
-                            <button class="wsp-menu-item wsp-menu-hint" type="button" disabled>
-                                <i class="fa fa-info-circle"></i><span>{L_WSP_LOCKS_HINT}</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="v-divider"></div>
-
-                <div class="toolbar-section toolbar-release-actions">
-                    <div class="wsp-toolbar-menu wsp-toolbar-menu-strong">
-                        <button type="button" class="btn-icon btn-with-label btn-validate-release wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_VALIDATE_RELEASE}" aria-label="{L_WSP_VALIDATE_RELEASE}">
-                            <i class="fa fa-check-square-o"></i>
-                            <span class="btn-label">{L_WSP_VALIDATE_RELEASE_SHORT}</span>
-                            <i class="fa fa-caret-down wsp-menu-caret"></i>
-                        </button>
-                        <div class="wsp-toolbar-dropdown" role="menu">
-                            <button id="validate-release-project" class="wsp-menu-item wsp-run-validator-menu" role="menuitem" title="{L_WSP_VALIDATE_RELEASE}">
-                                <i class="fa fa-check-square-o"></i><span>{L_WSP_VALIDATE_RELEASE}</span>
-                            </button>
-                            <button class="wsp-menu-item wsp-open-validator-normal" role="menuitem" data-wsp-scope="normal">
-                                <i class="fa fa-sliders"></i><span>{L_WSP_VALIDATOR_SCOPE_NORMAL}</span>
-                            </button>
-                            <button class="wsp-menu-item wsp-open-validator-extdb" role="menuitem" data-wsp-scope="phpbb_ext_db">
-                                <i class="fa fa-database"></i><span>{L_WSP_VALIDATOR_SCOPE_PHPBB_EXT_DB}</span>
-                            </button>
-                            <button class="wsp-menu-item wsp-open-validator-full" role="menuitem" data-wsp-scope="full">
-                                <i class="fa fa-search-plus"></i><span>{L_WSP_VALIDATOR_SCOPE_FULL}</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <button id="wsp-toggle-collab" class="btn-icon btn-with-label" title="{L_WSP_TOGGLE_COLLAB_PANEL}" aria-label="{L_WSP_TOGGLE_COLLAB_PANEL}" aria-expanded="false">
-                        <i class="fa fa-comments-o"></i>
-                        <span class="btn-label">{L_WSP_COLLAB_SHORT}</span>
-                    </button>
-                </div>
-
-                <div class="toolbar-section align-right toolbar-output-actions">
-                    {% if ACTIVE_PROJECT_ID > 0 %}
-                    <div class="wsp-toolbar-menu">
-                        <button type="button" class="btn-icon btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_EXPORT}">
-                            <i class="fa fa-download"></i>
-                            <span class="btn-label">{L_WSP_MENU_EXPORT}</span>
-                            <i class="fa fa-caret-down wsp-menu-caret"></i>
-                        </button>
-                        <div class="wsp-toolbar-dropdown wsp-toolbar-dropdown-right" role="menu">
-                            <button id="download-project" class="wsp-menu-item" role="menuitem" title="{L_WSP_DOWNLOAD_PROJECT}" style="display:none">
-                                <i class="fa fa-download"></i><span>{L_WSP_DOWNLOAD_PROJECT}</span>
-                            </button>
-                            <button id="export-collab-project" class="wsp-menu-item" role="menuitem" title="{L_WSP_EXPORT_COLLAB_PACKAGE}" style="display:none">
-                                <i class="fa fa-archive"></i><span>{L_WSP_EXPORT_COLLAB_PACKAGE}</span>
-                            </button>
-                        </div>
+        {% if not WSP_IS_GUEST or ACTIVE_PROJECT_ID > 0 %}
+        <div class="v-divider" aria-hidden="true"></div>
+        <div class="toolbar-section{% if not WSP_IS_GUEST %} actions-active{% endif %} toolbar-menu-actions">
+            <div class="wsp-toolbar-menu">
+                <button type="button" class="btn-icon btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_PROJECT}" aria-label="{L_WSP_MENU_PROJECT}">
+                    <i class="fa fa-folder-o" aria-hidden="true"></i><span class="btn-label">{L_WSP_MENU_PROJECT}</span><i class="fa fa-caret-down wsp-menu-caret" aria-hidden="true"></i>
+                </button>
+                <div class="wsp-toolbar-dropdown" role="menu" aria-label="{L_WSP_MENU_PROJECT}">
+                    {% if not WSP_IS_GUEST %}
+                    <div class="wsp-menu-heading" role="presentation">{L_WSP_MENU_FILE}</div>
+                    <button type="button" class="wsp-menu-item trigger-upload" role="menuitem" title="{L_WSP_UPLOAD_FILES}"><i class="fa fa-cloud-upload" aria-hidden="true"></i><span>{L_WSP_UPLOAD_FILES}</span></button>
+                    <button type="button" class="wsp-menu-item trigger-import-zip" role="menuitem" title="{L_WSP_IMPORT_ZIP}"><i class="fa fa-file-archive-o" aria-hidden="true"></i><span>{L_WSP_IMPORT_ZIP}</span></button>
+                    <div class="wsp-menu-separator" role="separator"></div>
+                    <div class="wsp-menu-heading" role="presentation">{L_WSP_MENU_MANAGEMENT}</div>
+                    <button type="button" class="wsp-menu-item rename-active-project" role="menuitem" title="{L_WSP_RENAME_PROJECT}"><i class="fa fa-pencil-square-o" aria-hidden="true"></i><span>{L_WSP_RENAME_PROJECT}</span></button>
+                    {% if ACTIVE_PROJECT_CAN_MANAGE %}
+                    <div class="wsp-menu-field">
+                        <label for="wsp-collaboration-mode"><i class="fa fa-user-plus" aria-hidden="true"></i> {L_WSP_COLLAB_MODE}</label>
+                        <select id="wsp-collaboration-mode" data-current-mode="{{ ACTIVE_PROJECT_COLLAB_MODE }}">
+                            <option value="private"{% if ACTIVE_PROJECT_COLLAB_MODE == 'private' %} selected{% endif %}>{L_WSP_COLLAB_MODE_PRIVATE}</option>
+                            <option value="pm_request"{% if ACTIVE_PROJECT_COLLAB_MODE == 'pm_request' %} selected{% endif %}>{L_WSP_COLLAB_MODE_PM_REQUEST}</option>
+                        </select>
                     </div>
                     {% endif %}
-
-                    <button id="wsp-editor-focus-mode" class="btn-icon" title="{L_WSP_EDITOR_FOCUS_MODE}" aria-label="{L_WSP_EDITOR_FOCUS_MODE}" aria-pressed="false">
-                        <i class="fa fa-arrows-alt"></i>
-                    </button>
+                    {% if WSP_CAN_LOCK %}
+                    <div class="wsp-menu-separator" role="separator"></div>
+                    <div class="wsp-menu-heading" role="presentation">{L_WSP_MENU_LOCKS}</div>
+                    <button type="button" id="lock-project" class="wsp-menu-item lock-project" role="menuitem" title="{L_WSP_PROJECT_LOCK}" aria-label="{L_WSP_PROJECT_LOCK}" data-wsp-i18n-title="WSP_PROJECT_LOCK"><i class="fa fa-lock" aria-hidden="true"></i><span>{L_WSP_PROJECT_LOCK}</span></button>
+                    <button type="button" id="unlock-project" class="wsp-menu-item unlock-project" role="menuitem" title="{L_WSP_PROJECT_UNLOCK}" aria-label="{L_WSP_PROJECT_UNLOCK}" data-wsp-i18n-title="WSP_PROJECT_UNLOCK"><i class="fa fa-unlock" aria-hidden="true"></i><span>{L_WSP_PROJECT_UNLOCK}</span></button>
+                    {% endif %}
+                    <button type="button" id="lock-file" class="wsp-menu-item" role="menuitem" title="{L_WSP_LOCK_FILE}" style="display:none"><i class="fa fa-lock" aria-hidden="true"></i><span>{L_WSP_LOCK_FILE}</span></button>
+                    <button type="button" id="unlock-file" class="wsp-menu-item" role="menuitem" title="{L_WSP_UNLOCK_FILE}" style="display:none"><i class="fa fa-unlock" aria-hidden="true"></i><span>{L_WSP_UNLOCK_FILE}</span></button>
+                    {% endif %}
+                    {% if ACTIVE_PROJECT_ID > 0 %}
+                    <div class="wsp-menu-separator" role="separator"></div>
+                    <div class="wsp-menu-heading" role="presentation">{L_WSP_MENU_EXPORT}</div>
+                    <button type="button" id="download-project" class="wsp-menu-item" role="menuitem" title="{L_WSP_DOWNLOAD_PROJECT}" style="display:none"><i class="fa fa-download" aria-hidden="true"></i><span>{L_WSP_DOWNLOAD_PROJECT}</span></button>
+                    <button type="button" id="export-collab-project" class="wsp-menu-item" role="menuitem" title="{L_WSP_EXPORT_COLLAB_PACKAGE}" style="display:none"><i class="fa fa-archive" aria-hidden="true"></i><span>{L_WSP_EXPORT_COLLAB_PACKAGE}</span></button>
+                    {% endif %}
+                    {% if not WSP_IS_GUEST %}
+                    <div class="wsp-menu-separator" role="separator"></div>
+                    <button type="button" class="wsp-menu-item delete-project wsp-menu-danger" role="menuitem" title="{L_DELETE}"><i class="fa fa-trash" aria-hidden="true"></i><span>{L_DELETE}</span></button>
+                    {% endif %}
                 </div>
-
             </div>
+
+            {% if not WSP_IS_GUEST %}
+            <div class="wsp-toolbar-menu">
+                <button type="button" class="btn-icon btn-with-label wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_MENU_TOOLS}" aria-label="{L_WSP_MENU_TOOLS}">
+                    <i class="fa fa-wrench" aria-hidden="true"></i><span class="btn-label">{L_WSP_MENU_TOOLS}</span><i class="fa fa-caret-down wsp-menu-caret" aria-hidden="true"></i>
+                </button>
+                <div class="wsp-toolbar-dropdown" role="menu" aria-label="{L_WSP_MENU_TOOLS}">
+                    <div class="wsp-tools-search-wrap" role="presentation"><label class="wsp-tools-search-label" for="wsp-tools-search">{L_WSP_TOOLS_SEARCH_LABEL}</label><input id="wsp-tools-search" class="wsp-tools-search" type="search" autocomplete="off" maxlength="100" placeholder="{L_WSP_TOOLS_SEARCH_PLACEHOLDER}" aria-label="{L_WSP_TOOLS_SEARCH_LABEL}"><div class="wsp-tools-search-empty" role="status" hidden>{L_WSP_TOOLS_SEARCH_EMPTY}</div></div>
+                    <div class="wsp-menu-heading" role="presentation">{L_WSP_MENU_EDITOR}</div>
+                    {% if ACTIVE_CAN_EDIT %}<button type="button" id="wsp-rf-open" class="wsp-menu-item" role="menuitem" title="{L_WSP_RF_TITLE}"><i class="fa fa-search" aria-hidden="true"></i><span>{L_WSP_RF_TITLE}</span></button>{% endif %}
+                    <button type="button" id="open-diff-tool" class="wsp-menu-item" role="menuitem" title="{L_WSP_DIFF_TITLE}"><i class="fa fa-columns" aria-hidden="true"></i><span>{L_WSP_DIFF_TITLE}</span></button>
+                    <button type="button" id="copy-bbcode" class="wsp-menu-item" role="menuitem" title="{L_WSP_COPY_BBCODE}"><i class="fa fa-copy" aria-hidden="true"></i><span>{L_WSP_COPY_BBCODE}</span></button>
+                    {% if ACTIVE_CAN_EDIT %}<button type="button" id="wsp-tp-open" class="wsp-menu-item" role="menuitem" title="{L_WSP_TP_TITLE}"><i class="fa fa-eye" aria-hidden="true"></i><span>{L_WSP_TP_TITLE}</span></button>{% endif %}
+                    {% if ACTIVE_CAN_EDIT %}
+                    <div class="wsp-menu-separator" role="separator"></div>
+                    <div class="wsp-menu-heading" role="presentation">{L_WSP_MENU_AUTOMATION}</div>
+                    <button type="button" id="open-radar" class="wsp-menu-item" role="menuitem" title="{L_WSP_RADAR_TITLE}"><i class="fa fa-bolt" aria-hidden="true"></i><span>{L_WSP_RADAR_TITLE}</span><span id="wsp-radar-count" class="wsp-radar-count" hidden>0</span></button>
+                    <button type="button" id="wsp-sec-open" class="wsp-menu-item" role="menuitem" title="{L_WSP_SEC_TITLE}"><i class="fa fa-shield" aria-hidden="true"></i><span>{L_WSP_SEC_TITLE}</span></button>
+                    {% if ACTIVE_CAN_RENAME_MOVE %}
+                    <button type="button" id="open-generator" class="wsp-menu-item" role="menuitem" title="{L_WSP_GEN_TITLE}" aria-label="{L_WSP_GEN_TITLE}" data-short-label="{L_WSP_GEN_SHORT}"><i class="fa fa-magic" aria-hidden="true"></i><span>{L_WSP_GEN_TITLE}</span></button>
+                    <button type="button" id="open-phpunit-generator" class="wsp-menu-item" role="menuitem" title="{L_WSP_TEST_GEN_TITLE}"><i class="fa fa-check-square-o" aria-hidden="true"></i><span>{L_WSP_TEST_GEN_TITLE}</span></button>
+                    {% endif %}
+                    {% endif %}
+                    {% if ACTIVE_CAN_EDIT %}
+                    <div class="wsp-menu-separator" role="separator"></div>
+                    <div class="wsp-menu-heading" role="presentation">{L_WSP_ARCH_SECTION}</div>
+                    <button type="button" id="wsp-arch-open-compare" class="wsp-menu-item" role="menuitem" title="{L_WSP_ARCH_COMPARE}"><i class="fa fa-code-fork" aria-hidden="true"></i><span>{L_WSP_ARCH_COMPARE}</span></button>
+                    <button type="button" id="wsp-arch-open-map" class="wsp-menu-item" role="menuitem" title="{L_WSP_ARCH_MAP}"><i class="fa fa-sitemap" aria-hidden="true"></i><span>{L_WSP_ARCH_MAP}</span></button>
+                    <button type="button" id="wsp-perm-open" class="wsp-menu-item" role="menuitem" title="{L_WSP_PERM_TITLE}"><i class="fa fa-shield" aria-hidden="true"></i><span>{L_WSP_PERM_TITLE}</span></button>
+                    <button type="button" id="wsp-lab-open" class="wsp-menu-item" role="menuitem" title="{L_WSP_LAB_TITLE}"><i class="fa fa-flask" aria-hidden="true"></i><span>{L_WSP_LAB_TITLE}</span></button>
+                    <button type="button" id="wsp-ql-open" class="wsp-menu-item" role="menuitem" title="{L_WSP_QL_TITLE}"><i class="fa fa-tachometer" aria-hidden="true"></i><span>{L_WSP_QL_TITLE}</span></button>
+                    {% if WSP_GITHUB_ENABLED %}
+                    <div class="wsp-menu-separator" role="separator"></div>
+                    <div class="wsp-menu-heading" role="presentation">{L_WSP_GH_SECTION}</div>
+                    <button type="button" id="wsp-gh-open" class="wsp-menu-item" role="menuitem"><i class="fa fa-github" aria-hidden="true"></i><span>{L_WSP_GH_TITLE}</span></button>
+                    {% endif %}
+                    <button type="button" id="wsp-up-open" class="wsp-menu-item" role="menuitem" title="{L_WSP_UP_TITLE}"><i class="fa fa-exchange" aria-hidden="true"></i><span>{L_WSP_UP_TITLE}</span></button>
+                    {% endif %}
+                    <div class="wsp-menu-separator" role="separator"></div>
+                    <div class="wsp-menu-heading" role="presentation">{L_WSP_MENU_HISTORY}</div>
+                    <button type="button" id="wsp-portfolio-open" class="wsp-menu-item" role="menuitem"><i class="fa fa-th-large" aria-hidden="true"></i><span>{L_WSP_PORTFOLIO_TITLE}</span></button>
+                    {% if ACTIVE_CAN_EDIT %}
+                    <button type="button" id="wsp-rh-open" class="wsp-menu-item" role="menuitem"><i class="fa fa-tags" aria-hidden="true"></i><span>{L_WSP_RH_TITLE}</span></button>
+                    <button type="button" id="wsp-cp-open" class="wsp-menu-item" role="menuitem" title="{L_WSP_CP_TITLE}"><i class="fa fa-undo" aria-hidden="true"></i><span>{L_WSP_CP_TITLE}</span></button>
+                    <button type="button" id="wsp-doc-open" class="wsp-menu-item" role="menuitem" title="{L_WSP_DOC_TITLE}"><i class="fa fa-book" aria-hidden="true"></i><span>{L_WSP_DOC_TITLE}</span></button>
+                    <button type="button" id="wsp-rn-open" class="wsp-menu-item" role="menuitem" title="{L_WSP_RN_TITLE}"><i class="fa fa-list-alt" aria-hidden="true"></i><span>{L_WSP_RN_TITLE}</span></button>
+                    {% endif %}
+                    <button type="button" class="wsp-menu-item generate-project-changelog" role="menuitem" title="{L_WSP_GENERATE_CHANGELOG}" data-wsp-i18n-title="WSP_GENERATE_CHANGELOG"><i class="fa fa-code-fork" aria-hidden="true"></i><span>{L_WSP_GENERATE_CHANGELOG}</span></button>
+                    <button type="button" class="wsp-menu-item clear-project-changelog wsp-menu-danger" role="menuitem" title="{L_WSP_CLEAR_CHANGELOG}" data-wsp-i18n-title="WSP_CLEAR_CHANGELOG"><i class="fa fa-eraser" aria-hidden="true"></i><span>{L_WSP_CLEAR_CHANGELOG}</span></button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if ACTIVE_CAN_EDIT %}
+        <div class="toolbar-section toolbar-release-actions">
+            <div class="wsp-toolbar-menu wsp-toolbar-menu-strong">
+                <button type="button" class="btn-icon btn-with-label btn-validate-release wsp-toolbar-menu-toggle" aria-haspopup="true" aria-expanded="false" title="{L_WSP_VALIDATE_RELEASE}" aria-label="{L_WSP_VALIDATE_RELEASE}">
+                    <i class="fa fa-check-square-o" aria-hidden="true"></i><span class="btn-label">{L_WSP_VALIDATE_RELEASE_SHORT}</span><i class="fa fa-caret-down wsp-menu-caret" aria-hidden="true"></i>
+                </button>
+                <div class="wsp-toolbar-dropdown" role="menu" aria-label="{L_WSP_VALIDATE_RELEASE}">
+                    <div class="wsp-menu-heading" role="presentation">{L_WSP_MENU_RELEASE}</div>
+                    <button type="button" id="open-release-assistant" class="wsp-menu-item" role="menuitem" title="{L_WSP_RELEASE_ASSISTANT_TITLE}"><i class="fa fa-rocket" aria-hidden="true"></i><span>{L_WSP_RELEASE_ASSISTANT_TITLE}</span></button>
+                    <div class="wsp-menu-separator" role="separator"></div>
+                    <div class="wsp-menu-heading" role="presentation">{L_WSP_MENU_VALIDATION}</div>
+                    <button type="button" id="validate-release-project" class="wsp-menu-item wsp-run-validator-menu" role="menuitem" title="{L_WSP_VALIDATE_RELEASE}"><i class="fa fa-check-square-o" aria-hidden="true"></i><span>{L_WSP_VALIDATE_RELEASE}</span></button>
+                    <button type="button" class="wsp-menu-item wsp-open-validator-normal" role="menuitem" data-wsp-scope="normal"><i class="fa fa-sliders" aria-hidden="true"></i><span>{L_WSP_VALIDATOR_SCOPE_NORMAL}</span></button>
+                    <button type="button" class="wsp-menu-item wsp-open-validator-extdb" role="menuitem" data-wsp-scope="phpbb_ext_db"><i class="fa fa-database" aria-hidden="true"></i><span>{L_WSP_VALIDATOR_SCOPE_PHPBB_EXT_DB}</span></button>
+                    <button type="button" class="wsp-menu-item wsp-open-validator-full" role="menuitem" data-wsp-scope="full"><i class="fa fa-search-plus" aria-hidden="true"></i><span>{L_WSP_VALIDATOR_SCOPE_FULL}</span></button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="toolbar-section align-right toolbar-output-actions">
+            <button type="button" id="wsp-toggle-collab" class="btn-icon btn-with-label" title="{L_WSP_TOGGLE_COLLAB_PANEL}" aria-label="{L_WSP_TOGGLE_COLLAB_PANEL}" aria-expanded="false">
+                <i class="fa fa-comments-o" aria-hidden="true"></i><span class="btn-label">{L_WSP_COLLAB_SHORT}</span>
+            </button>
+            <button type="button" id="wsp-editor-focus-mode" class="btn-icon" title="{L_WSP_EDITOR_FOCUS_MODE}" aria-label="{L_WSP_EDITOR_FOCUS_MODE}" aria-pressed="false"><i class="fa fa-arrows-alt" aria-hidden="true"></i></button>
+        </div>
+    </div>
 
     {# MAIN BODY #}
     <div class="workspace-main-body">
@@ -385,7 +348,7 @@
                     <span class="wsp-status-chip is-open"><i class="fa fa-unlock"></i> {L_WSP_STATUS_OPEN}</span>
                     {% endif %}
                     <span class="wsp-status-chip is-collab-mode"><i class="fa fa-shield"></i> {% if ACTIVE_PROJECT_COLLAB_MODE == 'pm_request' %}{L_WSP_COLLAB_MODE_PM_REQUEST}{% else %}{L_WSP_COLLAB_MODE_PRIVATE}{% endif %}</span>
-                    {% if ACTIVE_PROJECT_ID > 0 and ACTIVE_PROJECT_COLLAB_MODE == 'pm_request' and not ACTIVE_PROJECT_IS_MEMBER and not ACTIVE_PROJECT_CAN_MANAGE %}
+                    {% if ACTIVE_PROJECT_ID > 0 and ACTIVE_PROJECT_COLLAB_MODE == 'pm_request' and not ACTIVE_PROJECT_IS_MEMBER and not ACTIVE_PROJECT_CAN_MANAGE and not WSP_IS_GUEST %}
                     <button type="button" id="wsp-request-collaboration" class="wsp-request-collaboration" title="{L_WSP_REQUEST_COLLABORATION}"><i class="fa fa-paper-plane-o"></i> {L_WSP_REQUEST_COLLABORATION}</button>
                     {% endif %}
                 </div>
@@ -502,7 +465,7 @@
                                 </span>
                             </div>
                             <div class="wsp-task-actions">
-                                <select class="wsp-task-status">
+                                <select class="wsp-task-status"{% if not ACTIVE_CAN_EDIT and not ACTIVE_CAN_MANAGE %} disabled aria-disabled="true"{% endif %}>
                                     <option value="todo"{% if task.STATUS == 'todo' %} selected{% endif %}>{L_WSP_TASK_STATUS_TODO}</option>
                                     <option value="doing"{% if task.STATUS == 'doing' %} selected{% endif %}>{L_WSP_TASK_STATUS_DOING}</option>
                                     <option value="done"{% if task.STATUS == 'done' %} selected{% endif %}>{L_WSP_TASK_STATUS_DONE}</option>
@@ -562,13 +525,16 @@
                         <strong><i class="fa fa-comments-o"></i> {L_WSP_REVIEW_PANEL}</strong>
                         <span id="wsp-review-current-file">{L_WSP_SELECT_FILE_REVIEW}</span>
                     </div>
+                    {% if ACTIVE_CAN_EDIT %}
                     <button type="button" class="btn-icon" id="wsp-toggle-review-form" title="{L_WSP_ADD_COMMENT}">
                         <i class="fa fa-commenting-o"></i>
                     </button>
+                    {% endif %}
                 </div>
 
                 <div class="wsp-review-status" id="wsp-review-status">
                     <span class="wsp-review-status-label">{L_WSP_REVIEW_STATUS_NONE}</span>
+                    {% if ACTIVE_CAN_EDIT %}
                     <div class="wsp-review-status-actions">
                         <button type="button" class="wsp-review-action" data-status="pending"><i class="fa fa-clock-o"></i> {L_WSP_REQUEST_REVIEW}</button>
                         {% if ACTIVE_CAN_MANAGE %}
@@ -576,17 +542,20 @@
                         <button type="button" class="wsp-review-action" data-status="changes_requested"><i class="fa fa-exclamation-circle"></i> {L_WSP_REQUEST_CHANGES}</button>
                         {% endif %}
                     </div>
+                    {% endif %}
                 </div>
 
                 <div class="wsp-file-lock-status" id="wsp-file-lock-status" style="display:none">
                     <span class="wsp-file-lock-label"><i class="fa fa-unlock"></i> {L_WSP_FILE_UNLOCKED}</span>
                 </div>
 
+                {% if ACTIVE_CAN_EDIT %}
                 <form id="wsp-review-form" class="wsp-review-form" style="display:none">
                     <input type="number" min="0" step="1" name="line_number" placeholder="{L_WSP_COMMENT_LINE_PLACEHOLDER}">
                     <textarea name="message" rows="2" placeholder="{L_WSP_COMMENT_PLACEHOLDER}"></textarea>
                     <button type="submit" class="btn-save">{L_WSP_ADD_COMMENT}</button>
                 </form>
+                {% endif %}
 
                 <div class="wsp-version-panel" id="wsp-version-panel">
                     <div class="wsp-version-header">
@@ -611,7 +580,129 @@
     </div>
 </div>
 
+{# Workspace 1.19: generate factual release notes from a checkpoint or another project. #}
+{% if ACTIVE_CAN_EDIT %}
+<div id="wsp-rn-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-rn-title">
+    <div class="wsp-modal-box wsp-rn-modal-box">
+        <div class="wsp-rn-top">
+            <h4 id="wsp-rn-title"><i class="fa fa-list-alt" aria-hidden="true"></i> {L_WSP_RN_TITLE}</h4>
+            <button type="button" id="wsp-rn-close" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times" aria-hidden="true"></i></button>
+        </div>
+        <p class="wsp-rn-hint">{L_WSP_RN_DESCRIPTION}</p>
+        <div class="wsp-rn-controls">
+            <label for="wsp-rn-source-type">{L_WSP_RN_COMPARE_MODE}</label>
+            <select id="wsp-rn-source-type" class="wsp-input-dark">
+                <option value="checkpoint">{L_WSP_RN_CHECKPOINT_MODE}</option>
+                <option value="project">{L_WSP_RN_PROJECT_MODE}</option>
+            </select>
+            <label for="wsp-rn-checkpoint" class="wsp-rn-checkpoint-control">{L_WSP_RN_BASELINE}</label>
+            <select id="wsp-rn-checkpoint" class="wsp-input-dark wsp-rn-checkpoint-control"></select>
+            <label for="wsp-rn-project" class="wsp-rn-project-control" hidden>{L_WSP_RN_PREVIOUS_PROJECT}</label>
+            <select id="wsp-rn-project" class="wsp-input-dark wsp-rn-project-control" hidden></select>
+            <label for="wsp-rn-version">{L_WSP_RN_VERSION}</label>
+            <input id="wsp-rn-version" type="text" class="inputbox" maxlength="40" spellcheck="false" placeholder="1.19.0">
+            <label for="wsp-rn-locale">{L_WSP_RN_LOCALE}</label>
+            <select id="wsp-rn-locale" class="wsp-input-dark">
+                <option value="pt_br">Português (Brasil)</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+        <div class="wsp-rn-actions">
+            <button type="button" id="wsp-rn-preview" class="btn-main" disabled><i class="fa fa-search" aria-hidden="true"></i> {L_WSP_RN_PREVIEW}</button>
+            <button type="button" id="wsp-rn-copy" class="btn-main" disabled><i class="fa fa-copy" aria-hidden="true"></i> {L_WSP_RN_COPY}</button>
+            <button type="button" id="wsp-rn-download" class="btn-main" disabled><i class="fa fa-download" aria-hidden="true"></i> {L_WSP_RN_DOWNLOAD}</button>
+            <button type="button" id="wsp-rn-save" class="btn-save" disabled><i class="fa fa-save" aria-hidden="true"></i> {L_WSP_RN_SAVE}</button>
+        </div>
+        <p id="wsp-rn-status" role="status" aria-live="polite">{L_WSP_RN_READY}</p>
+        <div id="wsp-rn-preview-content" hidden>
+            <div id="wsp-rn-summary" class="wsp-rn-summary"></div>
+            <label for="wsp-rn-draft">{L_WSP_RN_DRAFT}</label>
+            <textarea id="wsp-rn-draft" class="inputbox" rows="16" spellcheck="false"></textarea>
+            <p class="wsp-rn-warning">{L_WSP_RN_CAUTION}</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+
+{# Workspace 1.26.0: preview/edit/save documentation; no project execution. #}
+{% if ACTIVE_CAN_EDIT %}
+<div id="wsp-doc-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-doc-title">
+    <div class="wsp-modal-box wsp-rn-modal-box">
+        <div class="wsp-rn-top">
+            <h4 id="wsp-doc-title"><i class="fa fa-book" aria-hidden="true"></i> {L_WSP_DOC_TITLE}</h4>
+            <button id="wsp-doc-close" type="button" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times" aria-hidden="true"></i></button>
+        </div>
+        <p class="wsp-rn-hint">{L_WSP_DOC_DESCRIPTION}</p>
+        <div class="wsp-rn-controls">
+            <label for="wsp-doc-locale">{L_WSP_DOC_LOCALE}</label>
+            <select id="wsp-doc-locale" class="wsp-input-dark">
+                <option value="pt_br">Português (Brasil)</option>
+                <option value="en">English</option>
+            </select>
+            <label for="wsp-doc-target">{L_WSP_DOC_TARGET}</label>
+            <select id="wsp-doc-target" class="wsp-input-dark">
+                <option value="generated">docs/README_GERADO.md</option>
+                <option value="readme">README.md</option>
+            </select>
+        </div>
+        <label class="wsp-doc-replace-label" for="wsp-doc-replace"><input type="checkbox" id="wsp-doc-replace"> {L_WSP_DOC_REPLACE}</label>
+        <div class="wsp-rn-actions">
+            <button id="wsp-doc-preview" type="button" class="btn-main"><i class="fa fa-search" aria-hidden="true"></i> {L_WSP_DOC_PREVIEW}</button>
+            <button id="wsp-doc-copy" type="button" class="btn-main" disabled><i class="fa fa-copy" aria-hidden="true"></i> {L_WSP_DOC_COPY}</button>
+            <button id="wsp-doc-download" type="button" class="btn-main" disabled><i class="fa fa-download" aria-hidden="true"></i> {L_WSP_DOC_DOWNLOAD}</button>
+            <button id="wsp-doc-save" type="button" class="btn-save" disabled><i class="fa fa-save" aria-hidden="true"></i> {L_WSP_DOC_SAVE}</button>
+        </div>
+        <p id="wsp-doc-status" role="status" aria-live="polite">{L_WSP_DOC_READY}</p>
+        <div id="wsp-doc-result" hidden>
+            <p id="wsp-doc-summary" class="wsp-rn-summary"></p>
+            <label for="wsp-doc-draft">{L_WSP_DOC_DRAFT}</label>
+            <textarea id="wsp-doc-draft" rows="17" class="inputbox" spellcheck="false"></textarea>
+            <p class="wsp-rn-warning">{L_WSP_DOC_CAUTION}</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {# MODAIS TECNICOS #}
+{# Workspace 1.18.0: global search / guarded refactor without adding toolbar clutter. #}
+<div id="wsp-rf-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-rf-title">
+    <div class="wsp-modal-box wsp-rf-modal-box">
+        <div class="wsp-rf-heading">
+            <h4 id="wsp-rf-title"><i class="fa fa-search" aria-hidden="true"></i> {L_WSP_RF_TITLE}</h4>
+            <button type="button" id="wsp-rf-close" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times" aria-hidden="true"></i></button>
+        </div>
+        <p class="wsp-rf-note">{L_WSP_RF_DESCRIPTION}</p>
+        <div class="wsp-rf-inputs">
+            <label for="wsp-rf-search">{L_WSP_RF_SEARCH}</label>
+            <input type="text" id="wsp-rf-search" class="inputbox" maxlength="160" autocomplete="off" spellcheck="false">
+            <label for="wsp-rf-replace">{L_WSP_RF_REPLACEMENT}</label>
+            <input type="text" id="wsp-rf-replace" class="inputbox" maxlength="320" autocomplete="off" spellcheck="false">
+            <label for="wsp-rf-filter">{L_WSP_RF_FILTER}</label>
+            <input type="text" id="wsp-rf-filter" class="inputbox" maxlength="100" autocomplete="off" spellcheck="false" placeholder="config/ ou .php">
+        </div>
+        <div class="wsp-rf-options">
+            <label><input type="checkbox" id="wsp-rf-case" checked> {L_WSP_RF_CASE}</label>
+            <label><input type="checkbox" id="wsp-rf-whole"> {L_WSP_RF_WHOLE}</label>
+        </div>
+        <div class="wsp-rf-actions">
+            <button type="button" id="wsp-rf-preview" class="btn-main"><i class="fa fa-search" aria-hidden="true"></i> {L_WSP_RF_PREVIEW}</button>
+            <button type="button" id="wsp-rf-apply" class="btn-save" disabled><i class="fa fa-check" aria-hidden="true"></i> {L_WSP_RF_APPLY}</button>
+        </div>
+        <p id="wsp-rf-status" role="status" aria-live="polite">{L_WSP_RF_READY}</p>
+        <div id="wsp-rf-results" hidden>
+            <div id="wsp-rf-summary" class="wsp-rf-summary"></div>
+            <div class="wsp-rf-selection">
+                <button type="button" id="wsp-rf-select-all" class="btn-main">{L_WSP_RF_SELECT_ALL}</button>
+                <button type="button" id="wsp-rf-unselect-all" class="btn-main">{L_WSP_RF_SELECT_NONE}</button>
+            </div>
+            <div id="wsp-rf-rows" class="wsp-rf-rows" aria-label="{L_WSP_RF_TITLE}"></div>
+        </div>
+        <p class="wsp-rf-caution">{L_WSP_RF_CAUTION}</p>
+    </div>
+</div>
+
+
 <div id="search-replace-modal" class="wsp-modal-overlay">
     <div class="wsp-modal-box">
         <h4><i class="fa fa-search"></i> {L_WSP_SEARCH_REPLACE}</h4>
@@ -650,12 +741,529 @@
 </div>
 
 
-<div id="release-validator-modal" class="wsp-modal-overlay">
+{# Editor-only quick static analysis; guest permissions remain unchanged. #}
+{% if ACTIVE_CAN_EDIT %}
+<div id="wsp-radar-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-radar-heading">
+    <div class="wsp-modal-box wsp-radar-modal-box">
+        <div class="wsp-radar-heading"><h4 id="wsp-radar-heading"><i class="fa fa-bolt"></i> {L_WSP_RADAR_TITLE}</h4>
+            <button type="button" class="btn-main close-modal" onclick="jQuery('#wsp-radar-modal').fadeOut(150)" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times"></i></button>
+        </div>
+        <p class="wsp-radar-description">{L_WSP_RADAR_DESCRIPTION}</p>
+        <div class="wsp-radar-controls">
+            <label for="wsp-radar-filter">{L_WSP_RADAR_FILTER}</label>
+            <select id="wsp-radar-filter" class="inputbox">
+                <option value="all">{L_WSP_RADAR_ALL}</option>
+                <option value="error">{L_WSP_RADAR_LEVEL_ERROR}</option>
+                <option value="warning">{L_WSP_RADAR_LEVEL_WARNING}</option>
+                <option value="info">{L_WSP_RADAR_LEVEL_INFO}</option>
+            </select>
+            <button id="wsp-radar-scan" type="button" class="btn-save"><i class="fa fa-refresh"></i> {L_WSP_RADAR_RESCAN}</button>
+        </div>
+        <div id="wsp-radar-summary" class="wsp-radar-summary"></div>
+        <div id="wsp-radar-status" class="wsp-radar-status" role="status" aria-live="polite">{L_WSP_RADAR_WAITING}</div>
+        <div id="wsp-radar-limits" class="wsp-radar-limit-note" hidden></div>
+        <ul id="wsp-radar-list" class="wsp-radar-list"><li class="wsp-radar-empty">{L_WSP_RADAR_WAITING}</li></ul>
+        <p class="wsp-radar-disclaimer">{L_WSP_RADAR_DISCLAIMER}</p>
+    </div>
+</div>
+{% endif %}
+
+{% if ACTIVE_CAN_EDIT %}
+<div id="wsp-architecture-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-arch-heading">
+    <div class="wsp-modal-box wsp-architecture-modal-box">
+        <div class="wsp-architecture-header">
+            <h4 id="wsp-arch-heading"><i class="fa fa-sitemap" aria-hidden="true"></i> {L_WSP_ARCH_TITLE}</h4>
+            <button type="button" id="wsp-arch-close" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times" aria-hidden="true"></i></button>
+        </div>
+        <div class="wsp-architecture-tabs" role="tablist" aria-label="{L_WSP_ARCH_TITLE}">
+            <button type="button" id="wsp-arch-tab-compare" class="wsp-arch-tab is-active" role="tab" aria-selected="true" aria-controls="wsp-arch-pane-compare">{L_WSP_ARCH_COMPARE}</button>
+            <button type="button" id="wsp-arch-tab-map" class="wsp-arch-tab" role="tab" aria-selected="false" aria-controls="wsp-arch-pane-map">{L_WSP_ARCH_MAP}</button>
+        </div>
+        <section id="wsp-arch-pane-compare" class="wsp-architecture-pane" role="tabpanel" aria-labelledby="wsp-arch-tab-compare">
+            <p class="wsp-arch-description">{L_WSP_ARCH_COMPARE_HINT}</p>
+            <div class="wsp-arch-controls">
+                <label for="wsp-arch-before">{L_WSP_ARCH_BEFORE}</label>
+                <select id="wsp-arch-before" class="inputbox"></select>
+                <label for="wsp-arch-after">{L_WSP_ARCH_AFTER}</label>
+                <select id="wsp-arch-after" class="inputbox"></select>
+                <button id="wsp-arch-run-compare" type="button" class="btn-save"><i class="fa fa-exchange" aria-hidden="true"></i> {L_WSP_ARCH_RUN_COMPARE}</button>
+            </div>
+            <div id="wsp-arch-compare-status" class="wsp-architecture-status" role="status" aria-live="polite">{L_WSP_ARCH_WAITING}</div>
+            <div id="wsp-arch-compare-summary" class="wsp-arch-summary"></div>
+            <div class="wsp-arch-filterbar" hidden>
+                <label for="wsp-arch-area-filter">{L_WSP_ARCH_FILTER_AREA}</label>
+                <select id="wsp-arch-area-filter" class="inputbox"><option value="all">{L_WSP_ARCH_ALL_AREAS}</option></select>
+            </div>
+            <div id="wsp-arch-changes" class="wsp-arch-changes" role="region" aria-label="{L_WSP_ARCH_CHANGES}"></div>
+            <div id="wsp-arch-diff-wrap" class="wsp-arch-diff-wrap" hidden>
+                <strong id="wsp-arch-diff-title">{L_WSP_ARCH_DIFF}</strong>
+                <pre id="wsp-arch-diff" class="wsp-arch-diff" tabindex="0"></pre>
+            </div>
+        </section>
+        <section id="wsp-arch-pane-map" class="wsp-architecture-pane" role="tabpanel" aria-labelledby="wsp-arch-tab-map" hidden>
+            <p class="wsp-arch-description">{L_WSP_ARCH_MAP_HINT}</p>
+            <div class="wsp-arch-map-tools">
+                <button id="wsp-arch-refresh-map" class="btn-save" type="button"><i class="fa fa-refresh" aria-hidden="true"></i> {L_WSP_ARCH_REFRESH_MAP}</button>
+                <span id="wsp-arch-map-summary" class="wsp-arch-summary"></span>
+            </div>
+            <div id="wsp-arch-map-status" class="wsp-architecture-status" role="status" aria-live="polite">{L_WSP_ARCH_WAITING}</div>
+            <div class="wsp-arch-diagram-scroll"><div id="wsp-arch-diagram"></div></div>
+            <div id="wsp-arch-node-details" class="wsp-arch-node-details" hidden>
+                <strong id="wsp-arch-node-name"></strong>
+                <code id="wsp-arch-node-path"></code>
+                <button type="button" id="wsp-arch-open-file" class="btn-main" disabled>{L_WSP_ARCH_OPEN_FILE}</button>
+            </div>
+        </section>
+        <p class="wsp-arch-disclaimer">{L_WSP_ARCH_LIMITATION}</p>
+    </div>
+</div>
+{% endif %}
+
+{% if ACTIVE_CAN_EDIT %}
+<div id="wsp-perm-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-perm-heading">
+    <div class="wsp-modal-box wsp-perm-modal-box">
+        <div class="wsp-perm-heading">
+            <h4 id="wsp-perm-heading"><i class="fa fa-shield" aria-hidden="true"></i> {L_WSP_PERM_TITLE}</h4>
+            <button type="button" id="wsp-perm-close" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times" aria-hidden="true"></i></button>
+        </div>
+        <p class="wsp-perm-description">{L_WSP_PERM_DESCRIPTION}</p>
+        <div class="wsp-perm-controls">
+            <label for="wsp-perm-profile">{L_WSP_PERM_PROFILE}</label>
+            <select id="wsp-perm-profile" class="inputbox">
+                <option value="guest">{L_WSP_PERM_GUEST}</option>
+                <option value="registered">{L_WSP_PERM_REGISTERED}</option>
+                <option value="moderator">{L_WSP_PERM_MODERATOR}</option>
+                <option value="administrator">{L_WSP_PERM_ADMINISTRATOR}</option>
+            </select>
+            <label for="wsp-perm-filter">{L_WSP_PERM_FILTER}</label>
+            <select id="wsp-perm-filter" class="inputbox">
+                <option value="all">{L_WSP_PERM_ALL}</option>
+                <option value="checked">{L_WSP_PERM_ONLY_CHECKED}</option>
+                <option value="declared">{L_WSP_PERM_ONLY_DECLARED}</option>
+                <option value="findings">{L_WSP_PERM_ONLY_FINDINGS}</option>
+            </select>
+            <button type="button" id="wsp-perm-reset" class="btn-main"><i class="fa fa-undo" aria-hidden="true"></i> {L_WSP_PERM_RESET}</button>
+            <button type="button" id="wsp-perm-scan" class="btn-save"><i class="fa fa-refresh" aria-hidden="true"></i> {L_WSP_PERM_RESCAN}</button>
+        </div>
+        <p class="wsp-perm-warning">{L_WSP_PERM_HYPOTHETICAL}</p>
+        <div id="wsp-perm-summary" class="wsp-perm-summary" aria-live="polite"></div>
+        <div id="wsp-perm-status" class="wsp-perm-status" role="status" aria-live="polite">{L_WSP_PERM_WAITING}</div>
+        <div id="wsp-perm-list" class="wsp-perm-list" role="region" aria-label="{L_WSP_PERM_TITLE}"></div>
+        <div class="wsp-perm-findings-block">
+            <h5>{L_WSP_PERM_FINDINGS}</h5>
+            <div id="wsp-perm-findings"></div>
+        </div>
+        <p class="wsp-perm-disclaimer">{L_WSP_PERM_LIMITATION}</p>
+    </div>
+</div>
+{% endif %}
+
+{% if ACTIVE_CAN_EDIT %}
+<div id="wsp-sec-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-sec-heading">
+    <div class="wsp-modal-box wsp-sec-modal-box">
+        <div class="wsp-sec-heading">
+            <h4 id="wsp-sec-heading"><i class="fa fa-shield" aria-hidden="true"></i> {L_WSP_SEC_TITLE}</h4>
+            <button type="button" id="wsp-sec-close" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times" aria-hidden="true"></i></button>
+        </div>
+        <p class="wsp-sec-description-top">{L_WSP_SEC_DESCRIPTION}</p>
+        <div class="wsp-sec-controls">
+            <label for="wsp-sec-severity">{L_WSP_SEC_FILTER_SEVERITY}</label>
+            <select id="wsp-sec-severity" class="inputbox">
+                <option value="all">{L_WSP_SEC_ALL}</option>
+                <option value="high">{L_WSP_SEC_HIGH}</option>
+                <option value="medium">{L_WSP_SEC_MEDIUM}</option>
+                <option value="low">{L_WSP_SEC_LOW}</option>
+            </select>
+            <label for="wsp-sec-category">{L_WSP_SEC_FILTER_CATEGORY}</label>
+            <select id="wsp-sec-category" class="inputbox">
+                <option value="all">{L_WSP_SEC_ALL}</option>
+                <option value="sql">{L_WSP_SEC_CATEGORY_SQL}</option>
+                <option value="xss">{L_WSP_SEC_CATEGORY_XSS}</option>
+                <option value="csrf">{L_WSP_SEC_CATEGORY_CSRF}</option>
+                <option value="authorization">{L_WSP_SEC_CATEGORY_AUTHORIZATION}</option>
+                <option value="upload">{L_WSP_SEC_CATEGORY_UPLOAD}</option>
+                <option value="execution">{L_WSP_SEC_CATEGORY_EXECUTION}</option>
+                <option value="input">{L_WSP_SEC_CATEGORY_INPUT}</option>
+                <option value="secrets">{L_WSP_SEC_CATEGORY_SECRETS}</option>
+                <option value="transport">{L_WSP_SEC_CATEGORY_TRANSPORT}</option>
+            </select>
+            <button type="button" id="wsp-sec-scan" class="btn-save"><i class="fa fa-refresh" aria-hidden="true"></i> {L_WSP_SEC_RESCAN}</button>
+            <button type="button" id="wsp-sec-report" class="btn-main" disabled><i class="fa fa-download" aria-hidden="true"></i> {L_WSP_SEC_REPORT}</button>
+        </div>
+        <p class="wsp-sec-caution">{L_WSP_SEC_STATIC_WARNING}</p>
+        <div id="wsp-sec-status" role="status" aria-live="polite">{L_WSP_SEC_WAITING}</div>
+        <div id="wsp-sec-summary" class="wsp-sec-summary" aria-live="polite"></div>
+        <div id="wsp-sec-results" class="wsp-sec-results" role="region" aria-label="{L_WSP_SEC_TITLE}"></div>
+        <p class="wsp-sec-caution">{L_WSP_SEC_DISCLAIMER}</p>
+    </div>
+</div>
+{% endif %}
+
+{% if ACTIVE_CAN_EDIT %}
+<div id="wsp-tp-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-tp-heading">
+    <div class="wsp-modal-box wsp-tp-modal-box">
+        <div class="wsp-tp-heading">
+            <h4 id="wsp-tp-heading"><i class="fa fa-eye" aria-hidden="true"></i> {L_WSP_TP_TITLE}</h4>
+            <button type="button" class="btn-main" id="wsp-tp-close" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times" aria-hidden="true"></i></button>
+        </div>
+        <p class="wsp-tp-description">{L_WSP_TP_DESCRIPTION}</p>
+        <div class="wsp-tp-controls">
+            <label for="wsp-tp-template">{L_WSP_TP_TEMPLATE}</label>
+            <select id="wsp-tp-template" class="inputbox"></select>
+            <label for="wsp-tp-css">{L_WSP_TP_CSS}</label>
+            <select id="wsp-tp-css" class="inputbox"></select>
+            <label for="wsp-tp-profile">{L_WSP_TP_PROFILE}</label>
+            <select id="wsp-tp-profile" class="inputbox">
+                <option value="member">{L_WSP_TP_MEMBER}</option>
+                <option value="visitor">{L_WSP_TP_VISITOR}</option>
+            </select>
+            <label for="wsp-tp-width">{L_WSP_TP_WIDTH}</label>
+            <select id="wsp-tp-width" class="inputbox">
+                <option value="desktop">{L_WSP_TP_DESKTOP}</option>
+                <option value="mobile">{L_WSP_TP_MOBILE}</option>
+            </select>
+            <label class="wsp-tp-draft"><input type="checkbox" id="wsp-tp-use-draft" checked> {L_WSP_TP_USE_DRAFT}</label>
+            <button type="button" id="wsp-tp-preview" class="btn-save" disabled><i class="fa fa-eye" aria-hidden="true"></i> {L_WSP_TP_RENDER}</button>
+        </div>
+        <p id="wsp-tp-status" role="status" aria-live="polite"></p>
+        <div class="wsp-tp-frame-wrap"><iframe id="wsp-tp-frame" title="{L_WSP_TP_FRAME}" sandbox="" referrerpolicy="no-referrer" loading="lazy"></iframe></div>
+        <div id="wsp-tp-warnings" class="wsp-tp-warnings" aria-live="polite"></div>
+        <p class="wsp-tp-disclaimer">{L_WSP_TP_LIMITATION}</p>
+    </div>
+</div>
+{% endif %}
+
+{% if ACTIVE_CAN_EDIT %}
+<div id="wsp-ql-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-ql-heading">
+    <div class="wsp-modal-box wsp-ql-modal-box">
+        <div class="wsp-ql-heading">
+            <h4 id="wsp-ql-heading"><i class="fa fa-tachometer" aria-hidden="true"></i> {L_WSP_QL_TITLE}</h4>
+            <button type="button" id="wsp-ql-close" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times" aria-hidden="true"></i></button>
+        </div>
+        <p class="wsp-ql-intro">{L_WSP_QL_DESCRIPTION}</p>
+        <div class="wsp-ql-controls">
+            <label for="wsp-ql-compare">{L_WSP_QL_COMPARE}</label>
+            <select id="wsp-ql-compare" class="inputbox"><option value="0">{L_WSP_QL_NO_COMPARE}</option></select>
+            <button type="button" id="wsp-ql-scan" class="btn-save"><i class="fa fa-refresh" aria-hidden="true"></i> {L_WSP_QL_SCAN}</button>
+            <button type="button" id="wsp-ql-download" class="btn-main" disabled><i class="fa fa-download" aria-hidden="true"></i> {L_WSP_QL_DOWNLOAD}</button>
+        </div>
+        <div id="wsp-ql-status" role="status" aria-live="polite">{L_WSP_QL_WAITING}</div>
+        <p class="wsp-ql-disclaimer">{L_WSP_QL_STATIC_WARNING}</p>
+        <div id="wsp-ql-metrics" class="wsp-ql-metrics" aria-live="polite"></div>
+        <section id="wsp-ql-comparison" hidden>
+            <h5>{L_WSP_QL_COMPARISON}</h5>
+            <div class="wsp-ql-table-wrap"><table class="wsp-ql-table"><thead><tr><th>{L_WSP_QL_INDICATOR}</th><th>{L_WSP_QL_BEFORE}</th><th>{L_WSP_QL_AFTER}</th><th>{L_WSP_QL_DELTA}</th></tr></thead><tbody id="wsp-ql-comparison-body"></tbody></table></div>
+        </section>
+        <section class="wsp-ql-details">
+            <h5>{L_WSP_QL_RECOMMENDATIONS}</h5>
+            <div id="wsp-ql-recommendations"></div>
+            <h5>{L_WSP_QL_FINDINGS}</h5>
+            <div id="wsp-ql-alerts"></div>
+        </section>
+        <p class="wsp-ql-disclaimer">{L_WSP_QL_LIMITATION}</p>
+    </div>
+</div>
+{% endif %}
+
+{% if ACTIVE_CAN_EDIT %}
+<div id="wsp-up-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-up-heading">
+    <div class="wsp-modal-box wsp-up-modal-box">
+        <div class="wsp-up-heading">
+            <h4 id="wsp-up-heading"><i class="fa fa-exchange" aria-hidden="true"></i> {L_WSP_UP_TITLE}</h4>
+            <button type="button" id="wsp-up-close" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times" aria-hidden="true"></i></button>
+        </div>
+        <p class="wsp-up-note">{L_WSP_UP_DESCRIPTION}</p>
+        <div class="wsp-up-controls">
+            <label for="wsp-up-before">{L_WSP_UP_BEFORE}</label>
+            <select id="wsp-up-before" class="inputbox"></select>
+            <label for="wsp-up-after">{L_WSP_UP_AFTER}</label>
+            <select id="wsp-up-after" class="inputbox"></select>
+            <button type="button" id="wsp-up-scan" class="btn-save"><i class="fa fa-search" aria-hidden="true"></i> {L_WSP_UP_ANALYZE}</button>
+            <button type="button" id="wsp-up-report" class="btn-main" disabled><i class="fa fa-download" aria-hidden="true"></i> {L_WSP_UP_DOWNLOAD}</button>
+        </div>
+        <p class="wsp-up-caution">{L_WSP_UP_STATIC_WARNING}</p>
+        <div id="wsp-up-status" role="status" aria-live="polite">{L_WSP_UP_WAITING}</div>
+        <div id="wsp-up-summary" class="wsp-up-summary" aria-live="polite"></div>
+        <div id="wsp-up-findings" class="wsp-up-findings" role="region" aria-label="{L_WSP_UP_FINDINGS}"></div>
+        <h5>{L_WSP_UP_PLAN}</h5>
+        <ol id="wsp-up-plan" class="wsp-up-plan"></ol>
+        <p class="wsp-up-caution">{L_WSP_UP_DISCLAIMER}</p>
+    </div>
+</div>
+{% endif %}
+
+{% if ACTIVE_CAN_EDIT %}
+<div id="wsp-lab-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-lab-heading">
+    <div class="wsp-modal-box wsp-lab-modal-box">
+        <div class="wsp-lab-heading">
+            <h4 id="wsp-lab-heading"><i class="fa fa-flask" aria-hidden="true"></i> {L_WSP_LAB_TITLE}</h4>
+            <button type="button" id="wsp-lab-close" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times" aria-hidden="true"></i></button>
+        </div>
+        <div class="wsp-modal-tabs" role="tablist" aria-label="{L_WSP_LAB_TITLE}">
+            <button type="button" class="wsp-modal-tab is-active" role="tab" id="wsp-lab-tab-overview" data-wsp-tab="overview" aria-selected="true" aria-controls="wsp-lab-pane-overview">{L_WSP_TAB_OVERVIEW}</button>
+            <button type="button" class="wsp-modal-tab" role="tab" id="wsp-lab-tab-compat" data-wsp-tab="compat" aria-selected="false" aria-controls="wsp-lab-pane-compat" tabindex="-1">{L_WSP_TAB_COMPAT}</button>
+            <button type="button" class="wsp-modal-tab" role="tab" id="wsp-lab-tab-findings" data-wsp-tab="findings" aria-selected="false" aria-controls="wsp-lab-pane-findings" tabindex="-1">{L_WSP_TAB_FINDINGS}</button>
+            <button type="button" class="wsp-modal-tab" role="tab" id="wsp-lab-tab-ci" data-wsp-tab="ci" aria-selected="false" aria-controls="wsp-lab-pane-ci" tabindex="-1">{L_WSP_TAB_CI}</button>
+        </div>
+        <div class="wsp-modal-pane" id="wsp-lab-pane-overview" role="tabpanel" aria-labelledby="wsp-lab-tab-overview">
+        <p class="wsp-lab-intro">{L_WSP_LAB_DESCRIPTION}</p>
+        <div class="wsp-lab-controls">
+            <label for="wsp-lab-php">{L_WSP_LAB_TARGET}</label>
+            <select id="wsp-lab-php" class="inputbox">
+                <option value="7.4">PHP 7.4</option><option value="8.0">PHP 8.0</option>
+                <option value="8.1">PHP 8.1</option><option value="8.2">PHP 8.2</option>
+                <option value="8.3" selected>PHP 8.3</option><option value="8.4">PHP 8.4</option>
+            </select>
+            <button type="button" id="wsp-lab-scan" class="btn-save"><i class="fa fa-refresh" aria-hidden="true"></i> {L_WSP_LAB_ANALYZE}</button>
+            <button type="button" id="wsp-lab-report" class="btn-main" disabled><i class="fa fa-file-text-o" aria-hidden="true"></i> {L_WSP_LAB_REPORT}</button>
+        </div>
+        <p class="wsp-lab-warning">{L_WSP_LAB_STATIC_WARNING}</p>
+        <div id="wsp-lab-status" class="wsp-lab-status" role="status" aria-live="polite">{L_WSP_LAB_WAITING}</div>
+        <div id="wsp-lab-summary" class="wsp-lab-summary" aria-live="polite"></div>
+        </div>
+        <div class="wsp-modal-pane" id="wsp-lab-pane-compat" role="tabpanel" aria-labelledby="wsp-lab-tab-compat" hidden>
+        <section class="wsp-compat-section" aria-labelledby="wsp-compat-heading">
+            <h5 id="wsp-compat-heading">{L_WSP_COMPAT_MATRIX}</h5>
+            <p>{L_WSP_COMPAT_DISCLAIMER}</p>
+            <div id="wsp-compat-matrix" aria-live="polite"></div>
+            <h5>{L_WSP_COMPAT_DEPENDENCIES}</h5>
+            <div id="wsp-compat-deps"></div>
+            <p id="wsp-compat-phpbb"></p>
+            <h5>{L_WSP_COMPOSER_ADVISOR}</h5>
+            <p>{L_WSP_COMPOSER_ADVISOR_NOTE}</p>
+            <div id="wsp-composer-advice" class="wsp-lab-list" aria-live="polite"></div>
+            <div id="wsp-composer-patch" class="wsp-composer-patch" hidden>
+                <h5>{L_WSP_COMPOSER_PATCH_TITLE}</h5>
+                <p>{L_WSP_COMPOSER_PATCH_NOTE}</p>
+                <div id="wsp-composer-patch-changes" aria-live="polite"></div>
+                <div class="wsp-composer-patch-columns">
+                    <div><label for="wsp-composer-before">{L_WSP_COMPOSER_PATCH_BEFORE}</label>
+                        <textarea id="wsp-composer-before" readonly rows="11" spellcheck="false"></textarea></div>
+                    <div><label for="wsp-composer-after">{L_WSP_COMPOSER_PATCH_AFTER}</label>
+                        <textarea id="wsp-composer-after" readonly rows="11" spellcheck="false"></textarea></div>
+                </div>
+                <div class="wsp-lab-controls">
+                    <button id="wsp-composer-open" type="button" class="btn-main">{L_WSP_COMPOSER_PATCH_OPEN}</button>
+                    <button id="wsp-composer-stage" type="button" class="btn-save">{L_WSP_COMPOSER_PATCH_STAGE}</button>
+                </div>
+            </div>
+        </section>
+        </div>
+        <div class="wsp-modal-pane" id="wsp-lab-pane-findings" role="tabpanel" aria-labelledby="wsp-lab-tab-findings" hidden>
+        <h5>{L_WSP_LAB_NOTES}</h5>
+        <div id="wsp-lab-notes" class="wsp-lab-list"></div>
+        <h5>{L_WSP_LAB_INDICATORS}</h5>
+        <div id="wsp-lab-indicators" class="wsp-lab-list"></div>
+        </div>
+        <div class="wsp-modal-pane" id="wsp-lab-pane-ci" role="tabpanel" aria-labelledby="wsp-lab-tab-ci" hidden>
+        <div class="wsp-lab-ci">
+            <h5>{L_WSP_LAB_CI_TITLE}</h5>
+            <p>{L_WSP_LAB_CI_HINT}</p>
+            <div class="wsp-lab-controls">
+                <label for="wsp-lab-ci-mode">{L_WSP_LAB_CI_MODE}</label>
+                <select id="wsp-lab-ci-mode" class="inputbox">
+                    <option value="full">{L_WSP_LAB_CI_FULL}</option>
+                    <option value="basic">{L_WSP_LAB_CI_BASIC}</option>
+                </select>
+                <button type="button" id="wsp-lab-workflow" class="btn-main" disabled><i class="fa fa-download" aria-hidden="true"></i> {L_WSP_LAB_CI_DOWNLOAD}</button>
+            </div>
+            <p class="wsp-lab-disclaimer">{L_WSP_LAB_CI_NOTE}</p>
+        </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div id="wsp-portfolio-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-portfolio-title" style="display:none">
+    <div class="wsp-modal-box wsp-cp-modal-box">
+        <div class="wsp-cp-heading"><h4 id="wsp-portfolio-title"><i class="fa fa-th-large"></i> {L_WSP_PORTFOLIO_TITLE}</h4>
+            <button type="button" id="wsp-portfolio-close" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times"></i></button></div>
+        <div class="wsp-modal-tabs" role="tablist" aria-label="{L_WSP_PORTFOLIO_TITLE}">
+            <button type="button" class="wsp-modal-tab is-active" role="tab" id="wsp-portfolio-tab-projects" data-wsp-tab="projects" aria-selected="true" aria-controls="wsp-portfolio-pane-projects">{L_WSP_UI_PROJECTS}</button>
+            <button type="button" class="wsp-modal-tab" role="tab" id="wsp-portfolio-tab-statistics" data-wsp-tab="statistics" aria-selected="false" aria-controls="wsp-portfolio-pane-statistics" tabindex="-1">{L_WSP_UI_STATISTICS}</button>
+            {% if WSP_CAN_CREATE_MIGRATION %}<button type="button" class="wsp-modal-tab" role="tab" id="wsp-portfolio-tab-migration" data-wsp-tab="migration" aria-selected="false" aria-controls="wsp-portfolio-pane-migration" tabindex="-1">{L_WSP_UI_MIGRATION}</button>{% endif %}
+        </div>
+        <div class="wsp-modal-pane" id="wsp-portfolio-pane-projects" role="tabpanel" aria-labelledby="wsp-portfolio-tab-projects">
+        <p>{L_WSP_PORTFOLIO_HINT}</p>
+        <div class="wsp-portfolio-controls">
+            <input type="search" class="inputbox" id="wsp-portfolio-filter" placeholder="{L_WSP_PORTFOLIO_SEARCH}" aria-label="{L_WSP_PORTFOLIO_SEARCH}">
+            <label><input type="checkbox" id="wsp-portfolio-only-unreleased"> {L_WSP_PORTFOLIO_ONLY_UNRELEASED}</label>
+            <label><input type="checkbox" id="wsp-portfolio-only-attention"> {L_WSP_MAINT_ONLY_ATTENTION}</label>
+            <button type="button" id="wsp-portfolio-refresh" class="btn-main">{L_WSP_CP_REFRESH}</button>
+        </div>
+        <p id="wsp-portfolio-status" role="status" aria-live="polite"></p>
+        <div id="wsp-portfolio-summary"></div>
+        <p class="wsp-stats-caption">{L_WSP_BACKUP_NOTE}</p>
+        <div id="wsp-portfolio-results" class="wsp-portfolio-grid"></div>
+        </div>
+        <div class="wsp-modal-pane" id="wsp-portfolio-pane-statistics" role="tabpanel" aria-labelledby="wsp-portfolio-tab-statistics" hidden>
+        <section class="wsp-stats" aria-labelledby="wsp-stats-title">
+            <h4 id="wsp-stats-title">{L_WSP_STATS_TITLE}</h4>
+            <p class="wsp-stats-caption">{L_WSP_STATS_SCOPE}</p>
+            <div id="wsp-stats-totals" class="wsp-stats-totals"></div>
+            <h5>{L_WSP_STATS_MONTHLY}</h5>
+            <div id="wsp-stats-monthly" class="wsp-stats-monthly"></div>
+            <h5>{L_WSP_STATS_COMPARE_TITLE}</h5>
+            <p class="wsp-stats-caption">{L_WSP_STATS_COMPARE_NOTE}</p>
+            <div id="wsp-stats-comparison" class="wsp-stats-totals"></div>
+            <h5>{L_WSP_STATS_TYPES_TITLE}</h5>
+            <div id="wsp-stats-distribution" class="wsp-stats-monthly"></div>
+            <button type="button" id="wsp-stats-export" class="btn-main" disabled>{L_WSP_STATS_EXPORT}</button>
+            <p id="wsp-stats-limits" class="wsp-stats-caption"></p>
+        </section>
+        </div>
+        {% if WSP_CAN_CREATE_MIGRATION %}
+        <div class="wsp-modal-pane" id="wsp-portfolio-pane-migration" role="tabpanel" aria-labelledby="wsp-portfolio-tab-migration" hidden>
+        <section class="wsp-migration-panel" aria-labelledby="wsp-migration-title">
+            <h4 id="wsp-migration-title">{L_WSP_MIGRATION_TITLE}</h4>
+            <p>{L_WSP_MIGRATION_NOTE}</p>
+            <form id="wsp-migration-form" enctype="multipart/form-data">
+                <label>{L_WSP_MIGRATION_NAME} <input type="text" name="project_name" maxlength="120" required class="inputbox"></label>
+                <label>{L_WSP_BACKUP_INSPECT_SELECT} <input type="file" name="backup_zip" accept=".zip,application/zip" required></label>
+                <button type="submit" class="btn-main">{L_WSP_MIGRATION_PREVIEW}</button>
+            </form>
+            <div id="wsp-migration-output" role="status" aria-live="polite"></div>
+        </section>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if ACTIVE_CAN_EDIT %}
+<div id="wsp-rh-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-rh-title" style="display:none">
+    <div class="wsp-modal-box wsp-cp-modal-box">
+        <div class="wsp-cp-heading"><h4 id="wsp-rh-title"><i class="fa fa-tags"></i> {L_WSP_RH_TITLE}</h4>
+            <button type="button" id="wsp-rh-close" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times"></i></button></div>
+        <p>{L_WSP_RH_DESCRIPTION}</p>
+        <div class="wsp-rh-fields">
+            <label for="wsp-rh-version">{L_WSP_RH_VERSION}</label>
+            <input type="text" class="inputbox" id="wsp-rh-version" maxlength="40" placeholder="1.0.0" autocomplete="off">
+            <label for="wsp-rh-package">{L_WSP_RH_PACKAGE}</label>
+            <input type="text" class="inputbox" id="wsp-rh-package" maxlength="180" placeholder="extensao_1.0.0.zip" autocomplete="off">
+            <label for="wsp-rh-notes">{L_WSP_RH_NOTES}</label>
+            <textarea class="inputbox" id="wsp-rh-notes" rows="4" maxlength="12000"></textarea>
+            <button type="button" id="wsp-rh-create" class="btn-save">{L_WSP_RH_RECORD}</button>
+            <button type="button" id="wsp-rh-refresh" class="btn-main">{L_WSP_CP_REFRESH}</button>
+        </div>
+        <p id="wsp-rh-status" role="status" aria-live="polite"></p>
+        <div id="wsp-rh-list" class="wsp-cp-list"></div>
+        <p class="wsp-cp-warning">{L_WSP_RH_WARNING}</p>
+    </div>
+</div>
+
+<div id="wsp-cp-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-cp-title">
+    <div class="wsp-modal-box wsp-cp-modal-box">
+        <div class="wsp-cp-heading">
+            <h4 id="wsp-cp-title"><i class="fa fa-undo" aria-hidden="true"></i> {L_WSP_CP_TITLE}</h4>
+            <button type="button" id="wsp-cp-close" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times" aria-hidden="true"></i></button>
+        </div>
+        <p class="wsp-cp-description">{L_WSP_CP_DESCRIPTION}</p>
+        <div class="wsp-cp-create">
+            <label for="wsp-cp-label">{L_WSP_CP_LABEL}</label>
+            <input id="wsp-cp-label" class="inputbox" type="text" maxlength="120" autocomplete="off" placeholder="{L_WSP_CP_LABEL_HINT}">
+            <button type="button" id="wsp-cp-create" class="btn-save"><i class="fa fa-plus" aria-hidden="true"></i> {L_WSP_CP_CREATE}</button>
+            <button type="button" id="wsp-cp-refresh" class="btn-main"><i class="fa fa-refresh" aria-hidden="true"></i> {L_WSP_CP_REFRESH}</button>
+        </div>
+        <p id="wsp-cp-status" role="status" aria-live="polite">{L_WSP_CP_WAITING}</p>
+        <div id="wsp-cp-list" class="wsp-cp-list" aria-label="{L_WSP_CP_TITLE}"></div>
+        <div id="wsp-cp-preview" class="wsp-cp-preview" hidden>
+            <h5>{L_WSP_CP_PREVIEW}</h5>
+            <p id="wsp-cp-preview-hint">{L_WSP_CP_PREVIEW_HINT}</p>
+            <div id="wsp-cp-summary" class="wsp-cp-summary"></div>
+            <div id="wsp-cp-changes" class="wsp-cp-changes"></div>
+            <button type="button" id="wsp-cp-restore" class="btn-save" disabled><i class="fa fa-undo" aria-hidden="true"></i> {L_WSP_CP_RESTORE}</button>
+        </div>
+        <p class="wsp-cp-warning">{L_WSP_CP_WARNING}</p>
+    </div>
+</div>
+{% endif %}
+
+{% if ACTIVE_CAN_EDIT and ACTIVE_CAN_RENAME_MOVE %}
+<div id="wsp-generator-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-generator-heading">
+    <div class="wsp-modal-box wsp-generator-modal-box">
+        <div class="wsp-generator-heading">
+            <h4 id="wsp-generator-heading"><i class="fa fa-magic"></i> {L_WSP_GEN_TITLE}</h4>
+            <button type="button" id="wsp-gen-close" class="btn-main close-modal" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="wsp-modal-tabs" role="tablist" aria-label="{L_WSP_GEN_TITLE}">
+            <button type="button" class="wsp-modal-tab is-active" role="tab" id="wsp-gen-tab-config" data-wsp-tab="config" aria-selected="true" aria-controls="wsp-gen-pane-config">{L_WSP_UI_CONFIGURATION}</button>
+            <button type="button" class="wsp-modal-tab" role="tab" id="wsp-gen-tab-preview" data-wsp-tab="preview" aria-selected="false" aria-controls="wsp-gen-pane-preview" tabindex="-1">{L_WSP_GEN_PREVIEW}</button>
+        </div>
+        <div class="wsp-modal-pane" id="wsp-gen-pane-config" role="tabpanel" aria-labelledby="wsp-gen-tab-config">
+        <p>{L_WSP_GEN_DESCRIPTION}</p>
+        <div class="wsp-generator-form">
+            <label for="wsp-gen-kind">{L_WSP_GEN_KIND}</label>
+            <select id="wsp-gen-kind" class="inputbox">
+                <option value="route">{L_WSP_GEN_ROUTE}</option>
+                <option value="listener">{L_WSP_GEN_LISTENER}</option>
+                <option value="migration">{L_WSP_GEN_MIGRATION}</option>
+                <option value="permission">{L_WSP_GEN_PERMISSION}</option>
+                <option value="acp">{L_WSP_GEN_ACP}</option>
+                <option value="test_service">{L_WSP_TEST_SERVICE}</option>
+                <option value="test_controller">{L_WSP_TEST_CONTROLLER}</option>
+                <option value="test_permission">{L_WSP_TEST_PERMISSION}</option>
+            </select>
+            <label id="wsp-gen-feature-label" for="wsp-gen-feature">{L_WSP_GEN_FEATURE}</label>
+            <input id="wsp-gen-feature" type="text" class="inputbox" maxlength="32" placeholder="minha_funcionalidade" autocomplete="off" spellcheck="false" />
+            <p id="wsp-gen-test-hint" hidden class="wsp-generator-note">{L_WSP_TEST_GEN_HINT}</p>
+            <div id="wsp-gen-event-field" hidden>
+                <label for="wsp-gen-event">{L_WSP_GEN_EVENT}</label>
+                <select id="wsp-gen-event" class="inputbox">
+                    <option value="core.user_setup">core.user_setup</option>
+                    <option value="core.page_header">core.page_header</option>
+                    <option value="core.viewtopic_modify_post_row">core.viewtopic_modify_post_row</option>
+                </select>
+            </div>
+        </div>
+        <div class="wsp-generator-actions">
+            <button type="button" id="wsp-gen-preview" class="btn-save"><i class="fa fa-eye"></i> {L_WSP_GEN_PREVIEW}</button>
+            <button type="button" id="wsp-gen-apply" class="btn-save" disabled><i class="fa fa-check"></i> {L_WSP_GEN_APPLY}</button>
+            <button type="button" id="wsp-gen-refresh" class="btn-main" hidden><i class="fa fa-refresh"></i> {L_WSP_GEN_RELOAD}</button>
+        </div>
+        <div id="wsp-gen-status" class="wsp-generator-status" role="status" aria-live="polite">{L_WSP_GEN_START}</div>
+        </div>
+        <div class="wsp-modal-pane" id="wsp-gen-pane-preview" role="tabpanel" aria-labelledby="wsp-gen-tab-preview" hidden>
+        <div id="wsp-gen-results" hidden>
+            <p><strong>{L_WSP_GEN_FILES}</strong> <span id="wsp-gen-extension"></span></p>
+            <div id="wsp-gen-files" class="wsp-generator-files"></div>
+            <pre id="wsp-gen-code" class="wsp-generator-code" tabindex="0"></pre>
+        </div>
+        <p class="wsp-generator-note">{L_WSP_GEN_NOTE}</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div id="release-validator-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-validator-modal-title">
     <div class="wsp-modal-box wsp-validator-modal-box">
         <div class="wsp-validator-modal-header">
-            <h4><i class="fa fa-check-square-o"></i> {L_WSP_VALIDATE_RELEASE}</h4>
+            <h4 id="wsp-validator-modal-title"><i class="fa fa-check-square-o"></i> {L_WSP_VALIDATE_RELEASE}</h4>
+        </div>
+        <div class="wsp-modal-tabs" role="tablist" aria-label="{L_WSP_VALIDATE_RELEASE}">
+            <button type="button" class="wsp-modal-tab" role="tab" id="wsp-validator-tab-process" data-wsp-tab="process" aria-selected="false" aria-controls="wsp-validator-pane-process" tabindex="-1">{L_WSP_UI_RELEASE_PROCESS}</button>
+            <button type="button" class="wsp-modal-tab is-active" role="tab" id="wsp-validator-tab-results" data-wsp-tab="results" aria-selected="true" aria-controls="wsp-validator-pane-results">{L_WSP_UI_RESULTS}</button>
         </div>
         <div class="wsp-validator-modal-scroll">
+            <div class="wsp-modal-pane" id="wsp-validator-pane-process" role="tabpanel" aria-labelledby="wsp-validator-tab-process" hidden>
+            <section id="wsp-release-wizard" class="wsp-release-wizard" aria-label="{L_WSP_RELEASE_ASSISTANT_TITLE}" hidden>
+                <p class="wsp-release-intro">{L_WSP_RELEASE_ASSISTANT_INTRO}</p>
+                <ol class="wsp-release-steps">
+                    <li data-wsp-release-step="structure"><span class="wsp-release-step-number">1</span><span><strong>{L_WSP_RELEASE_STEP_STRUCTURE}</strong><small>{L_WSP_RELEASE_STEP_STRUCTURE_HINT}</small></span><span class="wsp-release-step-indicator" aria-hidden="true"></span></li>
+                    <li data-wsp-release-step="epv"><span class="wsp-release-step-number">2</span><span><strong>{L_WSP_RELEASE_STEP_EPV}</strong><small>{L_WSP_RELEASE_STEP_EPV_HINT}</small></span><span class="wsp-release-step-indicator" aria-hidden="true"></span></li>
+                    <li data-wsp-release-step="fixes"><span class="wsp-release-step-number">3</span><span><strong>{L_WSP_RELEASE_STEP_FIXES}</strong><small>{L_WSP_RELEASE_STEP_FIXES_HINT}</small></span><span class="wsp-release-step-indicator" aria-hidden="true"></span></li>
+                    <li data-wsp-release-step="package"><span class="wsp-release-step-number">4</span><span><strong>{L_WSP_RELEASE_STEP_PACKAGE}</strong><small>{L_WSP_RELEASE_STEP_PACKAGE_HINT}</small></span><span class="wsp-release-step-indicator" aria-hidden="true"></span></li>
+                </ol>
+                <div id="wsp-release-status" class="wsp-release-status" role="status" aria-live="polite">{L_WSP_RELEASE_BEGIN_HINT}</div>
+                <div id="wsp-release-metadata" class="wsp-release-metadata" hidden></div>
+                <button id="wsp-release-start" type="button" class="btn-save"><i class="fa fa-play"></i> {L_WSP_RELEASE_BEGIN}</button>
+                <div class="wsp-release-next">
+                    <button id="wsp-release-record" type="button" class="btn-main" disabled><i class="fa fa-tags"></i> {L_WSP_RELEASE_RECORD_STEP}</button>
+                    <p id="wsp-release-record-hint" class="wsp-release-metadata">{L_WSP_RELEASE_RECORD_HINT}</p>
+                    <p class="wsp-release-metadata">{L_WSP_RELEASE_GITHUB_MANUAL}</p>
+                </div>
+            </section>
+            </div>
+            <div class="wsp-modal-pane" id="wsp-validator-pane-results" role="tabpanel" aria-labelledby="wsp-validator-tab-results">
             <div class="wsp-validator-toolbar">
                 <label for="wsp-validator-scope">{L_WSP_VALIDATOR_SCOPE_LABEL}</label>
                 <select id="wsp-validator-scope" class="inputbox">
@@ -664,10 +1272,12 @@
                     <option value="full">{L_WSP_VALIDATOR_SCOPE_FULL}</option>
                 </select>
             </div>
+            <div id="wsp-publication-audit" class="wsp-publication-audit" hidden></div>
             <div id="wsp-validator-summary" class="wsp-validator-summary">{L_WSP_VALIDATOR_WAITING}</div>
             <div id="wsp-official-epv" class="wsp-validator-checklist" hidden></div>
             <div id="wsp-validator-checklist" class="wsp-validator-checklist"></div>
             <div id="wsp-validator-issues" class="wsp-validator-issues"></div>
+            </div>
         </div>
         <div class="modal-buttons wsp-validator-modal-actions">
             <button class="btn-main close-modal" onclick="jQuery('#release-validator-modal').fadeOut(200)">{L_WSP_CLOSE}</button>
@@ -1003,9 +1613,172 @@
 {% INCLUDEJS '@mundophpbb_workspace/js/wsp_files.js' %}
 {% INCLUDEJS '@mundophpbb_workspace/js/wsp_projects.js' %}
 {% INCLUDEJS '@mundophpbb_workspace/js/wsp_upload.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_radar.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_checkpoints.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_release_history.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_portfolio.js' %}
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_refactor.js' %}
 {% INCLUDEJS '@mundophpbb_workspace/js/wsp_tools.js' %}
 {% INCLUDEJS '@mundophpbb_workspace/js/wsp_notifications.js' %}
 {% INCLUDEJS '@mundophpbb_workspace/js/wsp_toolbar.js' %}
+
+{% if ACTIVE_CAN_EDIT and WSP_GITHUB_ENABLED %}
+<div id="wsp-gh-modal" class="wsp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wsp-gh-title" style="display:none">
+    <div class="wsp-modal-box wsp-gh-modal-box">
+        <div class="wsp-gh-header">
+            <h4 id="wsp-gh-title"><i class="fa fa-github"></i> {L_WSP_GH_TITLE}</h4>
+            <button type="button" id="wsp-gh-close" class="btn-main" aria-label="{L_WSP_CLOSE}"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="wsp-modal-tabs" role="tablist" aria-label="{L_WSP_GH_TITLE}">
+            <button type="button" class="wsp-modal-tab is-active" role="tab" id="wsp-gh-tab-repository" data-wsp-tab="repository" aria-selected="true" aria-controls="wsp-gh-pane-repository">{L_WSP_TAB_REPOSITORY}</button>
+            <button type="button" class="wsp-modal-tab" role="tab" id="wsp-gh-tab-health" data-wsp-tab="health" aria-selected="false" aria-controls="wsp-gh-pane-health" tabindex="-1">{L_WSP_TAB_HEALTH}</button>
+            <button type="button" class="wsp-modal-tab" role="tab" id="wsp-gh-tab-actions" data-wsp-tab="actions" aria-selected="false" aria-controls="wsp-gh-pane-actions" tabindex="-1">{L_WSP_TAB_ACTIONS}</button>
+            <button type="button" class="wsp-modal-tab" role="tab" id="wsp-gh-tab-commits" data-wsp-tab="commits" aria-selected="false" aria-controls="wsp-gh-pane-commits" tabindex="-1">{L_WSP_TAB_COMMITS}</button>
+            <button type="button" class="wsp-modal-tab" role="tab" id="wsp-gh-tab-releases" data-wsp-tab="releases" aria-selected="false" aria-controls="wsp-gh-pane-releases" tabindex="-1">{L_WSP_TAB_RELEASES}</button>
+            <button type="button" class="wsp-modal-tab" role="tab" id="wsp-gh-tab-workflow" data-wsp-tab="workflow" aria-selected="false" aria-controls="wsp-gh-pane-workflow" tabindex="-1">{L_WSP_TAB_WORKFLOW}</button>
+        </div>
+        <div class="wsp-modal-pane" id="wsp-gh-pane-repository" role="tabpanel" aria-labelledby="wsp-gh-tab-repository">
+        <p class="wsp-gh-note">{L_WSP_GH_DESCRIPTION}</p>
+        <div class="wsp-gh-fields">
+            <label for="wsp-gh-repo">{L_WSP_GH_REPOSITORY}</label>
+            <input id="wsp-gh-repo" class="inputbox" type="text" maxlength="240" placeholder="usuario/repositorio" autocomplete="off">
+            <label for="wsp-gh-ref">{L_WSP_GH_REF}</label>
+            <input id="wsp-gh-ref" class="inputbox" type="text" maxlength="120" placeholder="main" autocomplete="off">
+        </div>
+        <div class="wsp-gh-actions">
+            {% if ACTIVE_CAN_MANAGE %}
+            <button id="wsp-gh-link" type="button" class="btn-save"><i class="fa fa-link"></i> {L_WSP_GH_LINK}</button>
+            <button id="wsp-gh-unlink" type="button" class="btn-main"><i class="fa fa-unlink"></i> {L_WSP_GH_UNLINK}</button>
+            {% endif %}
+            <button id="wsp-gh-check" type="button" class="btn-main"><i class="fa fa-refresh"></i> {L_WSP_GH_CHECK}</button>
+            <a id="wsp-gh-goto" class="btn-main" href="#" target="_blank" rel="noopener noreferrer" hidden><i class="fa fa-external-link"></i> {L_WSP_GH_OPEN}</a>
+        </div>
+        <div id="wsp-gh-state" class="wsp-gh-state" role="status" aria-live="polite">{L_WSP_GH_READY}</div>
+        <div id="wsp-gh-sha" class="wsp-gh-sha" hidden></div>
+        {% if WSP_GITHUB_IMPORT_ENABLED %}
+        <div class="wsp-gh-import">
+            <h5>{L_WSP_GH_IMPORT_TITLE}</h5>
+            <p class="wsp-gh-note">{L_WSP_GH_IMPORT_EXPLAIN}</p>
+            <div class="wsp-gh-actions">
+                <button id="wsp-gh-preview" class="btn-main" type="button"><i class="fa fa-eye"></i> {L_WSP_GH_PREVIEW}</button>
+                <button id="wsp-gh-apply" class="btn-save" type="button" disabled><i class="fa fa-download"></i> {L_WSP_GH_APPLY}</button>
+            </div>
+            <div id="wsp-gh-summary" class="wsp-gh-summary"></div>
+            <div id="wsp-gh-list" class="wsp-gh-list" role="region" aria-label="{L_WSP_GH_PREVIEW}"></div>
+        </div>
+        {% endif %}
+        </div>
+        <div class="wsp-modal-pane" id="wsp-gh-pane-health" role="tabpanel" aria-labelledby="wsp-gh-tab-health" hidden>
+        <section class="wsp-gh-addons" aria-labelledby="wsp-gh-health-title">
+            <h5 id="wsp-gh-health-title"><i class="fa fa-heartbeat" aria-hidden="true"></i> {L_WSP_GH_HEALTH_TITLE}</h5>
+            <p class="wsp-gh-note">{L_WSP_GH_HEALTH_EXPLAIN}</p>
+            <div class="wsp-gh-actions">
+                <button type="button" id="wsp-gh-health-check" class="btn-main" disabled><i class="fa fa-refresh" aria-hidden="true"></i> {L_WSP_GH_HEALTH_CHECK}</button>
+            </div>
+            <p id="wsp-gh-health-state" class="wsp-gh-note" role="status" aria-live="polite">{L_WSP_GH_HEALTH_READY}</p>
+            <div id="wsp-gh-health-list" class="wsp-gh-health-grid" role="region" aria-label="{L_WSP_GH_HEALTH_TITLE}"></div>
+        </section>
+        </div>
+        <div class="wsp-modal-pane" id="wsp-gh-pane-actions" role="tabpanel" aria-labelledby="wsp-gh-tab-actions" hidden>
+        <section class="wsp-gh-addons" aria-labelledby="wsp-gh-actions-title">
+            <h5 id="wsp-gh-actions-title"><i class="fa fa-check-circle-o" aria-hidden="true"></i> {L_WSP_GH_ACTIONS_TITLE}</h5>
+            <p class="wsp-gh-note">{L_WSP_GH_ACTIONS_EXPLAIN}</p>
+            <div class="wsp-gh-actions">
+                <button type="button" id="wsp-gh-actions-check" class="btn-main" disabled><i class="fa fa-refresh" aria-hidden="true"></i> {L_WSP_GH_ACTIONS_CHECK}</button>
+                <a id="wsp-gh-actions-goto" class="btn-main" target="_blank" rel="noopener noreferrer" href="#" hidden><i class="fa fa-external-link" aria-hidden="true"></i> {L_WSP_GH_ACTIONS_OPEN}</a>
+            </div>
+            <p id="wsp-gh-actions-state" class="wsp-gh-note" role="status" aria-live="polite">{L_WSP_GH_ACTIONS_READY}</p>
+            <div id="wsp-gh-actions-list" class="wsp-gh-list" aria-label="{L_WSP_GH_ACTIONS_TITLE}"></div>
+        </section>
+        </div>
+        <div class="wsp-modal-pane" id="wsp-gh-pane-commits" role="tabpanel" aria-labelledby="wsp-gh-tab-commits" hidden>
+        <section class="wsp-gh-addons" aria-labelledby="wsp-gh-commits-title">
+            <h5 id="wsp-gh-commits-title"><i class="fa fa-code-fork" aria-hidden="true"></i> {L_WSP_GH_COMMITS_TITLE}</h5>
+            <p class="wsp-gh-note">{L_WSP_GH_COMMITS_EXPLAIN}</p>
+            <div class="wsp-gh-actions">
+                <button type="button" id="wsp-gh-commits-check" class="btn-main" disabled><i class="fa fa-refresh" aria-hidden="true"></i> {L_WSP_GH_COMMITS_CHECK}</button>
+                <a id="wsp-gh-commits-goto" class="btn-main" target="_blank" rel="noopener noreferrer" href="#" hidden>GitHub</a>
+            </div>
+            <p id="wsp-gh-commits-state" class="wsp-gh-note" role="status" aria-live="polite"></p>
+            <div id="wsp-gh-commits-list" class="wsp-gh-list"></div>
+            <div id="wsp-gh-commit-result" hidden>
+                <h5>{L_WSP_GH_COMMITS_RESULT}</h5>
+                <p id="wsp-gh-commit-state" class="wsp-gh-note" role="status" aria-live="polite"></p>
+                <div id="wsp-gh-commit-files" class="wsp-gh-list"></div>
+                <div id="wsp-gh-commit-compare-list" class="wsp-gh-list"></div>
+                <div id="wsp-gh-commit-diff-panel" class="wsp-gh-diff-panel" hidden>
+                    <button type="button" id="wsp-gh-commit-diff-close" class="btn-main">{L_WSP_GH_COMMITS_CLOSE}</button>
+                    <p id="wsp-gh-commit-diff-state" class="wsp-gh-note" role="status" aria-live="polite"></p>
+                    <div id="wsp-gh-commit-diff-lines" class="wsp-gh-diff-lines"></div>
+                </div>
+            </div>
+        </section>
+        </div>
+        <div class="wsp-modal-pane" id="wsp-gh-pane-releases" role="tabpanel" aria-labelledby="wsp-gh-tab-releases" hidden>
+        <section class="wsp-gh-addons" aria-labelledby="wsp-gh-releases-title">
+            <h5 id="wsp-gh-releases-title"><i class="fa fa-tag" aria-hidden="true"></i> {L_WSP_GH_RELEASES_TITLE}</h5>
+            <p class="wsp-gh-note">{L_WSP_GH_RELEASES_EXPLAIN}</p>
+            <div class="wsp-gh-actions">
+                <button type="button" id="wsp-gh-releases-check" class="btn-main" disabled><i class="fa fa-refresh" aria-hidden="true"></i> {L_WSP_GH_RELEASES_CHECK}</button>
+                <a id="wsp-gh-releases-goto" class="btn-main" target="_blank" rel="noopener noreferrer" href="#" hidden><i class="fa fa-external-link" aria-hidden="true"></i> {L_WSP_GH_RELEASES_OPEN}</a>
+            </div>
+            <p id="wsp-gh-releases-state" class="wsp-gh-note" role="status" aria-live="polite">{L_WSP_GH_RELEASES_READY}</p>
+            <div id="wsp-gh-releases-list" class="wsp-gh-list" aria-label="{L_WSP_GH_RELEASES_TITLE}"></div>
+            <div id="wsp-gh-release-compare" hidden>
+                <h5>{L_WSP_GH_RELEASES_COMPARE_RESULT}</h5>
+                <p id="wsp-gh-release-compare-state" class="wsp-gh-note" role="status" aria-live="polite"></p>
+                <div class="wsp-gh-actions wsp-gh-report-controls">
+                    <label for="wsp-gh-report-filter">{L_WSP_GH_REPORT_FILTER}</label>
+                    <select id="wsp-gh-report-filter" class="inputbox" disabled>
+                        <option value="all">{L_WSP_GH_REPORT_ALL}</option>
+                        <option value="create">{L_WSP_GH_REPORT_CREATE}</option>
+                        <option value="update">{L_WSP_GH_REPORT_UPDATE}</option>
+                        <option value="local_only">{L_WSP_GH_REPORT_LOCAL}</option>
+                    </select>
+                    <button type="button" id="wsp-gh-report-export" class="btn-main" disabled><i class="fa fa-download" aria-hidden="true"></i> {L_WSP_GH_REPORT_EXPORT}</button>
+                </div>
+                <div id="wsp-gh-release-compare-list" class="wsp-gh-list"></div>
+                <div id="wsp-gh-diff-panel" class="wsp-gh-diff-panel" hidden>
+                    <div class="wsp-gh-diff-head"><strong id="wsp-gh-diff-path"></strong><button type="button" id="wsp-gh-diff-close" class="btn-main">{L_WSP_GH_DIFF_CLOSE}</button></div>
+                    <p id="wsp-gh-diff-state" class="wsp-gh-note" role="status" aria-live="polite"></p>
+                    <div id="wsp-gh-diff-lines" class="wsp-gh-diff-lines" aria-label="{L_WSP_GH_DIFF_TITLE}"></div>
+                </div>
+                <p class="wsp-gh-note">{L_WSP_GH_RELEASES_COMPARE_CAUTION}</p>
+            </div>
+        </section>
+        </div>
+        <div class="wsp-modal-pane" id="wsp-gh-pane-workflow" role="tabpanel" aria-labelledby="wsp-gh-tab-workflow" hidden>
+        <section class="wsp-gh-addons" aria-labelledby="wsp-gh-workflow-title">
+            <h5 id="wsp-gh-workflow-title"><i class="fa fa-cogs" aria-hidden="true"></i> {L_WSP_GH_WORKFLOW_TITLE}</h5>
+            <p class="wsp-gh-note">{L_WSP_GH_WORKFLOW_EXPLAIN}</p>
+            <div class="wsp-gh-workflow-fields">
+                <label for="wsp-gh-workflow-mode">{L_WSP_GH_WORKFLOW_MODE}</label>
+                <select id="wsp-gh-workflow-mode" class="inputbox">
+                    <option value="basic">{L_WSP_GH_WORKFLOW_BASIC}</option>
+                    <option value="full">{L_WSP_GH_WORKFLOW_FULL}</option>
+                </select>
+                <label for="wsp-gh-phpbb-branch">{L_WSP_GH_WORKFLOW_PHPBB}</label>
+                <select id="wsp-gh-phpbb-branch" class="inputbox">
+                    <option value="3.3.x">phpBB 3.3.x</option>
+                    <option value="master">phpBB master (development)</option>
+                </select>
+            </div>
+            <div class="wsp-gh-actions">
+                <button type="button" id="wsp-gh-workflow-generate" class="btn-main" disabled><i class="fa fa-file-code-o" aria-hidden="true"></i> {L_WSP_GH_WORKFLOW_GENERATE}</button>
+                <button type="button" id="wsp-gh-workflow-copy" class="btn-main" disabled><i class="fa fa-copy" aria-hidden="true"></i> {L_WSP_GH_WORKFLOW_COPY}</button>
+                <button type="button" id="wsp-gh-workflow-download" class="btn-main" disabled><i class="fa fa-download" aria-hidden="true"></i> {L_WSP_GH_WORKFLOW_DOWNLOAD}</button>
+            </div>
+            <p id="wsp-gh-workflow-state" class="wsp-gh-note" role="status" aria-live="polite"></p>
+            <textarea id="wsp-gh-workflow-yaml" readonly rows="13" spellcheck="false" aria-label="{L_WSP_GH_WORKFLOW_TITLE}"></textarea>
+            <p class="wsp-gh-note">{L_WSP_GH_WORKFLOW_CAUTION}</p>
+        </section>
+        <p class="wsp-gh-note">{L_WSP_GH_NOT_AUTOMATIC}</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% INCLUDEJS '@mundophpbb_workspace/js/wsp_modal_tabs.js' %}
 {% INCLUDEJS '@mundophpbb_workspace/js/wsp_init.js' %}
 
 {% INCLUDE 'overall_footer.html' %}
