@@ -4466,7 +4466,7 @@ class ext extends \phpbb\extension\base {}', 'required-file');
 			}
 			foreach ($literals as $literal)
 			{
-				$candidates[] = stripslashes(isset($literal[2]) && $literal[2] !== '' ? (string) $literal[2] : (string) $literal[1]);
+				$candidates[] = isset($literal[2]) && $literal[2] !== '' ? (string) $literal[2] : (string) $literal[1];
 			}
 		}
 
