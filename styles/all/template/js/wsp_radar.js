@@ -152,7 +152,37 @@
 			setTimeout(function () { $(document).off('wsp:file-loaded.wsp_radar'); }, 15000);
 			$link.trigger('click');
 		},
-		bindEvents: function () {
+
+		exportReport: function () {
+			if (!this._lastReport || !this._lastReport.issues) {
+				this._status('Nenhum relatório para exportar.');
+				return;
+			}
+			var issues = this._lastReport.issues;
+			var lines = ['Radar de Problemas - Workspace', '============================', ''];
+			for (var i = 0; i < issues.length; i++) {
+				var issue = issues[i] || {};
+				var severity = (issue.severity || 'info').toUpperCase();
+				var file = issue.file || '';
+				var line = issue.line || '';
+				var msg = issue.message || '';
+				lines.push('[' + severity + '] ' + file + (line ? ':' + line : ''));
+				lines.push(msg);
+				if (issue.rule) lines.push('Regra: ' + issue.rule);
+				lines.push('');
+			}
+			var text = lines.join('\n');
+			var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+			var a = document.createElement('a');
+			a.href = URL.createObjectURL(blob);
+			a.download = 'radar-problemas.txt';
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(a.href);
+		},
+
+				bindEvents: function () {
 			var self = this;
 			if (!self._allowed()) return;
 			$('body').on('click.wsp_radar', '#open-radar', function () {
@@ -161,6 +191,7 @@
 				else self.render();
 			});
 			$('body').on('click.wsp_radar', '#wsp-radar-scan', function () { self.schedule(350); });
+			$('body').on('click.wsp_radar', '#wsp-radar-export', function () { self.exportReport(); });
 			$('body').on('change.wsp_radar', '#wsp-radar-filter', function () {
 				self._filter = String($(this).val() || 'all');
 				self.render();
