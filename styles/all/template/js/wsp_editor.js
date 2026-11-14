@@ -163,7 +163,7 @@ WSP.projects = {
 	},
 
 	/**
-	 * Resolve URL de lock/unlock a partir do wspVars
+	 * Resolve the lock/unlock URL from wspVars
 	 */
 	_getLockUrl: function (type) {
 		if (!window.wspVars) return '';

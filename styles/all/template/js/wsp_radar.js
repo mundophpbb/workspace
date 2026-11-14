@@ -155,11 +155,11 @@
 
 		exportReport: function () {
 			if (!this._lastReport || !this._lastReport.issues) {
-				this._status('Nenhum relatório para exportar.');
+				this._status(this._lang('WSP_RADAR_EXPORT_EMPTY'));
 				return;
 			}
 			var issues = this._lastReport.issues;
-			var lines = ['Radar de Problemas - Workspace', '============================', ''];
+			var lines = [this._lang('WSP_RADAR_EXPORT_TITLE'), '============================', ''];
 			for (var i = 0; i < issues.length; i++) {
 				var issue = issues[i] || {};
 				var severity = (issue.severity || 'info').toUpperCase();
@@ -168,14 +168,14 @@
 				var msg = issue.message || '';
 				lines.push('[' + severity + '] ' + file + (line ? ':' + line : ''));
 				lines.push(msg);
-				if (issue.rule) lines.push('Regra: ' + issue.rule);
+				if (issue.rule) lines.push(this._lang('WSP_RADAR_EXPORT_RULE') + ': ' + issue.rule);
 				lines.push('');
 			}
 			var text = lines.join('\n');
 			var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
 			var a = document.createElement('a');
 			a.href = URL.createObjectURL(blob);
-			a.download = 'radar-problemas.txt';
+			a.download = 'workspace-radar-report.txt';
 			document.body.appendChild(a);
 			a.click();
 			document.body.removeChild(a);

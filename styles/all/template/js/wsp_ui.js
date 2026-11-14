@@ -211,7 +211,7 @@ WSP.ui = {
 		this._ui = null;
 		ui = this._getUI();
 
-		// Fechar modal ao clicar no fundo
+		// Close the modal when clicking its backdrop
 		ui.$body.off('mousedown.wsp_modal').on('mousedown.wsp_modal', '#wsp-custom-modal', function (e) {
 			if (jQuery(e.target).attr('id') === 'wsp-custom-modal') {
 				jQuery('#wsp-custom-modal').hide();

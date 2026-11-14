@@ -59,7 +59,7 @@ WSP.tree = {
 	},
 
 	/**
-	 * ✅ SSOT: lock de escrita (true = travado)
+	 * SSOT: write lock (true = locked)
 	 */
 	_isWriteLocked: function () {
 		if (!window.WSP || !WSP.activeProjectId) return false;

@@ -791,7 +791,7 @@
 
 			$toolbarActions.removeClass('is-disabled').addClass('is-enabled');
 
-			var canEditUI = this.canEditActiveProjectUI(); // ✅ editor depende de edit
+			var canEditUI = this.canEditActiveProjectUI(); // Editor availability depends on edit permission
 
 			if (!hasFile) {
 				if (this.editor) {

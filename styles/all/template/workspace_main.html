@@ -39,7 +39,7 @@
         </div>
 
         <div class="header-actions">
-            {# Cache purge é GLOBAL: mostrar só para admin + ACL purge_cache #}
+            {# Cache purge is GLOBAL: show only for admins with the purge_cache ACL #}
             {% if WSP_CAN_PURGE_CACHE %}
             <button id="refresh-phpbb-cache" class="btn-tool" title="{L_WSP_REFRESH_CACHE}">
                 <i class="icon fa-refresh fa-fw"></i>
@@ -125,6 +125,7 @@
                         <select id="wsp-collaboration-mode" data-current-mode="{{ ACTIVE_PROJECT_COLLAB_MODE }}">
                             <option value="private"{% if ACTIVE_PROJECT_COLLAB_MODE == 'private' %} selected{% endif %}>{L_WSP_COLLAB_MODE_PRIVATE}</option>
                             <option value="pm_request"{% if ACTIVE_PROJECT_COLLAB_MODE == 'pm_request' %} selected{% endif %}>{L_WSP_COLLAB_MODE_PM_REQUEST}</option>
+                            <option value="public"{% if ACTIVE_PROJECT_COLLAB_MODE == 'public' %} selected{% endif %}>{L_WSP_COLLAB_MODE_PUBLIC}</option>
                         </select>
                     </div>
                     {% endif %}
@@ -347,7 +348,7 @@
                     {% else %}
                     <span class="wsp-status-chip is-open"><i class="fa fa-unlock"></i> {L_WSP_STATUS_OPEN}</span>
                     {% endif %}
-                    <span class="wsp-status-chip is-collab-mode"><i class="fa fa-shield"></i> {% if ACTIVE_PROJECT_COLLAB_MODE == 'pm_request' %}{L_WSP_COLLAB_MODE_PM_REQUEST}{% else %}{L_WSP_COLLAB_MODE_PRIVATE}{% endif %}</span>
+                    <span class="wsp-status-chip is-collab-mode"><i class="fa fa-shield"></i> {% if ACTIVE_PROJECT_COLLAB_MODE == 'pm_request' %}{L_WSP_COLLAB_MODE_PM_REQUEST}{% elseif ACTIVE_PROJECT_COLLAB_MODE == 'public' %}{L_WSP_COLLAB_MODE_PUBLIC}{% else %}{L_WSP_COLLAB_MODE_PRIVATE}{% endif %}</span>
                     {% if ACTIVE_PROJECT_ID > 0 and ACTIVE_PROJECT_COLLAB_MODE == 'pm_request' and not ACTIVE_PROJECT_IS_MEMBER and not ACTIVE_PROJECT_CAN_MANAGE and not WSP_IS_GUEST %}
                     <button type="button" id="wsp-request-collaboration" class="wsp-request-collaboration" title="{L_WSP_REQUEST_COLLABORATION}"><i class="fa fa-paper-plane-o"></i> {L_WSP_REQUEST_COLLABORATION}</button>
                     {% endif %}
@@ -358,7 +359,7 @@
 
             <div id="editor"></div>
 
-            {# Painéis colaborativos ficam em doca inferior recolhível, com abas. #}
+            {# Collaboration panels use a collapsible bottom dock with tabs. #}
             <div class="wsp-collab-panels is-collapsed" id="wsp-collab-panels">
                 <div class="wsp-collab-dock-header">
                     <div class="wsp-collab-tabs" role="tablist" aria-label="{L_WSP_COLLAB_WORKSPACE}">
@@ -502,6 +503,8 @@
                                             {L_WSP_COLLAB_MODE_PM_REQUEST}
                                         {% elseif activity.OBJECT_PATH == 'private' %}
                                             {L_WSP_COLLAB_MODE_PRIVATE}
+                                        {% elseif activity.OBJECT_PATH == 'public' %}
+                                            {L_WSP_COLLAB_MODE_PUBLIC}
                                         {% else %}
                                             {{ activity.OBJECT_PATH }}
                                         {% endif %}
@@ -1293,7 +1296,7 @@
 <script>
 /**
  * ? SSOT GLOBAL:
- * O PHP (main controller) entrega tudo em WSP_VARS_JSON (um único objeto).
+ * The PHP main controller provides all data in WSP_VARS_JSON (a single object).
  * Aqui apenas expomos window.wspVars + var wspVars (compat).
  */
 (function () {
@@ -1345,10 +1348,10 @@
         unlockBtn.style.display = locked ? '' : 'none';
     }
 
-    // expõe para o módulo projects chamar após lock/unlock
+    // Expose for the projects module to call after lock/unlock
     window.WSP_toggleLockButtons = toggleLockButtons;
 
-    // ? controla o botão de download por permissão real (activeCanDownload)
+    // Control the download button using actual permission (activeCanDownload)
     function toggleDownloadButton() {
         var btn = document.getElementById('download-project');
         var exportBtn = document.getElementById('export-collab-project');
@@ -1642,7 +1645,7 @@
         <p class="wsp-gh-note">{L_WSP_GH_DESCRIPTION}</p>
         <div class="wsp-gh-fields">
             <label for="wsp-gh-repo">{L_WSP_GH_REPOSITORY}</label>
-            <input id="wsp-gh-repo" class="inputbox" type="text" maxlength="240" placeholder="usuario/repositorio" autocomplete="off">
+            <input id="wsp-gh-repo" class="inputbox" type="text" maxlength="240" placeholder="owner/repository" autocomplete="off">
             <label for="wsp-gh-ref">{L_WSP_GH_REF}</label>
             <input id="wsp-gh-ref" class="inputbox" type="text" maxlength="120" placeholder="main" autocomplete="off">
         </div>
