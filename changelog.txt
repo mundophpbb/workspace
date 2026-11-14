@@ -3,6 +3,12 @@
 phpBB Workspace - Changelog
 ===========================
 
+1.58.5 - 2026-11-13
+------------------
+- GitHub health cards: corrected contrast inside the dark dialog for phpBB themes
+- Responsive two-column health grid with single-column layout on narrow screens
+- Standardized card typography, links and status borders without changing GitHub behavior
+
 1.58.4 - 2026-11-13
 ------------------
 - Validation report fixes: SQL concatenation patterns adjusted for EPV compliance
