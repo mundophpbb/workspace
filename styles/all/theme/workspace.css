@@ -1,16 +1,16 @@
 /* ==========================================================
    MUNDO PHPBB WORKSPACE - FLATBOOTS DARK (Consolidado)
    - Dark + flat UI (estilo flatboots/flat-ui colors)
-   - Mantém IDs/classes usados pelo JS
+   - Preserves IDs/classes used by JS
    - FIX: modais iniciam ocultos e centralizam no fadeIn()
-   - FIX: options do <select> visíveis no dark
+   - FIX: visible <select> options in dark mode
    ========================================================== */
 
 /* ==========================================================
    DESIGN SYSTEM (DARK FLAT)
    ========================================================== */
 :root {
-	--wsp-bg-dark: #1f232a;          /* fundo geral/editor area */
+	--wsp-bg-dark: #1f232a;          /* general/editor background */
 	--wsp-sidebar-bg: #232830;      /* sidebar/toolbar */
 	--wsp-header-bg: #2c3e50;       /* topo (flat navbar) */
 	--wsp-border: rgba(255,255,255,.10);
@@ -76,7 +76,7 @@
 .header-left { display: flex; align-items: center; gap: 8px; }
 .path-divider { color: rgba(255,255,255,.35); margin: 0 6px; }
 
-/* Breadcrumb / arquivo atual */
+/* Breadcrumb / current file */
 #current-file {
 	color: var(--wsp-text-bright);
 	font-weight: 600;
@@ -89,7 +89,7 @@
 .breadcrumb-item { opacity: .90; padding: 0 2px; }
 .breadcrumb-sep { opacity: .5; margin: 0 4px; }
 
-/* Pasta ativa */
+/* Active folder */
 .wsp-active-folder-indicator {
 	cursor: pointer;
 	background: rgba(255,255,255,.10);
@@ -103,7 +103,7 @@
 .wsp-active-folder-indicator strong { color: #bfe1ff; margin-left: 4px; }
 .wsp-active-folder-indicator:hover strong { color: #fff; }
 
-/* Botões do header (cache/fullscreen) */
+/* Header buttons (cache/fullscreen) */
 .header-actions { display:flex; gap: 6px; }
 
 .btn-tool{
@@ -163,7 +163,7 @@ body.is-resizing {
 	user-select: none;
 }
 
-/* Oculta projetos inativos */
+/* Hide inactive projects */
 .project-group { display: none; border-bottom: 1px solid rgba(0,0,0,0.12); }
 .project-group.active-focus { display: block; }
 .workspace-container[data-active-project="0"] .project-group { display: block; }
@@ -224,7 +224,7 @@ body.is-resizing {
 /* Itens */
 .folder-item, .file-item { list-style: none; position: relative; }
 
-/* Linha padrão */
+/* Default row */
 .folder-title, .file-item {
 	display: flex;
 	align-items: center;
@@ -249,7 +249,7 @@ body.is-resizing {
 	border-color: rgba(255,255,255,.08);
 }
 
-/* Seleção */
+/* Selection */
 .active-folder {
 	border-left: 3px solid var(--wsp-accent);
 	background: rgba(var(--wsp-accent-rgb), 0.12) !important;
@@ -263,7 +263,7 @@ body.is-resizing {
 	font-weight: 700;
 }
 
-/* Nome com ellipsis */
+/* Ellipsized name */
 .file-item{
 	gap: 8px;
 }
@@ -282,7 +282,7 @@ body.is-resizing {
 	font-weight: 700;
 }
 
-/* Ações contexto (opacity, sem “display:none” pra não quebrar layout) */
+/* Context actions (opacity instead of display:none to preserve layout) */
 .folder-context-actions, .file-context-actions {
 	margin-left: auto;
 	display: flex;
@@ -321,7 +321,7 @@ body.is-resizing {
 	outline: none;
 }
 
-/* input técnico upload */
+/* Technical upload input */
 #wsp-upload-input { display: none !important; }
 
 /* ==========================================================
@@ -352,7 +352,7 @@ body.is-resizing {
 	cursor: default;
 }
 
-/* Botões flat (dark) */
+/* Flat buttons (dark) */
 .btn-icon, .btn-main, .btn-copy, .btn-copy-alt, .btn-save-icon, .btn-save {
 	background: rgba(255,255,255,.06);
 	border: 1px solid rgba(255,255,255,.10);
@@ -376,7 +376,7 @@ body.is-resizing {
 	transform: translateY(-1px);
 }
 
-/* Botão salvar só ícone (verde) */
+/* Icon-only save button (green) */
 .btn-save-icon {
 	background: rgba(46, 204, 113, .85);
 	border-color: rgba(46, 204, 113, .20);
@@ -384,7 +384,7 @@ body.is-resizing {
 }
 .btn-save-icon:hover { background: rgba(46, 204, 113, .95); }
 
-/* Botão do modal (azul) */
+/* Modal button (blue) */
 .btn-save {
 	background: rgba(var(--wsp-accent-rgb), .92) !important;
 	border-color: rgba(var(--wsp-accent-rgb), .25) !important;
@@ -432,7 +432,7 @@ body.is-resizing {
 /* ==========================================================
    MODAIS (Search/Diff) + FIX "abre sozinho" no Ctrl+F5
    ========================================================== */
-/* Base: começa escondido */
+/* Base: initially hidden */
 .wsp-modal-overlay {
 	position: fixed;
 	top: 0; left: 0; width: 100%; height: 100%;
@@ -444,7 +444,7 @@ body.is-resizing {
 	backdrop-filter: blur(2px);
 }
 
-/* Quando jQuery fadeIn() coloca display:block, forçamos flex */
+/* When jQuery fadeIn() sets display:block, enforce flex */
 .wsp-modal-overlay[style*="display: block"]{
 	display: flex !important;
 }
@@ -479,13 +479,13 @@ body.is-resizing {
 	box-shadow: 0 0 0 3px rgba(var(--wsp-accent-rgb), .18);
 }
 
-/* FIX: options visíveis no dark (dropdown não “some”) */
+/* FIX: visible options in dark mode (dropdown remains visible) */
 select.wsp-input-dark option {
 	background: #1f232a;
 	color: #ffffff;
 }
 
-/* Botões do modal */
+/* Modal buttons */
 .modal-buttons {
 	display: flex;
 	justify-content: flex-end;
@@ -705,7 +705,7 @@ select.wsp-input-dark option {
 	100% { opacity: 0.60; }
 }
 
-/* Toolbar: botões com texto (sem quebrar layout) */
+/* Toolbar: labeled buttons (preserve layout) */
 .btn-with-label{
   padding: 0 10px !important;
   gap: 8px !important;
@@ -717,7 +717,7 @@ select.wsp-input-dark option {
   opacity: .95;
 }
 
-/* Em telas menores: vira só ícone (tooltip continua) */
+/* On smaller screens: icon-only (tooltip remains) */
 @media (max-width: 1250px){
   .btn-with-label .btn-label{
 	display: none;
@@ -729,11 +729,11 @@ select.wsp-input-dark option {
 }
 
 /* ==========================================================
-   NOVO (v4.3+): Estado "Locked" (UI) + Badge
-   - NÃO usa pointer-events:none para permitir o notify do JS
+   NEW (v4.3+): Locked state (UI) and badge
+   - Do NOT use pointer-events:none; JS notification handling requires pointer events
    ========================================================== */
 
-/* Ícones desabilitados por lock (classe aplicada via JS) */
+/* Icons disabled by lock (class applied via JS) */
 .folder-context-actions i.wsp-disabled,
 .file-context-actions i.wsp-disabled {
 	opacity: .28 !important;
@@ -752,7 +752,7 @@ select.wsp-input-dark option {
 	transform: none !important;
 }
 
-/* Badge "Trancado" ao lado do nome do projeto (opcional) */
+/* Optional "Locked" badge next to the project name */
 .wsp-lock-badge {
 	display: inline-flex;
 	align-items: center;
@@ -790,13 +790,13 @@ select.wsp-input-dark option {
 	opacity: .9;
 }
 
-/* Toolbar: botões com label viram ícone-only */
+/* Toolbar: labeled buttons become icon-only */
 .editor-toolbar-rich .btn-with-label .btn-label,
 .editor-toolbar-rich .btn-save-icon .btn-label {
 	display: none !important;
 }
 
-/* Se algum botão tiver texto direto, força fonte zero (mantém ícone visível) */
+/* For buttons with direct text, set font size to zero (keep icon visible) */
 .editor-toolbar-rich .btn-with-label {
 	font-size: 0;
 }
@@ -814,31 +814,31 @@ select.wsp-input-dark option {
 
 /* ==========================================================
    Workspace - Disabled projects / switcher items
-   (lock/sem permissão para abrir/download)
+   (locked / no permission to open or download)
    ========================================================== */
 
-/* Sidebar: projeto sem permissão de abrir */
+/* Sidebar: project without open permission */
 .project-group.is-disabled {
   opacity: 0.55;
   filter: grayscale(35%);
 }
 
-/* Título do projeto: feedback visual */
+/* Project title: visual feedback */
 .project-group.is-disabled .project-title-simple {
   cursor: not-allowed;
 }
 
-/* Ícone mais fraco no projeto desabilitado */
+/* Dimmed icon for disabled project */
 .project-group.is-disabled .project-title-simple .icon {
   opacity: 0.75;
 }
 
-/* Badge de lock continua visível, mas sem “gritar” */
+/* Lock badge stays visible but unobtrusive */
 .project-group.is-disabled .wsp-lock-badge {
   opacity: 0.9;
 }
 
-/* (Opcional) Se você quiser impedir ações na árvore quando projeto não abre */
+/* (Optional) Prevent file tree actions when the project cannot be opened */
 .project-group.is-disabled .file-list {
   pointer-events: none;
 }
@@ -862,7 +862,7 @@ select.wsp-input-dark option {
   background: rgba(255, 255, 255, 0.04);
 }
 
-/* Item desabilitado (sem permissão ou lock -> CAN_OPEN=0) */
+/* Disabled item (no permission or locked -> CAN_OPEN=0) */
 .project-switcher-box .switcher-item.disabled {
   opacity: 0.55;
   filter: grayscale(40%);
@@ -877,7 +877,7 @@ select.wsp-input-dark option {
   transform: none;
 }
 
-/* Se você quiser BLOQUEAR clique total via CSS (recomendado),
+/* To BLOCK all clicks through CSS (recommended),
    deixe ligado. Se preferir que o JS mostre aviso ao clicar,
    comente esta linha. */
 .project-switcher-box .switcher-item.disabled {
@@ -890,7 +890,7 @@ select.wsp-input-dark option {
 }
 /* ==========================================================
    COLLABORATIVE WORKSPACE LAYER
-   - Expõe função, equipe e estado do projeto sem alterar fluxo JS
+   - Shows role, team and project status without changing JS flow
    ========================================================== */
 .project-title-simple {
 	display: flex;
@@ -1169,7 +1169,7 @@ select.wsp-input-dark option {
 }
 
 /* ==========================================================
-   Revisao colaborativa por arquivo
+   Per-file collaborative review
    ========================================================== */
 .wsp-review-panel {
 	margin: 10px 12px 8px;
@@ -1606,9 +1606,9 @@ select.wsp-input-dark option {
 	font-style: normal;
 }
 /* ==========================================================
-   FIX v12.1: editor sempre acessível
-   Os painéis colaborativos ficam em uma doca inferior rolável,
-   impedindo que equipe/tarefas/atividade/revisão escondam o Ace.
+   FIX v12.1: editor always accessible
+   Collaboration panels remain in a scrollable bottom dock,
+   preventing team/tasks/activity/review panes from hiding Ace.
    ========================================================== */
 .wsp-collab-panels {
 	flex: 0 0 auto;
@@ -1837,8 +1837,8 @@ select.wsp-input-dark option {
 
 /* ==========================================================
    v12.3 - Collaboration drawer fix
-   O painel de colaboracao agora flutua dentro da area do Workspace.
-   Ele nao empurra o rodape do phpBB nem depende da altura natural da pagina.
+   The collaboration panel now floats within the Workspace area.
+   It does not push the phpBB footer or depend on the natural page height.
    ========================================================== */
 .workspace-editor-area {
 	position: relative;
@@ -2067,7 +2067,7 @@ button.is-disabled,
 	cursor: not-allowed !important;
 }
 
-/* Inputs, textareas e selects com contraste consistente */
+/* Consistent contrast for inputs, textareas and selects */
 .workspace-container input,
 .workspace-container textarea,
 .workspace-container select,
@@ -2141,7 +2141,7 @@ button.is-disabled,
 	border-color: #5dade2 !important;
 }
 
-/* Drawer colaborativo com separacao clara do editor */
+/* Collaboration drawer clearly separated from editor */
 .wsp-collab-panels {
 	background: #111820 !important;
 	border: 1px solid rgba(103,193,255,.38) !important;
@@ -2272,7 +2272,7 @@ button.is-disabled,
 	pointer-events: none;
 }
 
-/* Evita que tooltips de botoes do canto direito saiam da tela */
+/* Keep right-hand tooltips inside the viewport */
 .align-right [data-tooltip]:hover::after,
 .header-actions [data-tooltip]:hover::after,
 .align-right [data-tooltip]:focus-visible::after,
@@ -2519,9 +2519,9 @@ button.is-disabled,
 }
 
 /* ==========================================================
-   v12.6 - Toolbar global acima do explorador
-   A toolbar passa a ocupar a largura total do Workspace. O explorador,
-   a busca e a arvore ficam abaixo dela, alinhados com o editor.
+   v12.6 - Global toolbar above the file explorer
+   The toolbar now spans the full Workspace width. The explorer,
+   search and tree remain below it, aligned with the editor.
    ========================================================== */
 .workspace-header,
 .workspace-container > .editor-toolbar-rich {
@@ -2544,14 +2544,14 @@ button.is-disabled,
 	min-height: 0;
 }
 
-/* Como a toolbar agora esta fora da coluna do editor, o painel principal
-   comeca direto pelo status colaborativo e pelo editor. */
+/* With the toolbar outside the editor column, the main panel
+   starts with collaboration status and the editor. */
 .workspace-editor-area > .wsp-collab-strip {
 	flex: 0 0 auto;
 }
 
-/* Em telas menores a toolbar continua usando rolagem horizontal, mas agora
-   com toda a largura disponivel do Workspace. */
+/* On smaller screens the toolbar still scrolls horizontally, but now
+   across the full available Workspace width. */
 @media (max-width: 900px) {
 	.workspace-container > .editor-toolbar-rich {
 		padding-left: 8px !important;
@@ -2561,8 +2561,8 @@ button.is-disabled,
 
 /* ==========================================================
    v12.7 - Toolbar anti-overflow
-   A toolbar global nao deve depender de rolagem horizontal nem deixar
-   acoes como Exportar/Foco para fora da area visivel.
+   The global toolbar must not rely on horizontal scrolling or move
+   actions such as Export/Focus outside the visible area.
    ========================================================== */
 .workspace-container,
 .workspace-container *,
