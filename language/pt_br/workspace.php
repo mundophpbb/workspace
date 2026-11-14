@@ -1989,12 +1989,11 @@ $lang = array_merge($lang, [
     'WSP_TAB_COMPAT' => 'Compatibilidade e Composer',
     'WSP_TAB_FINDINGS' => 'Resultados',
     'WSP_TAB_CI' => 'Workflow CI',
+    'WSP_UI_PROJECTS'           => 'Projetos',
+    'WSP_UI_STATISTICS'         => 'Estatísticas',
+    'WSP_UI_MIGRATION'          => 'Migração',
+    'WSP_UI_CONFIGURATION'      => 'Configuração',
+    'WSP_UI_RELEASE_PROCESS'    => 'Processo de Release',
+    'WSP_UI_RESULTS'            => 'Resultados',
+    
 ]);
-
-// Workspace 1.52.0: modal navigation labels.
-$lang['WSP_UI_PROJECTS'] = 'Projetos';
-$lang['WSP_UI_STATISTICS'] = 'Estatísticas';
-$lang['WSP_UI_MIGRATION'] = 'Migração';
-$lang['WSP_UI_CONFIGURATION'] = 'Configuração';
-$lang['WSP_UI_RELEASE_PROCESS'] = 'Processo de lançamento';
-$lang['WSP_UI_RESULTS'] = 'Resultados';
