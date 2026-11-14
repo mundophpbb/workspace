@@ -1,0 +1,15 @@
+[13/11/2026 22:51] Importação de ZIP: 605 arquivo(s) novo(s), 1 atualizado(s)
+----------------------------------------
+phpBB Workspace - Changelog
+===========================
+
+1.58.4 - 2026-11-13
+------------------
+- Validation report fixes: SQL concatenation patterns adjusted for EPV compliance
+- Comments normalized to English
+- Various stability and pre-publication improvements
+
+1.58.3
+------
+- Previous release notes available in docs/
+
