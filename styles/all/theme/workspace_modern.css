@@ -203,3 +203,77 @@
 	gap: 8px !important;
   }
 }
+
+/* Workspace 1.58.5: GitHub health panel - scoped, high-contrast surfaces.
+   The dialog uses a dark palette regardless of the surrounding phpBB style.
+   Do not change the API, card states, links, or GitHub event hooks. */
+#wsp-gh-modal .wsp-gh-health-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0 4px;
+  align-items: stretch;
+}
+#wsp-gh-modal .wsp-gh-health-card {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 125px;
+  padding: 15px 16px;
+  border: 1px solid rgba(174, 201, 224, .24);
+  border-radius: 10px;
+  background: #243548;
+  color: #edf4fb;
+  overflow-wrap: anywhere;
+  box-shadow: none;
+}
+#wsp-gh-modal .wsp-gh-health-card strong {
+  display: block;
+  margin: 0 0 9px;
+  color: #f5f9fd;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+#wsp-gh-modal .wsp-gh-health-value {
+  margin: 0 0 6px;
+  color: #edf4fb;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+#wsp-gh-modal .wsp-gh-health-detail {
+  color: #c0d0df;
+  opacity: 1;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+#wsp-gh-modal .wsp-gh-health-card a {
+  display: inline-block;
+  margin-top: 10px;
+  color: #8dd1ff;
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+#wsp-gh-modal .wsp-gh-health-card a:hover { color: #c0e7ff; text-decoration: underline; }
+#wsp-gh-modal .wsp-gh-health-card a:focus-visible {
+  outline: 2px solid #8dd1ff;
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+#wsp-gh-modal .wsp-gh-health-card[data-state="success"] { border-left: 4px solid #56d38a; }
+#wsp-gh-modal .wsp-gh-health-card[data-state="failure"],
+#wsp-gh-modal .wsp-gh-health-card[data-state="timed_out"],
+#wsp-gh-modal .wsp-gh-health-card[data-state="startup_failure"] { border-left: 4px solid #ff827c; }
+#wsp-gh-modal .wsp-gh-health-card[data-state="warning"],
+#wsp-gh-modal .wsp-gh-health-card[data-state="in_progress"],
+#wsp-gh-modal .wsp-gh-health-card[data-state="queued"],
+#wsp-gh-modal .wsp-gh-health-card[data-state="pending"],
+#wsp-gh-modal .wsp-gh-health-card[data-state="waiting"],
+#wsp-gh-modal .wsp-gh-health-card[data-state="action_required"] { border-left: 4px solid #e9ba63; }
+#wsp-gh-modal .wsp-gh-health-card[data-state="info"] { border-left: 4px solid #73baf2; }
+@media (max-width: 620px) {
+  #wsp-gh-modal .wsp-gh-health-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  #wsp-gh-modal .wsp-gh-health-card { min-height: 0; padding: 13px 14px; }
+}
