@@ -53,17 +53,17 @@ final class template_preview
 		if (!preg_match('/^[A-Za-z_][A-Za-z0-9_.]*$/', $expr))
 		{
 			$this->warn('twig_expressions');
-			return '[expressão]';
+			return '[expression]';
 		}
 		if (array_key_exists($expr, $scope)) return (string) $scope[$expr];
 		$base = strtoupper($expr);
 		$samples = [
-			'SITENAME' => 'Fórum de exemplo', 'SITE_NAME' => 'Fórum de exemplo',
-			'USERNAME' => 'Usuário de exemplo', 'USER_NAME' => 'Usuário de exemplo',
-			'L_FORUM' => 'Fórum', 'L_LOGIN' => 'Entrar', 'L_LOGOUT' => 'Sair',
-			'L_SUBMIT' => 'Enviar', 'L_SAVE' => 'Salvar', 'L_CANCEL' => 'Cancelar',
-			'L_SEARCH' => 'Pesquisar', 'L_OPTIONS' => 'Opções', 'L_USERNAME' => 'Usuário',
-			'L_PASSWORD' => 'Senha', 'L_TITLE' => 'Título', 'L_MESSAGE' => 'Mensagem',
+			'SITENAME' => 'Example forum', 'SITE_NAME' => 'Example forum',
+			'USERNAME' => 'Example user', 'USER_NAME' => 'Example user',
+			'L_FORUM' => 'Forum', 'L_LOGIN' => 'Log in', 'L_LOGOUT' => 'Log out',
+			'L_SUBMIT' => 'Submit', 'L_SAVE' => 'Save', 'L_CANCEL' => 'Cancel',
+			'L_SEARCH' => 'Search', 'L_OPTIONS' => 'Options', 'L_USERNAME' => 'Username',
+			'L_PASSWORD' => 'Password', 'L_TITLE' => 'Title', 'L_MESSAGE' => 'Message',
 			'U_INDEX' => '#', 'U_PROFILE' => '#', 'U_LOGIN_LOGOUT' => '#',
 			'S_USER_LOGGED_IN' => $this->profile === 'member' ? '1' : '',
 		];
@@ -77,7 +77,7 @@ final class template_preview
 		if (preg_match('/(?:DATE|TIME)$/', $field)) return '12/11/2026';
 		if (preg_match('/(?:COUNT|TOTAL|NUMBER)$/', $field)) return '2';
 		$this->warn('sample_data');
-		return ucwords(strtolower(str_replace('_', ' ', $field))) . ' de exemplo';
+		return ucwords(strtolower(str_replace('_', ' ', $field))) . ' example';
 	}
 
 	private function testCondition($condition, array $scope)
@@ -221,7 +221,7 @@ final class template_preview
 		$this->profile = ($profile === 'visitor') ? 'visitor' : 'member';
 		$this->warnings = []; $this->replacements = 0; $this->emittedBytes = 0;
 		$markup = preg_replace('/\{#.*?#\}/s', '', $markup);
-		$markup = preg_replace('/<\?php\b.*?\?>/is', '<div class="wsp-preview-placeholder">PHP não executado</div>', $markup);
+		$markup = preg_replace('/<\?php\b.*?\?>/is', '<div class="wsp-preview-placeholder">PHP not executed</div>', $markup);
 		$markup = preg_replace_callback('/<!--\s*(IF|ELSEIF|ELSE|ENDIF|END IF|BEGIN|END|INCLUDE|INCLUDECSS|INCLUDEJS|EVENT)\b(.*?)-->/is', function ($m) {
 			$tag = strtoupper($m[1]); $arg = trim($m[2]);
 			if ($tag === 'END IF') return '{% endif %}';

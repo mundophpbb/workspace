@@ -66,26 +66,28 @@ namespace {
 	if (in_array('--json', $argv, true)) {
 		echo json_encode($output, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
 	} else {
-		echo "# Workspace 1.57.0 — Mapa consolidado das migrations\n\n";
-		echo "**Inventário:** " . count($entries) . " migrations (v100–v122), " . count($tables) . " tabelas declaradas.\n\n";
-		echo "**Compatibilidade:** este documento NÃO substitui as migrations existentes. Instalações já atualizadas usam os registros do phpBB; não remova ou renomeie classes históricas.\n\n";
-		echo "**Limitação:** representa definições de `update_schema()`. A v104 possui reparação condicional de dados legados, e outras migrations têm ações `update_data()` que não são executadas por este inventário.\n\n";
-		echo "## Cadeia histórica\n\n| Versão | Operações declaradas | Etapas de dados |\n|---|---|---:|\n";
+		$latestVersion = count($entries) ? $entries[count($entries) - 1]['version'] : 'none';
+		$nextVersion = count($entries) ? 'v' . ((int) substr($latestVersion, 1) + 1) : 'v100';
+		echo "# Workspace migration inventory\n\n";
+		echo "**Inventory:** " . count($entries) . " migrations (v100–" . $latestVersion . "), " . count($tables) . " declared tables.\n\n";
+		echo "**Compatibility:** This document does NOT replace existing migrations. Installed boards rely on phpBB migration history; do not remove or rename historical classes.\n\n";
+		echo "**Limitation:** This inventory reflects `update_schema()` declarations. v104 includes a conditional legacy data repair, and other migrations include `update_data()` actions not executed here.\n\n";
+		echo "## Migration history\n\n| Version | Declared operations | Data steps |\n|---|---|---:|\n";
 		foreach ($entries as $e) echo '| ' . $e['version'] . ' | ' . (implode(', ', $e['schema_ops']) ?: '—') . ' | ' . $e['data_steps'] . " |\n";
-		echo "\n## Estrutura consolidada (referência, sem SQL de instalação)\n\n";
+		echo "\n## Consolidated schema (reference only; not installation SQL)\n\n";
 		foreach ($tables as $name => $definition) {
 			echo '### `' . $name . "`\n\n";
-			echo '**Chave primária:** `' . ($definition['PRIMARY_KEY'] ?? 'não definida') . "`\n\n";
-			echo '| Coluna | Tipo declarado |\n|---|---|\n';
+			echo '**Primary key:** `' . ($definition['PRIMARY_KEY'] ?? 'undefined') . "`\n\n";
+			echo '| Column | Declared type |' . "\n|---|---|\n";
 			foreach (($definition['COLUMNS'] ?? []) as $column => $type) {
 				echo '| `' . $column . '` | `' . (is_array($type) ? $type[0] : $type) . "` |\n";
 			}
 			echo "\n";
 		}
-		echo "## Regras para o próximo ciclo\n\n";
-		echo "1. Preserve `v100`–`v121` e todos os dados registrados no phpBB.\n";
-		echo "2. Para uma nova alteração, acrescente `v122` com dependência de `v121`.\n";
-		echo "3. Uma instalação limpa otimizada exigiria migração baseline e testes reais de upgrade/desinstalação em múltiplos bancos; **não** está habilitada nesta versão.\n";
-		echo "4. Rode `php tools/migration_inventory.php --markdown` para revalidar a cadeia e gerar este documento.\n";
+		echo "## Rules for the next migration\n\n";
+		echo "1. Preserve `v100`–`" . $latestVersion . "` and all migration history recorded by phpBB.\n";
+		echo "2. For a new migration, add `" . $nextVersion . "` depending on `" . $latestVersion . "`. Update the expected version range in this inventory.\n";
+		echo "3. Optimizing fresh installs would require a baseline migration and real upgrade/uninstall tests across multiple databases; this is **not** enabled in this release.\n";
+		echo "4. Run `php tools/migration_inventory.php --markdown` to recheck the chain and generate this document.\n";
 	}
 }

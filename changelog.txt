@@ -1,7 +1,14 @@
-[13/11/2026 22:51] Importação de ZIP: 605 arquivo(s) novo(s), 1 atualizado(s)
+[14/11/2026] Internationalization maintenance: English technical messages/comments and migration inventory; localized Radar export labels. No behavior or schema changes.
+[13/11/2026 22:51] ZIP import: 605 new file(s), 1 updated file(s)
 ----------------------------------------
 phpBB Workspace - Changelog
 ===========================
+
+1.58.6 - 2026-11-14
+------------------
+- Added per-project Public (read-only) collaboration mode for authorized guests and registered users.
+- Preserved Private and Requests by PM modes, membership requirements and write/download ACL checks.
+- Added English and Brazilian Portuguese labels; no database migration required.
 
 1.58.5 - 2026-11-13
 ------------------

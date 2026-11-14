@@ -101,7 +101,7 @@ final class radar_analyzer
 			{
 				$line = max(1, (int) $e->getLine());
 				$this->add('PHP_SYNTAX', 'error', $path, $line,
-					'Possível erro de sintaxe PHP: ' . $this->short($e->getMessage(), 170),
+					'Possible PHP syntax error: ' . $this->short($e->getMessage(), 170),
 					'Review the indicated section. Analysis uses the PHP version installed on the server.');
 			}
 		}
@@ -161,7 +161,7 @@ final class radar_analyzer
 						if (stripos($ref, $prefix) !== 0 || isset($ids[$ref])) continue;
 						$this->add('SERVICE_DEP_MISSING', 'warning', 'config/services.yml', $index + 1,
 							'Local service dependency not registered: ' . $this->short($ref, 110),
-							'Confira o ID do serviço e seu registro em config/services.yml.');
+							'Check the service ID and its registration in config/services.yml.');
 					}
 				}
 			}
@@ -183,7 +183,7 @@ final class radar_analyzer
 				$line = 1 + substr_count(substr($content, 0, $offset + $method[1]), "\n");
 				$this->add('EVENT_CALLBACK_MISSING', 'warning', $path, $line,
 					'Event callback method not found: ' . $name,
-					'Implemente o método no listener ou corrija getSubscribedEvents().');
+					'Implement the method in the listener or correct getSubscribedEvents().');
 			}
 		}
 
@@ -209,7 +209,7 @@ final class radar_analyzer
 							{
 								$this->add('ACL_UNREGISTERED', 'warning', $path, $index + 1,
 									'Possible unregistered permission: ' . $permission,
-									'Confira config/permissions.yml e a migração de permissões.');
+									'Check config/permissions.yml and the permission migration.');
 							}
 						}
 					}

@@ -1321,7 +1321,7 @@ class project_repository
 	public function sanitize_collaboration_mode($mode)
 	{
 		$mode = (string) $mode;
-		$allowed = ['private', 'pm_request'];
+		$allowed = ['private', 'pm_request', 'public'];
 		return in_array($mode, $allowed, true) ? $mode : 'private';
 	}
 

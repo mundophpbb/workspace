@@ -191,7 +191,7 @@ class permission_service
 			? (string) $this->project_repo->get_collaboration_mode($project_id)
 			: 'private';
 
-		return ($mode === 'pm_request' && $this->acl('u_workspace_view'));
+		return (in_array($mode, ['pm_request', 'public'], true) && $this->acl('u_workspace_view'));
 	}
 
 	/**
