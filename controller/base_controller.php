@@ -551,7 +551,7 @@ abstract class base_controller
 				$mode = (string) $this->project_repo->get_collaboration_mode($project_id);
 			}
 
-			return ($mode === 'pm_request' && (bool) $this->auth->acl_get('u_workspace_view'))
+			return (in_array($mode, ['pm_request', 'public'], true) && (bool) $this->auth->acl_get('u_workspace_view'))
 				? ['ok' => true, 'error' => '']
 				: ['ok' => false, 'error' => $this->user->lang('WSP_ERR_PERMISSION')];
 		}

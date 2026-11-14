@@ -890,7 +890,7 @@ class project_controller extends base_controller
 
 		$mode = (isset($this->project_repo) && method_exists($this->project_repo, 'sanitize_collaboration_mode'))
 			? $this->project_repo->sanitize_collaboration_mode($mode)
-			: (in_array($mode, ['private', 'pm_request'], true) ? $mode : 'private');
+			: (in_array($mode, ['private', 'pm_request', 'public'], true) ? $mode : 'private');
 
 		if (!isset($this->project_repo) || !method_exists($this->project_repo, 'set_collaboration_mode'))
 		{
@@ -907,7 +907,7 @@ class project_controller extends base_controller
 			$this->project_repo->log_activity($project_id, (int) $this->user->data['user_id'], 'collaboration_mode_changed', 'project', $mode);
 		}
 
-		$this->append_changelog_entry($project_id, $this->user->lang('WSP_LOG_COLLAB_MODE_CHANGED', $this->user->lang($mode === 'pm_request' ? 'WSP_COLLAB_MODE_PM_REQUEST' : 'WSP_COLLAB_MODE_PRIVATE')));
+		$this->append_changelog_entry($project_id, $this->user->lang('WSP_LOG_COLLAB_MODE_CHANGED', $this->user->lang($mode === 'pm_request' ? 'WSP_COLLAB_MODE_PM_REQUEST' : ($mode === 'public' ? 'WSP_COLLAB_MODE_PUBLIC' : 'WSP_COLLAB_MODE_PRIVATE'))));
 
 		return $this->json_success(['mode' => $mode]);
 	}

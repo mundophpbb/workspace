@@ -189,7 +189,7 @@ class refactor_controller extends base_controller
 			{
 				$capture = $this->checkpoints->capture($pid);
 				$checkpointId = $this->checkpoints->insertCheckpoint($pid, $uid,
-					'Antes da refatoração global', 'pre_refactor', $capture);
+					'Before global refactoring', 'pre_refactor', $capture);
 			}
 			catch (\RuntimeException $e)
 			{
@@ -199,7 +199,7 @@ class refactor_controller extends base_controller
 			{
 				$id = $item['id'];
 				if (!$this->project_repo->create_file_version($pid, $id, $uid,
-					$item['path'], $item['old'], 'save', 'Antes da refatoração global'))
+					$item['path'], $item['old'], 'save', 'Before global refactoring'))
 					throw new \RuntimeException('WSP_RF_FAILED');
 				if (!$this->project_repo->update_file_content($id, $item['new'], null, $item['rev']))
 					throw new \RuntimeException('WSP_RF_CONFLICT');

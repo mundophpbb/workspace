@@ -1,15 +1,15 @@
 # ==========================================================
-# MUNDO PHPBB WORKSPACE - CONFIGURAÇÃO DE ROTAS (ROUTING)
+# MUNDO PHPBB WORKSPACE - ROUTING CONFIGURATION
 # ==========================================================
 
-# Página Principal
+# Main page
 mundophpbb_workspace_main:
     path: /workspace
     defaults: { _controller: mundophpbb.workspace.controller.main:handle }
     methods: [GET]
 
 # ----------------------------------------------------------
-# GESTÃO DE ARQUIVOS (FILE CONTROLLER)
+# FILE MANAGEMENT (FILE CONTROLLER)
 # ----------------------------------------------------------
 mundophpbb_workspace_load:
     path: /workspace/load
@@ -52,7 +52,7 @@ mundophpbb_workspace_delete_file:
     methods: [POST]
 
 # ----------------------------------------------------------
-# GESTÃO DE PROJETOS (PROJECT CONTROLLER)
+# PROJECT MANAGEMENT (PROJECT CONTROLLER)
 # ----------------------------------------------------------
 mundophpbb_workspace_add_project:
     path: /workspace/add_project
@@ -86,7 +86,7 @@ mundophpbb_workspace_download:
         project_id: '\d+'
     methods: [GET]
 
-# Pacote final no layout exigido pelo phpBB Extension Database: vendor/extension/...
+# Final package in the directory layout required by the phpBB Extension Database: vendor/extension/...
 mundophpbb_workspace_download_submission:
     path: /workspace/submission/{project_id}
     defaults: { _controller: mundophpbb.workspace.controller.project:download_submission_package }
@@ -94,7 +94,7 @@ mundophpbb_workspace_download_submission:
         project_id: '\d+'
     methods: [GET]
 
-# Exportacao colaborativa com relatorios de revisao/equipe/atividade
+# Collaborative export with review/team/activity reports
 mundophpbb_workspace_export_collab:
     path: /workspace/export_collab/{project_id}
     defaults: { _controller: mundophpbb.workspace.controller.project:export_collaborative_package }
@@ -147,7 +147,7 @@ mundophpbb_workspace_refresh_cache:
     methods: [POST]
 
 
-# Radar estático: somente editores autenticados (POST + form token)
+# Static radar: authenticated editors only (POST + form token)
 mundophpbb_workspace_radar:
     path: /workspace/radar
     defaults: { _controller: mundophpbb.workspace.controller.radar:scan }
@@ -255,13 +255,13 @@ mundophpbb_workspace_validate_release:
     defaults: { _controller: mundophpbb.workspace.controller.tool:validate_release }
     methods: [POST]
 
-# Confere se os arquivos nao mudaram desde a validacao antes de preparar o ZIP
+# Check that files have not changed since validation before preparing the ZIP
 mundophpbb_workspace_verify_release_snapshot:
     path: /workspace/release/verify
     defaults: { _controller: mundophpbb.workspace.controller.tool:verify_release_snapshot }
     methods: [POST]
 
-# Aplica apenas correcoes automaticas consideradas seguras pelo validador
+# Apply only automatic fixes considered safe by the validator
 mundophpbb_workspace_apply_validation_fixes:
     path: /workspace/validation_fix
     defaults: { _controller: mundophpbb.workspace.controller.tool:apply_validation_fixes }
@@ -275,8 +275,8 @@ mundophpbb_workspace_epv_status:
 
 
 # ----------------------------------------------------------
-# LOCK DO PROJETO (trancar/destrancar)
-# Ativado agora (requer métodos no Project Controller).
+# PROJECT LOCK (lock/unlock)
+# Enabled (requires methods in Project Controller).
 # ----------------------------------------------------------
 mundophpbb_workspace_lock_project:
     path: /workspace/lock_project
@@ -315,7 +315,7 @@ mundophpbb_workspace_activity:
     defaults: { _controller: mundophpbb.workspace.controller.project:list_activity }
     methods: [POST]
 
-# Modo de colaboração e solicitação por MP
+# Collaboration mode and private-message requests
 mundophpbb_workspace_collaboration_mode:
     path: /workspace/collaboration_mode
     defaults: { _controller: mundophpbb.workspace.controller.project:set_collaboration_mode }
@@ -326,14 +326,14 @@ mundophpbb_workspace_request_collaboration:
     defaults: { _controller: mundophpbb.workspace.controller.project:request_collaboration }
     methods: [POST]
 
-# Configuração do grupo global de acesso ao Workspace
+# Workspace global access group configuration
 mundophpbb_workspace_access_group_config:
     path: /workspace/access_group_config
     defaults: { _controller: mundophpbb.workspace.controller.project:configure_access_group }
     methods: [POST]
 
 # ----------------------------------------------------------
-# REVISAO POR ARQUIVO (COMENTARIOS)
+# PER-FILE REVIEW (COMMENTS)
 # ----------------------------------------------------------
 mundophpbb_workspace_comments:
     path: /workspace/comments
@@ -356,7 +356,7 @@ mundophpbb_workspace_delete_comment:
     methods: [POST]
 
 # ----------------------------------------------------------
-# FLUXO DE REVISAO/APROVACAO POR ARQUIVO
+# PER-FILE REVIEW/APPROVAL WORKFLOW
 # ----------------------------------------------------------
 mundophpbb_workspace_file_review:
     path: /workspace/file_review
@@ -376,7 +376,7 @@ mundophpbb_workspace_set_file_review:
 
 
 # ----------------------------------------------------------
-# HISTORICO DE VERSOES POR ARQUIVO
+# PER-FILE VERSION HISTORY
 # ----------------------------------------------------------
 mundophpbb_workspace_file_versions:
     path: /workspace/file_versions

@@ -167,7 +167,7 @@ class release_notes_controller extends base_controller
 			{
 				if (!$this->project_repo->create_file_version($projectId, (int) $target['file_id'],
 					(int) $this->user->data['user_id'], $targetPath, (string) $target['file_content'],
-					'save', 'Antes das notas de versão ' . $args['version']))
+					'save', 'Before release notes ' . $args['version']))
 					throw new \RuntimeException('WSP_RN_FAILED');
 				if (!$this->project_repo->update_file_content((int) $target['file_id'], $result, 'md', (int) $target['file_rev']))
 					throw new \RuntimeException('WSP_RN_CONFLICT');

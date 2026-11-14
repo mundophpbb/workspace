@@ -795,6 +795,9 @@ $lang = array_merge($lang, array(
 	'WSP_RADAR_SAVE_FIRST' => 'Existem alterações não salvas. Salve o arquivo aberto para atualizar o Radar.',
 	'WSP_RADAR_NAV_UNSAVED' => 'Salve ou descarte as alterações antes de abrir outro arquivo.',
 	'WSP_RADAR_FILE_NOT_FOUND' => 'O arquivo indicado não está disponível na árvore do projeto atual.',
+	'WSP_RADAR_EXPORT_EMPTY' => 'Nenhum relatório para exportar.',
+	'WSP_RADAR_EXPORT_TITLE' => 'Radar de problemas do Workspace',
+	'WSP_RADAR_EXPORT_RULE' => 'Regra',
 	'WSP_RADAR_DISCLAIMER' => 'Diagnóstico heurístico. Não substitui o EPV oficial nem certifica o lançamento.',
 
 	// Guided release assistant (Workspace 1.11.0)
@@ -1323,6 +1326,7 @@ $lang = array_merge($lang, [
 
 $lang = array_merge($lang, [
 	'WSP_COLLAB_MODE' => 'Modo de colaboração',
+	'WSP_COLLAB_MODE_PUBLIC' => 'Público (somente leitura)',
 	'WSP_COLLAB_MODE_PRIVATE' => 'Privado',
 	'WSP_COLLAB_MODE_PM_REQUEST' => 'Pedidos por MP',
 	'WSP_COLLAB_MODE_UPDATED' => 'Modo de colaboração atualizado.',

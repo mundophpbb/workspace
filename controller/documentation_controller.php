@@ -138,7 +138,7 @@ class documentation_controller extends base_controller
 					throw new \RuntimeException('WSP_DOC_LOCKED');
 				if (!$this->project_repo->create_file_version($args['id'], (int) $existing['file_id'],
 					(int) $this->user->data['user_id'], $path, (string) $existing['file_content'],
-					'save', 'Antes da Documentação Automática'))
+					'save', 'Before automatic documentation'))
 					throw new \RuntimeException('WSP_DOC_FAILED');
 				if (!$this->project_repo->update_file_content((int) $existing['file_id'],
 					$draft, 'md', (int) $existing['file_rev']))

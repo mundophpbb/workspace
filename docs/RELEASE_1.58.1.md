@@ -1,24 +1,24 @@
-# Workspace IDE 1.58.1 — Atualização visual
+# Workspace IDE 1.58.1 — Visual update
 
-Atualização focada na aparência do editor, dos formulários e dos modais, baseada na versão 1.58.0.
+This update modernizes the editor, forms and modal dialogs based on 1.58.0.
 
-## Alterações
+## Changes
 
-- Nova camada CSS `workspace_modern.css`, carregada depois dos estilos existentes para padronizar os campos sem reescrever componentes antigos.
-- Inputs, selects e áreas de texto com cantos arredondados, melhor espaçamento, contraste e estado de foco visível.
-- Modais, abas, menu e cartões com superfícies, bordas e espaçamentos harmonizados, incluindo telas menores.
-- Remoção da apresentação de tooltips flutuantes e `title` na interface do Workspace, mantendo rótulos ARIA para controles interativos.
-- Campos internos do Ace Editor excluídos das regras de formulários para não interferir na edição de código.
-- Suporte a `prefers-reduced-motion`.
+- Added `workspace_modern.css` after existing styles to standardize controls without rewriting legacy components.
+- Improved inputs, selects and textareas with rounded corners, spacing, contrast and visible focus.
+- Harmonized modal, tab, menu and card surfaces, borders and spacing on desktop and narrow screens.
+- Removed redundant floating tooltips and `title` display in Workspace controls while retaining ARIA labels.
+- Excluded internal Ace Editor fields from form styling to avoid disrupting code editing.
+- Added support for `prefers-reduced-motion`.
 
-## Compatibilidade
+## Compatibility
 
-- Não há migrations novas ou alterações nos endpoints, permissões, dados e ações.
-- Após atualizar, limpe o cache do phpBB e do navegador para carregar o novo CSS e o JavaScript.
-- A mudança afeta somente a interface do editor e de suas janelas; não substitui testes visuais nos navegadores e temas efetivamente utilizados.
+- No new migrations or changes to endpoints, permissions, stored data or actions.
+- Clear phpBB and browser caches after updating assets.
+- Browser and phpBB-theme visual tests are still necessary.
 
-## Verificações
+## Checks recorded at the time
 
-- 89 testes automatizados (PHP/JavaScript) aprovados, incluindo teste novo de visual e acessibilidade.
-- Sintaxe de 141 arquivos PHP e 28 JavaScript verificada.
-- Ainda não testado visualmente em instalação real do phpBB.
+- 89 PHP/JavaScript automated tests passed, including a visual/accessibility test.
+- Syntax checks covered 141 PHP and 28 JavaScript files.
+- This release had not been visually tested on a live phpBB installation at the time of the report.

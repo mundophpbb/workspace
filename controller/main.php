@@ -846,7 +846,7 @@ class main extends base_controller
 					"SELECT DISTINCT p.project_id, p.project_name, p.project_locked, p.locked_by, p.locked_time, p.user_id, p.collaboration_mode,
 					 (1 + (SELECT COUNT(*) FROM %s pu2 WHERE pu2.project_id = p.project_id AND pu2.user_id <> p.user_id)) AS member_count
 					 FROM %s p LEFT JOIN %s pu ON pu.project_id = p.project_id AND pu.user_id = %d
-					 WHERE p.user_id = %d OR pu.user_id = %d OR (p.project_locked = 0 AND p.collaboration_mode = 'pm_request')
+					 WHERE p.user_id = %d OR pu.user_id = %d OR (p.project_locked = 0 AND p.collaboration_mode IN ('pm_request', 'public'))
 					 ORDER BY p.project_name ASC",
 					$members_table,
 					$projects_table,

@@ -22,7 +22,7 @@ services:
     # CONTROLLERS
     # =========================================================
 
-    # Controller Principal (Renderização da IDE e Estado Inicial)
+    # Main controller (IDE rendering and initial state)
     mundophpbb.workspace.controller.main:
         class: mundophpbb\workspace\controller\main
         arguments:
@@ -91,7 +91,7 @@ services:
             - { name: controller.service }
 
 
-    # Radar de problemas (análise estática sem executar arquivos do usuário)
+    # Problem radar (static analysis; does not execute user files)
     mundophpbb.workspace.radar_analyzer:
         class: mundophpbb\workspace\service\radar_analyzer
 

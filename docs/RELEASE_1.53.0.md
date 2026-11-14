@@ -1,10 +1,8 @@
-# Workspace IDE 1.53.0 - Navegacao e estabilidade de carregamento
+# Workspace IDE 1.53.0 — Navigation and loading stability
 
-- Campo de pesquisa no menu Ferramentas, com busca instantanea e tolerancia a acentos, sem consultar o servidor.
-- Categorias do menu sao ocultadas durante a pesquisa para reduzir o deslocamento vertical; com a busca vazia, permanece a organizacao anterior.
-- Estado de busca e reiniciado quando o menu e reaberto; Enter executa a acao somente quando existe um unico resultado habilitado.
-- Reposicionamento dos menus durante scroll/resize e limitado a uma atualizacao por frame visual (requestAnimationFrame, com fallback).
-- Nao altera IDs de botoes, eventos antigos, rotas, permissoes, estrutura de banco de dados nem migrations.
-- Nota: esta versao nao implementa carregamento sob demanda de modulos JavaScript nem otimiza consultas SQL. Sem benchmarks no phpBB real nao e possivel afirmar ganhos quantitativos de velocidade.
-
-Atualizacao: backup dos arquivos e banco; desativar no ACP sem excluir dados; substituir arquivos da extensao; reativar; limpar cache phpBB e navegador.
+- Added instant, accent-insensitive local search to the Tools menu, without contacting the server.
+- Categories are hidden while a query is active and the original menu arrangement returns when the query is cleared.
+- Search resets when the menu reopens. Enter executes only when exactly one enabled result is available.
+- Menu repositioning on scroll and resize is limited to one update per animation frame, with a fallback.
+- No changes to button IDs, legacy events, routes, permissions, database schema or migrations.
+- This release does not implement lazy loading of JavaScript modules or database query optimization. Without real phpBB benchmarks, quantitative performance improvements are not claimed.
