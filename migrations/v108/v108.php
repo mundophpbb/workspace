@@ -38,7 +38,7 @@ class v108 extends \phpbb\db\migration\migration
 					'PRIMARY_KEY' => 'version_id',
 					'KEYS' => [
 						'file_time'     => ['INDEX', ['file_id', 'created_time']],
-						'project_time'  => ['INDEX', ['project_id', 'created_time']],
+						'ver_proj_time' => ['INDEX', ['project_id', 'created_time']],
 						'user_time'     => ['INDEX', ['user_id', 'created_time']],
 						'content_hash'  => ['INDEX', 'content_hash'],
 					],

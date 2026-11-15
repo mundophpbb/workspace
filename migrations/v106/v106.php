@@ -38,9 +38,9 @@ class v106 extends \phpbb\db\migration\migration
 					],
 					'PRIMARY_KEY' => 'comment_id',
 					'KEYS' => [
-						'file_status'  => ['INDEX', ['file_id', 'resolved']],
-						'project_time' => ['INDEX', ['project_id', 'created_time']],
-						'user_id'      => ['INDEX', 'user_id'],
+						'file_status'   => ['INDEX', ['file_id', 'resolved']],
+						'cmt_proj_time' => ['INDEX', ['project_id', 'created_time']],
+						'user_id'       => ['INDEX', 'user_id'],
 					],
 				],
 			],

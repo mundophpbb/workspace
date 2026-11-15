@@ -35,8 +35,8 @@ class v105 extends \phpbb\db\migration\migration
 					],
 					'PRIMARY_KEY' => 'activity_id',
 					'KEYS' => [
-						'project_time' => ['INDEX', ['project_id', 'created_time']],
-						'user_id'      => ['INDEX', 'user_id'],
+						'act_proj_time' => ['INDEX', ['project_id', 'created_time']],
+						'user_id'       => ['INDEX', 'user_id'],
 					],
 				],
 			],

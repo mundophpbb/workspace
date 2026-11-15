@@ -40,7 +40,7 @@ class v110 extends \phpbb\db\migration\migration
 					'PRIMARY_KEY' => 'notification_id',
 					'KEYS' => [
 						'user_read_time' => ['INDEX', ['user_id', 'is_read', 'created_time']],
-						'project_time'   => ['INDEX', ['project_id', 'created_time']],
+						'ntf_proj_time'  => ['INDEX', ['project_id', 'created_time']],
 						'actor_time'     => ['INDEX', ['actor_id', 'created_time']],
 					],
 				],
